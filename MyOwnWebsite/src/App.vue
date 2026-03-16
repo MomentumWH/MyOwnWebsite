@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { RouterLink, RouterView } from 'vue-router'
+import Home from './views/Home.vue';
 </script>
 
 <template>
-  <HelloWorld />
+  <div  style="width: 100%; height: 100%">
+    <home></home>
+  </div>
 </template>
+
+<style scoped>
+
+</style>

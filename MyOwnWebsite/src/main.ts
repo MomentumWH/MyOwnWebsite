@@ -1,5 +1,17 @@
+import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import './style.css'
 import App from './App.vue'
-
-createApp(App).mount('#app')
+import { router } from './router'
+import './style.css'
+import { createFitScale } from 'vfit'
+import 'vfit/style.css' // ⚠️ 划重点：一定要引入这个样式，不然布局组件会失效
+const app = createApp(App)
+app.use(createPinia())
+app.use(router)
+app.use(createFitScale({
+    target: '#app',        // 告诉它要在哪个容器搞事情
+    designWidth: 1920,     // 设计稿宽
+    designHeight: 1080,    // 设计稿高
+    scaleMode: 'auto'      // 默认 auto 就能应付绝大多数情况
+  }))
+app.mount('#app')
