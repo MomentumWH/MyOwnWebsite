@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import Home from './views/Home.vue';
+import { NMessageProvider,NDialogProvider } from 'naive-ui'
+import Home from './views/Home.vue'
 </script>
 
 <template>
-  <div  style="width: 100%; height: 100%">
-    <home></home>
-  </div>
+    <n-message-provider>
+      <n-dialog-provider>
+        <RouterView />
+      </n-dialog-provider>
+    </n-message-provider>
 </template>
-
-<style scoped>
-
-</style>

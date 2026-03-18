@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-
+import { useDialog, useMessage } from 'naive-ui'
+import {watch, ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+const message = useMessage()
+const dialog = useDialog()
+import TypeIt from 'typeit';
+const typePrinterMaker = ref(null);
 const profile = ref({
   name: '张三',
   title: '前端开发工程师',
@@ -22,6 +27,25 @@ onMounted(() => {
     skillsRendered.value = true
   }, 2000) // 2秒后显示项目经验
 })
+
+// 获取项目路由
+const router = useRouter()
+
+const goToCheckProjectRoute = (name: string) => {
+  switch (name) {
+    case '个人博客':
+      router.push('/blog')
+      break
+    case '电商平台':
+      router.push('/ecommerce')
+      break
+    case '数据可视化':
+      router.push('/data-visualization')
+      break
+    default:
+      router.push('/')
+  }
+}
 
 // 雪花特效
 const snowflakes = ref([])
@@ -55,7 +79,50 @@ const updateSnowflakes = () => {
   }
 }
 
+
 let animationFrameId = 0
+const handleConfirm=(value)=> {
+  dialog.warning({
+    title: 'Tips',
+    content: '你确定要跳转到对应技术栈介绍页面吗？',
+    positiveText: '确定',
+    negativeText: '不确定',
+    draggable: true,
+    onPositiveClick: () => {
+      //message.success('确定')
+      handleSkillClick(value)
+    },
+    onNegativeClick: () => {
+      message.warning('取消跳转')
+    }
+  })
+}
+const handleSkillClick = (skill: string) => {
+   switch (skill) {
+    case 'Vue 3':
+       window.open('https://cn.vuejs.org/','_blank')
+      break
+    case 'TypeScript':
+      window.open('https://www.typescriptlang.org/','_blank')
+      break
+    case 'JavaScript':
+      window.open('https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide','_blank')
+      break
+    case 'HTML/CSS':
+      window.open('https://web.developers.google.cn/css?hl=zh-cn','_blank')
+      break
+    case 'Node.js':
+      window.open('https://nodejs.org/zh-cn','_blank')
+      break
+    default:
+      router.push('/')
+  }
+
+}
+
+const goToDrag = () => {
+  router.push('/drag-box')
+}
 
 onMounted(() => {
   const animate = () => {
@@ -63,6 +130,15 @@ onMounted(() => {
     animationFrameId = requestAnimationFrame(animate)
   }
   animate()
+  new TypeIt(typePrinterMaker.value, {
+    strings: ['Welcome  to  SoyBean   Introduction !','This is the first Admin  powered by  Chonny !'  ],
+    speed: 100,
+    waitUntilVisible: true,
+    loop:true,
+    breakLines: true, // 是否允许换行
+    lifeLike:true,
+    nextStringDelay:1000,
+  }).go();
 })
 
 onUnmounted(() => {
@@ -73,6 +149,7 @@ onUnmounted(() => {
 <template>
   <div class="profile-page">
     <!-- 雪花特效 -->
+      <!-- <n-message-provider> -->
     <div class="snow-container">
       <div
         v-for="snowflake in snowflakes"
@@ -89,11 +166,19 @@ onUnmounted(() => {
     </div>
 
     <header class="profile-header">
-      <img :src="profile.avatar" alt="Avatar" class="avatar">
-      <div class="profile-info">
-        <h1 class="name">{{ profile.name }}</h1>
-        <p class="title">{{ profile.title }}</p>
-      </div>
+      <!-- <div  class="headerSimplification"> -->
+        <!-- <div> -->
+          <img :src="profile.avatar" alt="Avatar" class="avatar">
+          <div class="profile-info">
+            <h1 class="name">{{ profile.name }}</h1>
+            <p class="title">{{ profile.title }}</p>
+          </div>
+        <!-- </div>   -->
+        <div  class="titleTypePrintBox">
+            <span ref="typePrinterMaker"  class="typePrinterTitleLike"  :style="{color:'#FFF'}"></span>
+        </div>
+      <!-- </div> -->
+      
     </header>
 
     <section class="bio-section">
@@ -102,14 +187,17 @@ onUnmounted(() => {
     </section>
 
     <section class="skills-section">
+     
       <h2>技能栈</h2>
       <div class="skills-grid">
         <TransitionGroup name="skill-fade" tag="div" class="skills-transition-group">
-          <div v-for="(skill, index) in profile.skills" :key="skill" class="skill-tag" :style="{ animationDelay: `${index * 0.1}s` }">
+          <div v-for="(skill, index) in profile.skills" :key="skill" 
+                @click="handleConfirm(skill)"  class="skill-tag" :style="{ animationDelay: `${index * 0.1}s` }">
             {{ skill }}
           </div>
         </TransitionGroup>
       </div>
+    
     </section>
 
     <section v-if="skillsRendered" class="projects-section">
@@ -119,10 +207,18 @@ onUnmounted(() => {
           <div v-for="(project, index) in profile.projects" :key="project.name" class="project-card" :style="{ animationDelay: `${index * 0.2}s` }">
             <h3>{{ project.name }}</h3>
             <p>{{ project.description }}</p>
+            <button @click="goToCheckProjectRoute(project.name)" class="project-link">
+              查看详情
+            </button>
           </div>
         </TransitionGroup>
       </div>
     </section>
+
+   <section v-if="skillsRendered" class="dragBox"  >
+      <n-button @click="goToDrag">This is drag button demo</n-button>
+    </section>
+      <!-- </n-message-provider> -->
   </div>
 </template>
 
@@ -132,7 +228,7 @@ onUnmounted(() => {
   margin: 0 auto;
   padding: 2rem 4rem;
   font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #8aa064 0%, #c55d8d 100%);
   min-height: 100vh;
 }
 
@@ -146,7 +242,12 @@ onUnmounted(() => {
   color: white;
   border-radius: 12px;
 }
-
+.headerSimplification{
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: space-between;
+}
 .avatar {
   width: 150px;
   height: 150px;
@@ -297,9 +398,25 @@ onUnmounted(() => {
 }
 
 .project-card p {
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
   color: #666;
+}
+
+.project-link {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #8a5ab9 100%);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.project-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 /* 雪花特效样式 */
@@ -328,5 +445,20 @@ onUnmounted(() => {
   100% {
     transform: translateY(100vh) rotate(360deg);
   }
+}
+.dragBox{
+  margin-top: 100px;
+}
+.titleTypePrintBox{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  //height: 80vh;
+  margin-right:100px;
+}
+.typePrinterTitleLike{
+  font-weight: bold;
+  font-size: 42px;
+  font-family: 'Times New Roman', Times, serif;
 }
 </style>

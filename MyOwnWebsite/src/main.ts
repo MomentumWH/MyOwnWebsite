@@ -5,6 +5,10 @@ import { router } from './router'
 import './style.css'
 import { createFitScale } from 'vfit'
 import 'vfit/style.css' // ⚠️ 划重点：一定要引入这个样式，不然布局组件会失效
+import 'vfonts/Lato.css'
+import 'vfonts/FiraCode.css'
+import naive from 'naive-ui'
+import { NMessageProvider } from 'naive-ui'
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
@@ -14,4 +18,5 @@ app.use(createFitScale({
     designHeight: 1080,    // 设计稿高
     scaleMode: 'auto'      // 默认 auto 就能应付绝大多数情况
   }))
+app.use(naive)
 app.mount('#app')
