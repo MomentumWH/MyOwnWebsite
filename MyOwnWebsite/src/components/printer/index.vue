@@ -8,6 +8,8 @@
  * Copyright (c) 2025 by CHENY, All Rights Reserved 😎.
 -->
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+
 interface Props {
   text?: string
   duration?: number
@@ -35,7 +37,7 @@ const emit = defineEmits<Emits>()
 const visible = ref(true)
 const displayText = ref('')
 
-let typeInterval: NodeJS.Timeout | null = null
+let typeInterval: ReturnType<typeof setInterval> | null = null
 
 // 打字机效果
 function startTyping() {

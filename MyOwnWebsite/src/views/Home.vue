@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useDialog, useMessage } from 'naive-ui'
-import {watch, ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { CashOutline as CashIcon } from '@vicons/ionicons5'
 const message = useMessage()
 const dialog = useDialog()
 import TypeIt from 'typeit';
@@ -48,7 +49,16 @@ const goToCheckProjectRoute = (name: string) => {
 }
 
 // 雪花特效
-const snowflakes = ref([])
+interface Snowflake {
+  id: number
+  x: number
+  y: number
+  size: number
+  speed: number
+  opacity: number
+}
+
+const snowflakes = ref<Snowflake[]>([])
 
 const createSnowflake = () => {
   return {
@@ -81,7 +91,7 @@ const updateSnowflakes = () => {
 
 
 let animationFrameId = 0
-const handleConfirm=(value)=> {
+const handleConfirm=(value: string)=> {
   dialog.warning({
     title: 'Tips',
     content: '你确定要跳转到对应技术栈介绍页面吗？',
@@ -130,15 +140,17 @@ onMounted(() => {
     animationFrameId = requestAnimationFrame(animate)
   }
   animate()
-  new TypeIt(typePrinterMaker.value, {
-    strings: ['Welcome  to  SoyBean   Introduction !','This is the first Admin  powered by  Chonny !'  ],
-    speed: 100,
-    waitUntilVisible: true,
-    loop:true,
-    breakLines: true, // 是否允许换行
-    lifeLike:true,
-    nextStringDelay:1000,
-  }).go();
+  if (typePrinterMaker.value) {
+    new TypeIt(typePrinterMaker.value, {
+      strings: ['Welcome  to  SoyBean   Introduction !','This is the first Admin  powered by  Chonny !'  ],
+      speed: 100,
+      waitUntilVisible: true,
+      loop:true,
+      breakLines: true, // 是否允许换行
+      lifeLike:true,
+      nextStringDelay:1000,
+    }).go();
+  }
 })
 
 onUnmounted(() => {
@@ -216,7 +228,15 @@ onUnmounted(() => {
     </section>
 
    <section v-if="skillsRendered" class="dragBox"  >
-      <n-button @click="goToDrag">This is drag button demo</n-button>
+      <!-- <n-button @click="goToDrag" dashed  type="info">This is drag button demo</n-button> -->
+     <n-button color="#ff69b4"  @click="goToDrag">
+       <template #icon>
+         <n-icon>
+           <CashIcon />
+         </n-icon>
+       </template>
+       This is drag button demo
+     </n-button>
     </section>
       <!-- </n-message-provider> -->
   </div>
@@ -453,7 +473,6 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  //height: 80vh;
   margin-right:100px;
 }
 .typePrinterTitleLike{

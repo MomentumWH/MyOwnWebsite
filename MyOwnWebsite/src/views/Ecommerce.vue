@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -24,9 +24,22 @@ const goBack = () => {
 
 <template>
   <div class="project-page">
-    <header class="project-header">
-      <h1>电商平台</h1>
-      <p class="project-subtitle">基于 Nuxt 3 的电商平台项目</p>
+    <!-- class="project-header" -->
+    <header >
+       
+      <div  class="header-line">
+        <div  class="header-line-backButton">
+          <button @click="goBack" class="back-button">
+            ← 返回首页
+          </button>
+        </div>
+        <div  class="header-line-title">
+          <h1>电商平台</h1>
+        </div>
+        <div  class="header-line-content">
+          <p class="project-subtitle">基于 Nuxt 3 的电商平台项目</p>
+        </div>
+      </div>
     </header>
 
     <section class="project-details">
@@ -55,14 +68,14 @@ const goBack = () => {
     </section>
 
     <footer class="project-footer">
-      <button @click="goBack" class="back-button">
+      <!-- <button @click="goBack" class="back-button">
         ← 返回首页
-      </button>
+      </button> -->
     </footer>
   </div>
 </template>
 
-<style scoped>
+<style  lang="scss" scoped>
 .project-page {
   min-width: 1200px;
   margin: 0 auto;
@@ -84,8 +97,8 @@ const goBack = () => {
 
 .back-button {
   display: inline-block;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #8a5ab9 100%);
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #8a97d3 0%, #36e4a1 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -99,7 +112,25 @@ const goBack = () => {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-
+.header-line{
+  display: flex;
+  //justify-content: center;
+  //align-items: center;
+  flex-direction: column;  
+}
+.header-line-title{
+    text-align: center;
+    flex:1;
+}
+.header-line-content{
+    text-align: center;
+    flex:1;
+  }
+.header-line-backButton{
+    margin-bottom: 2rem;
+    text-align: left;
+    flex:1;
+}
 .project-header h1 {
   font-size: 3rem;
   color: white;

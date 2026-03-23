@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import heroImg from '../assets/hero.png'
 import viteLogo from '../assets/vite.svg'
 import vueLogo from '../assets/vue.svg'
-
-const counterStore = useCounterStore()
 </script>
 
 <template>
@@ -19,9 +16,9 @@ const counterStore = useCounterStore()
       <p>Edit <code>src/App.vue</code> and save to test <code>HMR</code></p>
     </div>
     <div class="counter">
-      <button @click="counterStore.decrement">-</button>
-      <span>Count is {{ counterStore.count }}</span>
-      <button @click="counterStore.increment">+</button>
+      <button>-</button>
+      <span>Count is 0</span>
+      <button>+</button>
     </div>
   </section>
 

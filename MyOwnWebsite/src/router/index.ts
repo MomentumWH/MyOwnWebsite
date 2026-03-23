@@ -5,8 +5,15 @@ import Blog from '../views/Blog.vue'
 import Ecommerce from '../views/Ecommerce.vue'
 import DataVisualization from '../views/DataVisualization.vue'
 import dragBox from '../views/dragBox.vue'
+import Login from '../views/Login.vue'
 
 const routes = [
+  {
+    path: '/login', // 路由路径
+    name: 'login',
+    component: Login, // 匹配的组件
+    meta: { title: '登录' },
+  },
   {
     path: '/', // 路由路径
     name: 'home',
