@@ -134,6 +134,14 @@ const goToDrag = () => {
   router.push('/drag-box')
 }
 
+const goToProfile = () => {
+  router.push('/profile')
+}
+
+const goToChatRoom = () => {
+  router.push('/chat-room')
+}
+
 onMounted(() => {
   const animate = () => {
     updateSnowflakes()
@@ -188,6 +196,10 @@ onUnmounted(() => {
         <!-- </div>   -->
         <div  class="titleTypePrintBox">
             <span ref="typePrinterMaker"  class="typePrinterTitleLike"  :style="{color:'#FFF'}"></span>
+        </div>
+        <div class="header-buttons">
+          <button @click="goToProfile" class="profile-btn">个人中心</button>
+          <button @click="goToChatRoom" class="chat-btn">聊天室</button>
         </div>
       <!-- </div> -->
       
@@ -479,5 +491,47 @@ onUnmounted(() => {
   font-weight: bold;
   font-size: 42px;
   font-family: 'Times New Roman', Times, serif;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+}
+
+.profile-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #8a5ab9 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.chat-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chat-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
 }
 </style>

@@ -6,6 +6,8 @@ import Ecommerce from '../views/Ecommerce.vue'
 import DataVisualization from '../views/DataVisualization.vue'
 import dragBox from '../views/dragBox.vue'
 import Login from '../views/Login.vue'
+import Profile from '../views/Profile.vue'
+import ChatRoom from '../views/ChatRoom.vue'
 
 const routes = [
   {
@@ -13,6 +15,12 @@ const routes = [
     name: 'login',
     component: Login, // 匹配的组件
     meta: { title: '登录' },
+  },
+  {
+    path: '/profile', // 路由路径
+    name: 'profile',
+    component: Profile, // 匹配的组件
+    meta: { requiresAuth: true, title: '个人中心' },
   },
   {
     path: '/', // 路由路径
@@ -50,6 +58,12 @@ const routes = [
     name: 'drag-box',
     component: dragBox, // 匹配的组件
     meta: { title: '拖动盒子' },
+  },
+  {
+    path: '/chat-room', // 路由路径
+    name: 'chat-room',
+    component: ChatRoom, // 匹配的组件
+    meta: { title: '聊天室' },
   },
   // {
   // name: 'user', // 路由名称（用于编程式导航）

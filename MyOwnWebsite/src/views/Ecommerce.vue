@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { NDrawer, NCarousel, NCarouselItem } from 'naive-ui'
 
 const router = useRouter()
 const features = ref([
@@ -17,8 +18,23 @@ const techStack = ref([
   { name: 'Stripe 支付', icon: '💳' }
 ])
 
+const showDrawer = ref(false)
+const currentFeature = ref('')
+
+const carouselImages = ref([
+  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=e-commerce%20product%20display%20page%20with%20modern%20UI&image_size=square_hd',
+  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=shopping%20cart%20checkout%20page%20design&image_size=square_hd',
+  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20login%20and%20register%20interface&image_size=square_hd',
+  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=order%20management%20dashboard&image_size=square_hd'
+])
+
 const goBack = () => {
   router.back()
+}
+
+const handleFeatureClick = (featureName: string) => {
+  currentFeature.value = featureName
+  showDrawer.value = true
 }
 </script>
 
@@ -50,7 +66,7 @@ const goBack = () => {
     <section class="project-features">
       <h2>主要功能</h2>
       <div class="features-grid">
-        <div v-for="(feature, index) in features" :key="feature.name" class="feature-card" :style="{ animationDelay: `${index * 0.2}s` }">
+        <div v-for="(feature, index) in features" :key="feature.name" class="feature-card" :style="{ animationDelay: `${index * 0.2}s` }" @click="handleFeatureClick(feature.name)">
           <span class="feature-icon">{{ feature.icon }}</span>
           <h3>{{ feature.name }}</h3>
         </div>
@@ -72,6 +88,46 @@ const goBack = () => {
         ← 返回首页
       </button> -->
     </footer>
+
+    <n-drawer
+      v-model:show="showDrawer"
+      :width="'100%'"
+      height="70%"
+      placement="bottom"
+      :native-scrollbar="false"
+      :drawer-style="{ 
+        borderRadius: '24px 24px 0 0',
+        background: 'linear-gradient(135deg, rgba(145, 151, 118, 0.95) 0%, rgba(114, 203, 238, 0.95) 100%)',
+        backdropFilter: 'blur(20px)'
+      }"
+      :content-style="{ padding: 0 }"
+    >
+      <n-drawer-content 
+        title="功能展示" 
+        closable 
+        :title-style="{ 
+          color: 'white', 
+          fontSize: '1.5rem',
+          fontWeight: 600
+        }"
+      >
+        <div class="drawer-content">
+          <h3>{{ currentFeature }}</h3>
+          <n-carousel
+            :show-dots="true"
+            :autoplay="true"
+            :interval="3000"
+            dot-type="line"
+          >
+            <n-carousel-item v-for="(image, index) in carouselImages" :key="index">
+              <div class="carousel-item">
+                <img :src="image" :alt="`功能展示 ${index + 1}`" class="carousel-image" />
+              </div>
+            </n-carousel-item>
+          </n-carousel>
+        </div>
+      </n-drawer-content>
+    </n-drawer>
   </div>
 </template>
 
@@ -264,6 +320,85 @@ const goBack = () => {
   0% {
     opacity: 0;
     transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.drawer-content {
+  padding: 2rem;
+  text-align: center;
+  animation: drawerFadeIn 0.5s ease-out;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-content h3 {
+  font-size: 1.5rem;
+  color: white;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.carousel-item {
+  width: 100%;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+:deep(.n-carousel) {
+  flex: 1;
+  min-height: 0;
+}
+
+:deep(.n-carousel__slides) {
+  height: 100%;
+}
+
+:deep(.n-carousel__slide) {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.n-carousel__dots) {
+  bottom: 20px;
+}
+
+:deep(.n-carousel__dot) {
+  background-color: rgba(255, 255, 255, 0.4);
+  width: 24px;
+  height: 4px;
+}
+
+:deep(.n-carousel__dot--active) {
+  background-color: white;
+  width: 32px;
+}
+
+.feature-card {
+  cursor: pointer;
+}
+
+@keyframes drawerFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
   }
   100% {
     opacity: 1;
