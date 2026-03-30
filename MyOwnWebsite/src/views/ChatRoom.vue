@@ -2,96 +2,88 @@
 import { ref, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NInput, NButton, NIcon, NAvatar, NScrollbar } from 'naive-ui'
+import { useChatStore } from '../stores/chat'
 
 const router = useRouter()
+const chatStore = useChatStore()
 
-interface Message {
-  id: number
-  user: string
-  avatar: string
-  content: string
-  time: string
-  isSelf: boolean
-  type?: 'text' | 'image' | 'emoji'
-}
+const inputText = ref('')
+const messageListRef = ref<HTMLElement | null>(null)
 
-const messages = ref<Message[]>([
+const initialMessages = [
   {
-    id: 1,
+    id: '1',
     user: 'Ian',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square',
     content: '菜塔',
     time: '10:20',
     isSelf: false,
-    type: 'text'
+    type: 'text' as const
   },
   {
-    id: 2,
+    id: '2',
     user: 'Ian',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square',
     content: '好中锋也不会用',
     time: '10:20',
     isSelf: false,
-    type: 'text'
+    type: 'text' as const
   },
   {
-    id: 3,
+    id: '3',
     user: 'Ian',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square',
     content: '🐱',
     time: '10:20',
     isSelf: false,
-    type: 'emoji'
+    type: 'emoji' as const
   },
   {
-    id: 4,
+    id: '4',
     user: 'Alex',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square',
     content: '瑞典3-1乌克兰晋级附加赛决赛，哲凯赖什帽子戏法\n\n懂球帝/陌议室《瑞典3-1乌克兰晋级附加赛决赛，哲凯赖什帽子戏法》https://m.don...',
     time: '10:21',
     isSelf: false,
-    type: 'text'
+    type: 'text' as const
   },
   {
-    id: 5,
+    id: '5',
     user: 'Alex',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square',
     content: '🟢 你亦亦子靓版',
     time: '10:21',
     isSelf: false,
-    type: 'text'
+    type: 'text' as const
   },
   {
-    id: 6,
+    id: '6',
     user: 'Alex',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square',
     content: '是我们拖累了哲凯',
     time: '10:21',
     isSelf: false,
-    type: 'text'
+    type: 'text' as const
   },
   {
-    id: 7,
+    id: '7',
     user: 'Chinesesocialist',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=older%20male%20cartoon%20avatar%20portrait&image_size=square',
     content: '法国队锋线太恐怖了',
     time: '10:21',
     isSelf: false,
-    type: 'text'
+    type: 'text' as const
   },
   {
-    id: 8,
+    id: '8',
     user: 'Chinesesocialist',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=older%20male%20cartoon%20avatar%20portrait&image_size=square',
     content: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20penguin%20watching%20TV%20with%20popcorn&image_size=square_hd',
     time: '10:22',
     isSelf: false,
-    type: 'image'
+    type: 'image' as const
   }
-])
-
-const inputText = ref('')
-const messageListRef = ref<HTMLElement | null>(null)
+]
 
 const goBack = () => {
   router.back()
@@ -108,17 +100,14 @@ const scrollToBottom = () => {
 const sendMessage = () => {
   if (!inputText.value.trim()) return
   
-  const newMessage: Message = {
-    id: messages.value.length + 1,
+  chatStore.addMessage({
     user: '我',
     avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar%20profile%20picture&image_size=square',
     content: inputText.value,
-    time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-    isSelf: true,
-    type: 'text'
-  }
+    type: 'text',
+    isSelf: true
+  })
   
-  messages.value.push(newMessage)
   inputText.value = ''
   scrollToBottom()
 }
@@ -131,6 +120,12 @@ const handleKeyPress = (event: KeyboardEvent) => {
 }
 
 onMounted(() => {
+  chatStore.loadFromStorage()
+  if (chatStore.messages.length === 0) {
+    initialMessages.forEach(msg => {
+      chatStore.messages.push(msg)
+    })
+  }
   scrollToBottom()
 })
 </script>
@@ -161,7 +156,7 @@ onMounted(() => {
 
     <div class="chat-content" ref="messageListRef">
       <div class="messages-list">
-        <div v-for="(message, index) in messages" :key="message.id" class="message-item" :class="{ 'message-self': message.isSelf }">
+        <div v-for="(message, index) in chatStore.messages" :key="message.id" class="message-item" :class="{ 'message-self': message.isSelf }">
           <div v-if="!message.isSelf" class="message-avatar">
             <n-avatar :src="message.avatar" :size="40" />
           </div>
@@ -320,6 +315,12 @@ onMounted(() => {
   overflow-y: auto;
   padding: 24px;
   background: rgba(255, 255, 255, 0.15);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chat-content::-webkit-scrollbar {
+  display: none;
 }
 
 .messages-list {

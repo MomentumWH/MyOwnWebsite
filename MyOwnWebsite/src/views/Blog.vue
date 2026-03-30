@@ -10,6 +10,7 @@ const features = ref([
   { name: '评论和回复功能', icon: '💬' },
   { name: '响应式设计', icon: '📱' }
 ])
+const dragTitle = ref()
 
 const techStack = ref([
   { name: 'Vue 3 + Composition API', icon: '⚡' },
@@ -35,6 +36,7 @@ const goBack = () => {
 const handleFeatureClick = (featureName: string) => {
   currentFeature.value = featureName
   showDrawer.value = true
+  dragTitle.value=featureName
 }
 </script>
 
@@ -90,29 +92,14 @@ const handleFeatureClick = (featureName: string) => {
       :content-style="{ padding: 0 }"
     >
       <n-drawer-content 
-        title="功能展示" 
+        :title="dragTitle" 
         closable 
-        :title-style="{ 
+        :header-style="{ 
           color: 'white', 
           fontSize: '1.5rem',
-          fontWeight: 600
-        }"
-      >
-        <div class="drawer-content">
-          <h3>{{ currentFeature }}</h3>
-          <n-carousel
-            :show-dots="true"
-            :autoplay="true"
-            :interval="3000"
-            dot-type="line"
-          >
-            <n-carousel-item v-for="(image, index) in carouselImages" :key="index">
-              <div class="carousel-item">
-                <img :src="image" :alt="`功能展示 ${index + 1}`" class="carousel-image" />
-              </div>
-            </n-carousel-item>
-          </n-carousel>
-        </div>
+          fontWeight: 'bolder'
+        }">
+        561665
       </n-drawer-content>
     </n-drawer>
   </div>
