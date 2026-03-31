@@ -1,65 +1,167 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { NDrawer, NCarousel, NCarouselItem } from 'naive-ui'
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { NDrawer, NCarousel, NCarouselItem } from "naive-ui";
+import { use } from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
+import { PieChart } from "echarts/charts";
+import { TooltipComponent, LegendComponent } from "echarts/components";
+import { ECharts } from "echarts/core";
 
-const router = useRouter()
+// 注册需要的组件
+use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent]);
+
+const router = useRouter();
 const features = ref([
-  { name: '商品展示和搜索', icon: '🔍' },
-  { name: '购物车和结算', icon: '🛒' },
-  { name: '用户登录和注册', icon: '👤' },
-  { name: '订单管理', icon: '📦' }
-])
+  { name: "商品展示和搜索", icon: "🔍" },
+  { name: "购物车和结算", icon: "🛒" },
+  { name: "用户登录和注册", icon: "👤" },
+  { name: "订单管理", icon: "📦" },
+]);
 
 const techStack = ref([
-  { name: 'Nuxt 3', icon: '⚡' },
-  { name: 'Tailwind CSS', icon: '🎨' },
-  { name: 'Pinia', icon: '🍍' },
-  { name: 'Stripe 支付', icon: '💳' }
-])
+  { name: "Nuxt 3", icon: "⚡" },
+  { name: "Tailwind CSS", icon: "🎨" },
+  { name: "Pinia", icon: "🍍" },
+  { name: "Stripe 支付", icon: "💳" },
+]);
 
-const showDrawer = ref(false)
-const currentFeature = ref('')
+const showDrawer = ref(false);
+const currentFeature = ref("");
 
 const carouselImages = ref([
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=e-commerce%20product%20display%20page%20with%20modern%20UI&image_size=square_hd',
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=shopping%20cart%20checkout%20page%20design&image_size=square_hd',
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20login%20and%20register%20interface&image_size=square_hd',
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=order%20management%20dashboard&image_size=square_hd'
-])
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=e-commerce%20product%20display%20page%20with%20modern%20UI&image_size=square_hd",
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=shopping%20cart%20checkout%20page%20design&image_size=square_hd",
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20login%20and%20register%20interface&image_size=square_hd",
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=order%20management%20dashboard&image_size=square_hd",
+]);
 
-const imgList=ref([
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
-])
+const imgList = ref([
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg",
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg",
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg",
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg",
+]);
 const goBack = () => {
-  router.back()
-}
-const selectDrawer=ref()
+  router.back();
+};
+const selectDrawer = ref();
 const handleFeatureClick = (featureName: string) => {
-  currentFeature.value = featureName
-  showDrawer.value = true
-  selectDrawer.value = featureName
-}
+  currentFeature.value = featureName;
+  showDrawer.value = true;
+  selectDrawer.value = featureName;
+};
+
+// 环形图数据
+const chartData = ref([
+  { name: "电子产品", value: 35 },
+  { name: "服装服饰", value: 25 },
+  { name: "家居用品", value: 20 },
+  { name: "食品饮料", value: 15 },
+  { name: "其他", value: 5 },
+]);
+
+// 图表实例
+let chartInstance: ECharts | null = null;
+
+// 初始化图表
+const initChart = () => {
+  const chartDom = document.getElementById("ring-chart");
+  if (!chartDom) return;
+
+  // 动态导入 ECharts
+  import("echarts").then((echarts) => {
+    chartInstance = echarts.init(chartDom);
+
+    const option = {
+      tooltip: {
+        trigger: "item",
+        formatter: "{a} <br/>{b} : {c}%",
+      },
+      legend: {
+        orient: "horizontal",
+        bottom: "5%",
+        left: "center",
+        textStyle: {
+          color: "white",
+          fontSize: 14,
+        },
+      },
+      series: [
+        {
+          name: "商品分类",
+          type: "pie",
+          radius: ["20%", "70%"],
+          center: ["50%", "40%"],
+          roseType: "area",
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: "#fff",
+            borderWidth: 2,
+          },
+          label: {
+            show: true,
+            position: "outside",
+            formatter: "{b}: {c}%",
+            color: "white",
+            fontSize: 14,
+            fontWeight: "bold",
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 16,
+              fontWeight: "bold",
+            },
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: "rgba(0, 0, 0, 0.5)",
+            },
+          },
+          data: chartData.value,
+        },
+      ],
+    };
+
+    chartInstance.setOption(option);
+  });
+};
+
+// 响应式调整图表大小
+const resizeChart = () => {
+  if (chartInstance) {
+    chartInstance.resize();
+  }
+};
+
+onMounted(() => {
+  initChart();
+  window.addEventListener("resize", resizeChart);
+});
+
+// 组件卸载时销毁图表
+onUnmounted(() => {
+  window.removeEventListener("resize", resizeChart);
+  if (chartInstance) {
+    chartInstance.dispose();
+  }
+});
 </script>
 
 <template>
   <div class="project-page">
     <!-- class="project-header" -->
-    <header >
-       
-      <div  class="header-line">
-        <div  class="header-line-backButton">
-          <button @click="goBack" class="back-button">
-            ← 返回首页
-          </button>
+    <header>
+      <div class="header-line">
+        <div class="header-line-backButton">
+          <button @click="goBack" class="back-button">← 返回首页</button>
         </div>
-        <div  class="header-line-title">
+        <div class="header-line-title">
           <h1>电商平台</h1>
         </div>
-        <div  class="header-line-content">
+        <div class="header-line-content">
           <p class="project-subtitle">基于 Nuxt 3 的电商平台项目</p>
         </div>
       </div>
@@ -67,13 +169,21 @@ const handleFeatureClick = (featureName: string) => {
 
     <section class="project-details">
       <h2>项目介绍</h2>
-      <p>这是一个功能完整的电商平台，支持商品展示、购物车管理、订单结算等功能，采用现代化的技术栈构建，提供良好的用户体验。</p>
+      <p>
+        这是一个功能完整的电商平台，支持商品展示、购物车管理、订单结算等功能，采用现代化的技术栈构建，提供良好的用户体验。
+      </p>
     </section>
 
     <section class="project-features">
       <h2>主要功能</h2>
       <div class="features-grid">
-        <div v-for="(feature, index) in features" :key="feature.name" class="feature-card" :style="{ animationDelay: `${index * 0.2}s` }" @click="handleFeatureClick(feature.name)">
+        <div
+          v-for="(feature, index) in features"
+          :key="feature.name"
+          class="feature-card"
+          :style="{ animationDelay: `${index * 0.2}s` }"
+          @click="handleFeatureClick(feature.name)"
+        >
           <span class="feature-icon">{{ feature.icon }}</span>
           <h3>{{ feature.name }}</h3>
         </div>
@@ -83,7 +193,12 @@ const handleFeatureClick = (featureName: string) => {
     <section class="project-tech">
       <h2>技术栈</h2>
       <div class="tech-grid">
-        <div v-for="(tech, index) in techStack" :key="tech.name" class="tech-card" :style="{ animationDelay: `${index * 0.2}s` }">
+        <div
+          v-for="(tech, index) in techStack"
+          :key="tech.name"
+          class="tech-card"
+          :style="{ animationDelay: `${index * 0.2}s` }"
+        >
           <span class="tech-icon">{{ tech.icon }}</span>
           <h3>{{ tech.name }}</h3>
         </div>
@@ -136,29 +251,40 @@ const handleFeatureClick = (featureName: string) => {
       </n-drawer-content>
     </n-drawer> -->
 
-      <n-drawer v-model:show="showDrawer" height="70%"  placement="bottom"  
-              :content-style="{borderRadius: '24px 24px 0 0',
-              background: 'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
-              backdropFilter: 'blur(20px)'}"  style="border-radius: 24px  24px 0 0;">
-    <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
-      <n-carousel show-arrow>
-      <img  v-for="item in imgList"
-        class="carousel-img"
-        :src="item"
-      >
-      </n-carousel>
-        </n-drawer-content>
-      </n-drawer>
-   <n-back-top :right="100" />
+    <n-drawer
+      v-model:show="showDrawer"
+      height="70%"
+      placement="bottom"
+      :content-style="{
+        borderRadius: '24px 24px 0 0',
+        background:
+          'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
+        backdropFilter: 'blur(20px)',
+      }"
+      style="border-radius: 24px 24px 0 0"
+    >
+      <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
+        <n-carousel show-arrow>
+          <img v-for="item in imgList" class="carousel-img" :src="item" />
+        </n-carousel>
+      </n-drawer-content>
+    </n-drawer>
 
+    <!-- 环形图展示区域 -->
+    <section class="chart-section">
+      <h2>商品分类占比</h2>
+      <div id="ring-chart" class="ring-chart"></div>
+    </section>
+
+    <n-back-top :right="100" />
   </div>
 </template>
 
-<style  lang="scss" scoped>
+<style lang="scss" scoped>
 .project-page {
   min-width: 1200px;
   margin: 0 auto;
- padding: 2rem 4rem;
+  padding: 2rem 4rem;
   min-height: 100vh;
   background: linear-gradient(135deg, #919776 0%, #72cbee 100%);
   color: white;
@@ -191,30 +317,55 @@ const handleFeatureClick = (featureName: string) => {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-.header-line{
+.header-line {
   display: flex;
   //justify-content: center;
   //align-items: center;
-  flex-direction: column;  
+  flex-direction: column;
 }
-.header-line-title{
-    text-align: center;
-    flex:1;
+.header-line-title {
+  text-align: center;
+  flex: 1;
 }
-.header-line-content{
-    text-align: center;
-    flex:1;
-  }
-.header-line-backButton{
-    margin-bottom: 2rem;
-    text-align: left;
-    flex:1;
+.header-line-content {
+  text-align: center;
+  flex: 1;
+}
+.header-line-backButton {
+  margin-bottom: 2rem;
+  text-align: left;
+  flex: 1;
 }
 .project-header h1 {
   font-size: 3rem;
   color: white;
   margin-bottom: 1rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 环形图样式 */
+.chart-section {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.chart-section h2 {
+  font-size: 1.75rem;
+  color: white;
+  margin-bottom: 2rem;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.ring-chart {
+  width: 100%;
+  height: 500px;
 }
 
 .project-subtitle {

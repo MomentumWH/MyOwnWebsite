@@ -355,9 +355,13 @@ onUnmounted(() => {
               : '0 4px 12px rgba(240, 147, 251, 0.3)',
           }"
         >
-          如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！{{
-            isShowUploadBox ? "(再次点击收起上传)" : ""
-          }}
+          <n-gradient-text
+            gradient="linear-gradient(90deg, red 0%, green 50%, blue 100%)"
+          >
+            如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！{{
+              isShowUploadBox ? "(再次点击收起上传)" : ""
+            }}
+          </n-gradient-text>
         </div>
         <transition name="upload-box-fade">
           <UploadBox v-if="isShowUploadBox"></UploadBox>
