@@ -10,7 +10,6 @@ const features = ref([
   { name: '评论和回复功能', icon: '💬' },
   { name: '响应式设计', icon: '📱' }
 ])
-const dragTitle = ref()
 
 const techStack = ref([
   { name: 'Vue 3 + Composition API', icon: '⚡' },
@@ -24,7 +23,7 @@ const currentFeature = ref('')
 
 const carouselImages = ref([
   'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20article%20publishing%20interface%20with%20modern%20design&image_size=square_hd',
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20category%20and%20tag%20management%20system&image_size=square_hd',
+  'https://rae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20category%20and%20tag%20management%20system&image_size=square_hd',
   'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20comment%20and%20reply%20feature&image_size=square_hd',
   'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=responsive%20blog%20design%20for%20mobile%20and%20desktop&image_size=square_hd'
 ])
@@ -32,19 +31,38 @@ const carouselImages = ref([
 const goBack = () => {
   router.back()
 }
-
+const selectDrawer=ref()
 const handleFeatureClick = (featureName: string) => {
   currentFeature.value = featureName
   showDrawer.value = true
-  dragTitle.value=featureName
+  selectDrawer.value = featureName
 }
+const imgList=ref([
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
+])
 </script>
 
 <template>
   <div class="project-page">
-    <header class="project-header">
-      <h1>个人博客</h1>
-      <p class="project-subtitle">使用 Vue 3 和 Vite 构建的个人博客系统</p>
+    <!-- class="project-header" -->
+    <header >
+       
+      <div  class="header-line">
+        <div  class="header-line-backButton">
+          <button @click="goBack" class="back-button">
+            ← 返回首页
+          </button>
+        </div>
+        <div  class="header-line-title">
+          <h1>个人博客</h1>
+        </div>
+        <div  class="header-line-content">
+          <p class="project-subtitle">使用 Vue 3 和 Vite 构建的个人博客系统</p>
+        </div>
+      </div>
     </header>
 
     <section class="project-details">
@@ -73,39 +91,59 @@ const handleFeatureClick = (featureName: string) => {
     </section>
 
     <footer class="project-footer">
-      <button @click="goBack" class="back-button">
+      <!-- <button @click="goBack" class="back-button">
         ← 返回首页
-      </button>
+      </button> -->
     </footer>
 
-    <n-drawer
+    <!-- <n-drawer
       v-model:show="showDrawer"
       :width="'100%'"
       height="70%"
       placement="bottom"
       :native-scrollbar="false"
-      :drawer-style="{ 
+      :resizable="true"
+      style="border-radius: 24px  24px 0 0"
+      :content-style="{ 
         borderRadius: '24px 24px 0 0',
         background: 'linear-gradient(135deg, rgba(145, 151, 118, 0.95) 0%, rgba(114, 203, 238, 0.95) 100%)',
         backdropFilter: 'blur(20px)'
       }"
-      :content-style="{ padding: 0 }"
+      
     >
       <n-drawer-content 
-        :title="dragTitle" 
+        title="功能展示" 
         closable 
         :header-style="{ 
           color: 'white', 
           fontSize: '1.5rem',
-          fontWeight: 'bolder'
-        }">
-        561665
+          fontWeight: 600
+        }"
+      >
+       <template  #content>
+        <div  style="width: 100%;background-color: red;height: 100px;">876878</div>
+       </template>
       </n-drawer-content>
-    </n-drawer>
+    </n-drawer> -->
+      <n-drawer v-model:show="showDrawer" height="70%"  placement="bottom"  
+              :content-style="{borderRadius: '24px 24px 0 0',
+              background: 'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
+              backdropFilter: 'blur(20px)'}"  style="border-radius: 24px  24px 0 0;">
+    <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
+      <n-carousel show-arrow>
+      <img  v-for="item in imgList"
+        class="carousel-img"
+        :src="item"
+      >
+      </n-carousel>
+        </n-drawer-content>
+      </n-drawer>
+   <n-back-top :right="100" />
   </div>
+
 </template>
 
-<style scoped>
+<style  lang="scss" scoped>
 .project-page {
   min-width: 1200px;
   margin: 0 auto;
@@ -141,6 +179,25 @@ const handleFeatureClick = (featureName: string) => {
 .back-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+.header-line{
+  display: flex;
+  //justify-content: center;
+  //align-items: center;
+  flex-direction: column;  
+}
+.header-line-title{
+    text-align: center;
+    flex:1;
+}
+.header-line-content{
+    text-align: center;
+    flex:1;
+  }
+.header-line-backButton{
+    margin-bottom: 2rem;
+    text-align: left;
+    flex:1;
 }
 
 .project-header h1 {
@@ -319,6 +376,7 @@ const handleFeatureClick = (featureName: string) => {
 :deep(.n-carousel) {
   flex: 1;
   min-height: 0;
+
 }
 
 :deep(.n-carousel__slides) {

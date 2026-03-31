@@ -28,13 +28,20 @@ const carouselImages = ref([
   'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=order%20management%20dashboard&image_size=square_hd'
 ])
 
+const imgList=ref([
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
+])
 const goBack = () => {
   router.back()
 }
-
+const selectDrawer=ref()
 const handleFeatureClick = (featureName: string) => {
   currentFeature.value = featureName
   showDrawer.value = true
+  selectDrawer.value = featureName
 }
 </script>
 
@@ -89,7 +96,7 @@ const handleFeatureClick = (featureName: string) => {
       </button> -->
     </footer>
 
-    <n-drawer
+    <!-- <n-drawer
       v-model:show="showDrawer"
       :width="'100%'"
       height="70%"
@@ -127,7 +134,23 @@ const handleFeatureClick = (featureName: string) => {
           </n-carousel>
         </div>
       </n-drawer-content>
-    </n-drawer>
+    </n-drawer> -->
+
+      <n-drawer v-model:show="showDrawer" height="70%"  placement="bottom"  
+              :content-style="{borderRadius: '24px 24px 0 0',
+              background: 'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
+              backdropFilter: 'blur(20px)'}"  style="border-radius: 24px  24px 0 0;">
+    <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
+      <n-carousel show-arrow>
+      <img  v-for="item in imgList"
+        class="carousel-img"
+        :src="item"
+      >
+      </n-carousel>
+        </n-drawer-content>
+      </n-drawer>
+   <n-back-top :right="100" />
+
   </div>
 </template>
 

@@ -3,8 +3,10 @@ import { useDialog, useMessage } from 'naive-ui'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CashOutline as CashIcon } from '@vicons/ionicons5'
+import { useAuthStore } from '../stores/auth'
 const message = useMessage()
 const dialog = useDialog()
+const authStore = useAuthStore()
 import TypeIt from 'typeit';
 const typePrinterMaker = ref(null);
 const profile = ref({
@@ -199,7 +201,7 @@ onUnmounted(() => {
         </div>
         <div class="header-buttons">
           <button @click="goToProfile" class="profile-btn">个人中心</button>
-          <button @click="goToChatRoom" class="chat-btn">聊天室</button>
+          <button v-if="authStore.canAccessChatRoom" @click="goToChatRoom" class="chat-btn">聊天室</button>
         </div>
       <!-- </div> -->
       
@@ -251,6 +253,7 @@ onUnmounted(() => {
      </n-button>
     </section>
       <!-- </n-message-provider> -->
+          <n-back-top :right="100" />
   </div>
 </template>
 
@@ -268,6 +271,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 2rem;
+  margin-top: 5rem;
   margin-bottom: 3rem;
   padding: 2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -498,7 +502,7 @@ onUnmounted(() => {
   gap: 1rem;
   position: absolute;
   top: 2rem;
-  right: 2rem;
+  right: 4rem;
 }
 
 .profile-btn {

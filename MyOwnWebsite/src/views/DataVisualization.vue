@@ -31,11 +31,18 @@ const carouselImages = ref([
 const goBack = () => {
   router.back()
 }
-
+const selectDrawer=ref()
 const handleFeatureClick = (featureName: string) => {
   currentFeature.value = featureName
   showDrawer.value = true
+  selectDrawer.value = featureName
 }
+const imgList=ref([
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
+  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
+])
 </script>
 
 <template>
@@ -75,46 +82,21 @@ const handleFeatureClick = (featureName: string) => {
         ← 返回首页
       </button>
     </footer>
-
-    <n-drawer
-      v-model:show="showDrawer"
-      :width="'100%'"
-      height="70%"
-      placement="bottom"
-      :native-scrollbar="false"
-      :drawer-style="{ 
-        borderRadius: '24px 24px 0 0',
-        background: 'linear-gradient(135deg, rgba(145, 151, 118, 0.95) 0%, rgba(114, 203, 238, 0.95) 100%)',
-        backdropFilter: 'blur(20px)'
-      }"
-      :content-style="{ padding: 0 }"
-    >
-      <n-drawer-content 
-        title="功能展示" 
-        closable 
-        :title-style="{ 
-          color: 'white', 
-          fontSize: '1.5rem',
-          fontWeight: 600
-        }"
+    
+         <n-drawer v-model:show="showDrawer" height="70%"  placement="bottom"  
+              :content-style="{borderRadius: '24px 24px 0 0',
+              background: 'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
+              backdropFilter: 'blur(20px)'}"  style="border-radius: 24px  24px 0 0;">
+    <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
+      <n-carousel show-arrow>
+      <img  v-for="item in imgList"
+        class="carousel-img"
+        :src="item"
       >
-        <div class="drawer-content">
-          <h3>{{ currentFeature }}</h3>
-          <n-carousel
-            :show-dots="true"
-            :autoplay="true"
-            :interval="3000"
-            dot-type="line"
-          >
-            <n-carousel-item v-for="(image, index) in carouselImages" :key="index">
-              <div class="carousel-item">
-                <img :src="image" :alt="`功能展示 ${index + 1}`" class="carousel-image" />
-              </div>
-            </n-carousel-item>
-          </n-carousel>
-        </div>
-      </n-drawer-content>
-    </n-drawer>
+      </n-carousel>
+        </n-drawer-content>
+      </n-drawer>
+   <n-back-top :right="100" />
   </div>
 </template>
 

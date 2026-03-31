@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 interface User {
   username: string
@@ -11,14 +11,17 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const isAuthenticated = ref(false)
   
-  // 预设账号列表
   const accounts = [
     { username: 'admin', password: 'admin', role: 'admin' },
     { username: 'test', password: 'test', role: 'user' },
     { username: 'Chonny', password: 'obj96OBJ', role: 'user' }
   ]
   
-  // 登录
+  const canAccessChatRoom = computed(() => {
+    if (!user.value) return false
+    return user.value.username === 'Chonny' || user.value.username === 'admin'
+  })
+  
   const login = (username: string, password: string) => {
     const account = accounts.find(
       acc => acc.username === username && acc.password === password
@@ -33,7 +36,6 @@ export const useAuthStore = defineStore('auth', () => {
     return false
   }
   
-  // 登出
   const logout = () => {
     user.value = null
     isAuthenticated.value = false
@@ -42,6 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     isAuthenticated,
+    canAccessChatRoom,
     login,
     logout
   }
