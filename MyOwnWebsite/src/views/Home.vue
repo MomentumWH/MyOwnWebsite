@@ -172,9 +172,29 @@ onMounted(() => {
 });
 const isShowUploadBox = ref(false);
 const showUploadBox = () => {
-  isShowUploadBox.value = true;
+  isShowUploadBox.value = !isShowUploadBox.value;
 };
-
+const options = ref([
+  {
+    label: "个人中心",
+    value: "profile",
+  },
+  {
+    label: "聊天室",
+    value: "chat-room",
+  },
+]);
+const handleSelectOptions = (e) => {
+  console.log({ e: e });
+  // switch () {
+  //   case "profile":
+  //     goToProfile();
+  //     break;
+  //   case "chat-room":
+  //     goToChatRoom();
+  //     break;
+  console.log(e);
+};
 onUnmounted(() => {
   cancelAnimationFrame(animationFrameId);
 });
@@ -216,14 +236,25 @@ onUnmounted(() => {
         ></span>
       </div>
       <div class="header-buttons">
-        <button @click="goToProfile" class="profile-btn">个人中心</button>
-        <button
+        <n-dropdown
+          placement="bottom-start"
+          trigger="click"
+          size="medium"
+          :options="options"
+          @select="handleSelectOptions"
+        >
+          <!-- <n-button>中号</n-button> -->
+          <!-- @click="goToProfile"  -->
+          <button class="profile-btn">个人中心</button>
+        </n-dropdown>
+        <!-- <button @click="goToProfile" class="profile-btn">个人中心</button> -->
+        <!-- <button
           v-if="authStore.canAccessChatRoom"
-          @click="goToChatRoom"
+          
           class="chat-btn"
         >
           聊天室
-        </button>
+        </button> -->
       </div>
       <!-- </div> -->
     </header>
@@ -296,25 +327,41 @@ onUnmounted(() => {
         </div>
         <div
           style="
-              text-align: center;
-              flex: 1;
-              font-family:
-                'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande',
-                'Lucida Sans Unicode;, Geneva, Verdana, sans-serif;
-              font-size: 18px;
-              margin-top: 24px;
-              color: aliceblue;
-              margin-bottom: 24px;
-              width: 100%;
-              background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-              padding: 0.75rem 1.5rem;
-              border: none;
-              border-radius: 8px;"
+            text-align: center;
+            flex: 1;
+            font-family:
+              &quot;Lucida Sans&quot;, &quot;Lucida Sans Regular&quot;,
+              &quot;Lucida Grande&quot;, &quot;Lucida Sans Unicode&quot;,
+              Geneva, Verdana, sans-serif;
+            font-size: 18px;
+            margin-top: 24px;
+            color: aliceblue;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+          "
           @click="showUploadBox"
+          :style="{
+            background: isShowUploadBox
+              ? 'linear-gradient(135deg, #667eea 0%, #8a5ab9 100%)'
+              : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            boxShadow: isShowUploadBox
+              ? '0 6px 20px rgba(102, 126, 234, 0.4)'
+              : '0 4px 12px rgba(240, 147, 251, 0.3)',
+          }"
         >
-          如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！?
+          如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！{{
+            isShowUploadBox ? "(再次点击收起上传)" : ""
+          }}
         </div>
-        <UploadBox v-if="isShowUploadBox"></UploadBox>
+        <transition name="upload-box-fade">
+          <UploadBox v-if="isShowUploadBox"></UploadBox>
+        </transition>
       </div>
     </setion>
 
@@ -561,7 +608,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 100px;
+  margin-bottom: 60px;
 }
 .titleTypePrintBox {
   display: flex;
@@ -569,6 +616,18 @@ onUnmounted(() => {
   align-items: center;
   margin-right: 100px;
 }
+/* 上传框过渡动画 */
+.upload-box-fade-enter-active,
+.upload-box-fade-leave-active {
+  transition: all 0.5s ease;
+}
+
+.upload-box-fade-enter-from,
+.upload-box-fade-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
 .typePrinterTitleLike {
   font-weight: bold;
   font-size: 42px;
