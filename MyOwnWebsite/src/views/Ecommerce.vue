@@ -153,7 +153,7 @@ onUnmounted(() => {
 <template>
   <div class="project-page">
     <!-- class="project-header" -->
-    <header>
+    <header class="fade-in-section" style="animation-delay: 0s">
       <div class="header-line">
         <div class="header-line-backButton">
           <button @click="goBack" class="back-button">← 返回首页</button>
@@ -167,21 +167,27 @@ onUnmounted(() => {
       </div>
     </header>
 
-    <section class="project-details">
+    <section
+      class="project-details fade-in-section"
+      style="animation-delay: 0.2s"
+    >
       <h2>项目介绍</h2>
       <p>
         这是一个功能完整的电商平台，支持商品展示、购物车管理、订单结算等功能，采用现代化的技术栈构建，提供良好的用户体验。
       </p>
     </section>
 
-    <section class="project-features">
+    <section
+      class="project-features fade-in-section"
+      style="animation-delay: 0.4s"
+    >
       <h2>主要功能</h2>
       <div class="features-grid">
         <div
           v-for="(feature, index) in features"
           :key="feature.name"
           class="feature-card"
-          :style="{ animationDelay: `${index * 0.2}s` }"
+          :style="{ animationDelay: `${0.4 + index * 0.2}s` }"
           @click="handleFeatureClick(feature.name)"
         >
           <span class="feature-icon">{{ feature.icon }}</span>
@@ -190,14 +196,14 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <section class="project-tech">
+    <section class="project-tech fade-in-section" style="animation-delay: 1s">
       <h2>技术栈</h2>
       <div class="tech-grid">
         <div
           v-for="(tech, index) in techStack"
           :key="tech.name"
           class="tech-card"
-          :style="{ animationDelay: `${index * 0.2}s` }"
+          :style="{ animationDelay: `${1 + index * 0.2}s` }"
         >
           <span class="tech-icon">{{ tech.icon }}</span>
           <h3>{{ tech.name }}</h3>
@@ -205,51 +211,44 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <footer class="project-footer">
+    <section
+      class="project-details fade-in-section"
+      style="animation-delay: 1.6s"
+    >
+      <n-list clickable hoverable class="nListBoxBackgroundColor">
+        <!-- <template #header> hhh </template> list头部会显示的内容-->
+        <!-- <template #footer> fff </template> list尾部显示的内容-->
+        <n-list-item>
+          <template #prefix>
+            <n-button>Prefix</n-button>
+          </template>
+          <template #suffix>
+            <n-button>Suffix</n-button>
+          </template>
+          <n-thing title="Thing" title-extra="extra" description="description">
+          </n-thing>
+        </n-list-item>
+        <n-list-item>
+          <template #prefix>
+            <n-button>Prefix</n-button>
+          </template>
+          <template #suffix>
+            <n-button>Suffix</n-button>
+          </template>
+          <n-thing title="Thing" title-extra="extra" description="description">
+            Biu<br />
+            Biu<br />
+            Biu<br />
+          </n-thing>
+        </n-list-item>
+      </n-list>
+    </section>
+
+    <footer class="project-footer fade-in-section" style="animation-delay: 2s">
       <!-- <button @click="goBack" class="back-button">
         ← 返回首页
       </button> -->
     </footer>
-
-    <!-- <n-drawer
-      v-model:show="showDrawer"
-      :width="'100%'"
-      height="70%"
-      placement="bottom"
-      :native-scrollbar="false"
-      :drawer-style="{ 
-        borderRadius: '24px 24px 0 0',
-        background: 'linear-gradient(135deg, rgba(145, 151, 118, 0.95) 0%, rgba(114, 203, 238, 0.95) 100%)',
-        backdropFilter: 'blur(20px)'
-      }"
-      :content-style="{ padding: 0 }"
-    >
-      <n-drawer-content 
-        title="功能展示" 
-        closable 
-        :title-style="{ 
-          color: 'white', 
-          fontSize: '1.5rem',
-          fontWeight: 600
-        }"
-      >
-        <div class="drawer-content">
-          <h3>{{ currentFeature }}</h3>
-          <n-carousel
-            :show-dots="true"
-            :autoplay="true"
-            :interval="3000"
-            dot-type="line"
-          >
-            <n-carousel-item v-for="(image, index) in carouselImages" :key="index">
-              <div class="carousel-item">
-                <img :src="image" :alt="`功能展示 ${index + 1}`" class="carousel-image" />
-              </div>
-            </n-carousel-item>
-          </n-carousel>
-        </div>
-      </n-drawer-content>
-    </n-drawer> -->
 
     <n-drawer
       v-model:show="showDrawer"
@@ -271,7 +270,10 @@ onUnmounted(() => {
     </n-drawer>
 
     <!-- 环形图展示区域 -->
-    <section class="chart-section">
+    <section
+      class="chart-section fade-in-section"
+      style="animation-delay: 2.2s"
+    >
       <h2>商品分类占比</h2>
       <div id="ring-chart" class="ring-chart"></div>
     </section>
@@ -501,6 +503,11 @@ onUnmounted(() => {
   }
 }
 
+.fade-in-section {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease forwards;
+}
+
 .drawer-content {
   padding: 2rem;
   text-align: center;
@@ -578,5 +585,21 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+.nListBoxBackgroundColor {
+  background: linear-gradient(
+    135deg,
+    rgba(153, 215, 239, 0.95) 0%,
+    rgba(174, 183, 132, 0.95) 100%
+  );
+  border-radius: 20px;
+}
+:deep(.n-list.n-list--hoverable .n-list-item:hover) {
+  background: linear-gradient(
+    135deg,
+    rgba(174, 183, 132, 0.95) 0%,
+    rgba(153, 215, 239, 0.95) 100%
+  );
+  border-radius: 20px;
 }
 </style>

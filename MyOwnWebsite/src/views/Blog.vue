@@ -1,96 +1,115 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { NDrawer, NCarousel, NCarouselItem } from 'naive-ui'
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { NDrawer, NCarousel, NCarouselItem } from "naive-ui";
 
-const router = useRouter()
+const router = useRouter();
 const features = ref([
-  { name: '文章发布和管理', icon: '📝' },
-  { name: '分类和标签系统', icon: '🏷️' },
-  { name: '评论和回复功能', icon: '💬' },
-  { name: '响应式设计', icon: '📱' }
-])
+  { name: "文章发布和管理", icon: "📝" },
+  { name: "分类和标签系统", icon: "🏷️" },
+  { name: "评论和回复功能", icon: "💬" },
+  { name: "响应式设计", icon: "📱" },
+]);
 
 const techStack = ref([
-  { name: 'Vue 3 + Composition API', icon: '⚡' },
-  { name: 'Vite', icon: '🚀' },
-  { name: 'TypeScript', icon: '📘' },
-  { name: 'Markdown 编辑器', icon: '✍️' }
-])
+  { name: "Vue 3 + Composition API", icon: "⚡" },
+  { name: "Vite", icon: "🚀" },
+  { name: "TypeScript", icon: "📘" },
+  { name: "Markdown 编辑器", icon: "✍️" },
+]);
 
-const showDrawer = ref(false)
-const currentFeature = ref('')
+const showDrawer = ref(false);
+const currentFeature = ref("");
 
 const carouselImages = ref([
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20article%20publishing%20interface%20with%20modern%20design&image_size=square_hd',
-  'https://rae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20category%20and%20tag%20management%20system&image_size=square_hd',
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20comment%20and%20reply%20feature&image_size=square_hd',
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=responsive%20blog%20design%20for%20mobile%20and%20desktop&image_size=square_hd'
-])
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20article%20publishing%20interface%20with%20modern%20design&image_size=square_hd",
+  "https://rae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20category%20and%20tag%20management%20system&image_size=square_hd",
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=blog%20comment%20and%20reply%20feature&image_size=square_hd",
+  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=responsive%20blog%20design%20for%20mobile%20and%20desktop&image_size=square_hd",
+]);
 
 const goBack = () => {
-  router.back()
-}
-const selectDrawer=ref()
+  router.back();
+};
+const selectDrawer = ref();
 const handleFeatureClick = (featureName: string) => {
-  currentFeature.value = featureName
-  showDrawer.value = true
-  selectDrawer.value = featureName
-}
-const imgList=ref([
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
-  'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
-])
+  currentFeature.value = featureName;
+  showDrawer.value = true;
+  selectDrawer.value = featureName;
+};
+const imgList = ref([
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg",
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg",
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg",
+  "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg",
+]);
 </script>
 
 <template>
   <div class="project-page">
     <!-- class="project-header" -->
-    <header >
-       
-      <div  class="header-line">
-        <div  class="header-line-backButton">
-          <button @click="goBack" class="back-button">
-            ← 返回首页
-          </button>
+    <header class="fade-in-section" style="animation-delay: 0s">
+      <div class="header-line">
+        <div class="header-line-backButton">
+          <button @click="goBack" class="back-button">← 返回首页</button>
         </div>
-        <div  class="header-line-title">
+        <div class="header-line-title">
           <h1>个人博客</h1>
         </div>
-        <div  class="header-line-content">
+        <div class="header-line-content">
           <p class="project-subtitle">使用 Vue 3 和 Vite 构建的个人博客系统</p>
         </div>
       </div>
     </header>
 
-    <section class="project-details">
+    <section
+      class="project-details fade-in-section"
+      style="animation-delay: 0.2s"
+    >
       <h2>项目介绍</h2>
-      <p>这是一个功能完整的个人博客系统，支持文章发布、分类管理、评论互动等功能，采用现代化的技术栈构建，提供良好的用户体验。</p>
+      <p>
+        这是一个功能完整的个人博客系统，支持文章发布、分类管理、评论互动等功能，采用现代化的技术栈构建，提供良好的用户体验。
+      </p>
     </section>
 
-    <section class="project-features">
+    <section
+      class="project-features fade-in-section"
+      style="animation-delay: 0.4s"
+    >
       <h2>主要功能</h2>
       <div class="features-grid">
-        <div v-for="(feature, index) in features" :key="feature.name" class="feature-card" :style="{ animationDelay: `${index * 0.2}s` }" @click="handleFeatureClick(feature.name)">
+        <div
+          v-for="(feature, index) in features"
+          :key="feature.name"
+          class="feature-card"
+          :style="{ animationDelay: `${0.4 + index * 0.2}s` }"
+          @click="handleFeatureClick(feature.name)"
+        >
           <span class="feature-icon">{{ feature.icon }}</span>
           <h3>{{ feature.name }}</h3>
         </div>
       </div>
     </section>
 
-    <section class="project-tech">
+    <section class="project-tech fade-in-section" style="animation-delay: 1s">
       <h2>技术栈</h2>
       <div class="tech-grid">
-        <div v-for="(tech, index) in techStack" :key="tech.name" class="tech-card" :style="{ animationDelay: `${index * 0.2}s` }">
+        <div
+          v-for="(tech, index) in techStack"
+          :key="tech.name"
+          class="tech-card"
+          :style="{ animationDelay: `${1 + index * 0.2}s` }"
+        >
           <span class="tech-icon">{{ tech.icon }}</span>
           <h3>{{ tech.name }}</h3>
         </div>
       </div>
     </section>
 
-    <footer class="project-footer">
+    <footer
+      class="project-footer fade-in-section"
+      style="animation-delay: 1.6s"
+    >
       <!-- <button @click="goBack" class="back-button">
         ← 返回首页
       </button> -->
@@ -125,25 +144,29 @@ const imgList=ref([
        </template>
       </n-drawer-content>
     </n-drawer> -->
-      <n-drawer v-model:show="showDrawer" height="70%"  placement="bottom"  
-              :content-style="{borderRadius: '24px 24px 0 0',
-              background: 'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
-              backdropFilter: 'blur(20px)'}"  style="border-radius: 24px  24px 0 0;">
-    <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
-      <n-carousel show-arrow>
-      <img  v-for="item in imgList"
-        class="carousel-img"
-        :src="item"
-      >
-      </n-carousel>
-        </n-drawer-content>
-      </n-drawer>
-   <n-back-top :right="100" />
+    <n-drawer
+      v-model:show="showDrawer"
+      height="70%"
+      placement="bottom"
+      :content-style="{
+        borderRadius: '24px 24px 0 0',
+        background:
+          'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
+        backdropFilter: 'blur(20px)',
+      }"
+      style="border-radius: 24px 24px 0 0"
+    >
+      <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
+        <n-carousel show-arrow>
+          <img v-for="item in imgList" class="carousel-img" :src="item" />
+        </n-carousel>
+      </n-drawer-content>
+    </n-drawer>
+    <n-back-top :right="100" />
   </div>
-
 </template>
 
-<style  lang="scss" scoped>
+<style lang="scss" scoped>
 .project-page {
   min-width: 1200px;
   margin: 0 auto;
@@ -180,24 +203,24 @@ const imgList=ref([
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-.header-line{
+.header-line {
   display: flex;
   //justify-content: center;
   //align-items: center;
-  flex-direction: column;  
+  flex-direction: column;
 }
-.header-line-title{
-    text-align: center;
-    flex:1;
+.header-line-title {
+  text-align: center;
+  flex: 1;
 }
-.header-line-content{
-    text-align: center;
-    flex:1;
-  }
-.header-line-backButton{
-    margin-bottom: 2rem;
-    text-align: left;
-    flex:1;
+.header-line-content {
+  text-align: center;
+  flex: 1;
+}
+.header-line-backButton {
+  margin-bottom: 2rem;
+  text-align: left;
+  flex: 1;
 }
 
 .project-header h1 {
@@ -340,6 +363,11 @@ const imgList=ref([
   }
 }
 
+.fade-in-section {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease forwards;
+}
+
 .drawer-content {
   padding: 2rem;
   text-align: center;
@@ -376,7 +404,6 @@ const imgList=ref([
 :deep(.n-carousel) {
   flex: 1;
   min-height: 0;
-
 }
 
 :deep(.n-carousel__slides) {
