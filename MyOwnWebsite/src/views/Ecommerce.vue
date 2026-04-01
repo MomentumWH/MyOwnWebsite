@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { NDrawer, NCarousel, NCarouselItem } from "naive-ui";
+import {
+  NDrawer,
+  NCarousel,
+  NCarouselItem,
+  NButton,
+  NCard,
+  NSpin,
+  useMessage,
+} from "naive-ui";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { PieChart } from "echarts/charts";
 import { TooltipComponent, LegendComponent } from "echarts/components";
 import { ECharts } from "echarts/core";
+import { fetchProducts, login } from "@/services/apiCalls";
 
 // 注册需要的组件
 use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent]);
-
+const message = useMessage();
 const router = useRouter();
 const features = ref([
   { name: "商品展示和搜索", icon: "🔍" },
@@ -148,6 +157,57 @@ onUnmounted(() => {
     chartInstance.dispose();
   }
 });
+
+// API调用demo相关状态
+const products = ref<any[]>([]);
+const loading = ref(false);
+const apiError = ref<string | null>(null);
+const loginData = ref({
+  username: "",
+  password: "",
+});
+const loginLoading = ref(false);
+
+// 获取商品列表
+const handleFetchProducts = async () => {
+  loading.value = true;
+  apiError.value = null;
+  try {
+    const result = await fetchProducts();
+    products.value = result || [];
+    message.success("商品列表获取成功");
+  } catch (error: any) {
+    apiError.value = error.message || "获取商品列表失败";
+    message.error(apiError.value);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 登录
+const handleLogin = async () => {
+  if (!loginData.value.username || !loginData.value.password) {
+    message.warning("请输入用户名和密码");
+    return;
+  }
+
+  loginLoading.value = true;
+  try {
+    const result = await login(
+      loginData.value.username,
+      loginData.value.password,
+    );
+    if (result.token) {
+      localStorage.setItem("token", result.token);
+      message.success("登录成功");
+      loginData.value = { username: "", password: "" };
+    }
+  } catch (error: any) {
+    message.error(error.message || "登录失败");
+  } finally {
+    loginLoading.value = false;
+  }
+};
 </script>
 
 <template>
@@ -276,6 +336,82 @@ onUnmounted(() => {
     >
       <h2>商品分类占比</h2>
       <div id="ring-chart" class="ring-chart"></div>
+    </section>
+
+    <!-- API调用demo区域 -->
+    <section
+      class="api-demo-section fade-in-section"
+      style="animation-delay: 2.4s"
+    >
+      <h2>API调用演示</h2>
+
+      <!-- 登录demo -->
+      <n-card title="用户登录" class="demo-card">
+        <div class="login-form">
+          <div class="form-group">
+            <label>用户名:</label>
+            <input
+              v-model="loginData.username"
+              type="text"
+              placeholder="请输入用户名"
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label>密码:</label>
+            <input
+              v-model="loginData.password"
+              type="password"
+              placeholder="请输入密码"
+              class="form-input"
+            />
+          </div>
+          <n-button
+            type="primary"
+            @click="handleLogin"
+            :loading="loginLoading"
+            class="submit-btn"
+          >
+            登录
+          </n-button>
+        </div>
+      </n-card>
+
+      <!-- 商品列表demo -->
+      <n-card title="获取商品列表" class="demo-card">
+        <div class="product-demo">
+          <n-button
+            type="info"
+            @click="handleFetchProducts"
+            :loading="loading"
+            class="fetch-btn"
+          >
+            获取商品列表
+          </n-button>
+
+          <div v-if="apiError" class="error-message">
+            {{ apiError }}
+          </div>
+
+          <div v-if="products.length > 0" class="products-list">
+            <div
+              v-for="(product, index) in products"
+              :key="index"
+              class="product-item"
+            >
+              <div class="product-info">
+                <h4>商品 {{ index + 1 }}</h4>
+                <p>{{ JSON.stringify(product, null, 2) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="loading" class="loading-container">
+            <n-spin size="large" />
+            <p>加载中...</p>
+          </div>
+        </div>
+      </n-card>
     </section>
 
     <n-back-top :right="100" />
@@ -601,5 +737,132 @@ onUnmounted(() => {
     rgba(153, 215, 239, 0.95) 100%
   );
   border-radius: 20px;
+}
+
+/* API Demo样式 */
+.api-demo-section {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.api-demo-section h2 {
+  font-size: 1.75rem;
+  color: white;
+  margin-bottom: 2rem;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.demo-card {
+  margin: 2rem;
+  //flex: 1;
+  background: transparent;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  //border: none;
+}
+
+.login-form {
+  padding: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.form-input {
+  //flex: 1;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+}
+
+.product-demo {
+  padding: 1rem;
+}
+
+.fetch-btn {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+}
+
+.error-message {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #fee;
+  border-left: 4px solid #f56565;
+  border-radius: 4px;
+  color: #c53030;
+}
+
+.products-list {
+  margin-top: 1rem;
+}
+
+.product-item {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.product-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+}
+
+.product-info p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+:deep(.n-card) {
+  width: auto;
 }
 </style>
