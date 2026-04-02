@@ -22,7 +22,7 @@
     "@visactor/vtable-gantt": "^1.22.2",
     "@visactor/vue-vtable": "^1.22.2",
     "axios": "^1.7.0",
-    "dayjs": "^1.11.13",
+    "dayjs": "^1.11.20",
     "echarts": "^6.0.0",
     "three": "^0.183.0",
     "typeit": "^8.8.7",

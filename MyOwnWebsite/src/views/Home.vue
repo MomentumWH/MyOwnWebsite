@@ -5,6 +5,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { CashOutline as CashIcon } from "@vicons/ionicons5";
 import { useAuthStore } from "../stores/auth";
+
 const message = useMessage();
 const dialog = useDialog();
 const authStore = useAuthStore();
@@ -21,6 +22,7 @@ const profile = ref({
     { name: "个人博客", description: "使用 Vue 3 和 Vite 构建的个人博客系统" },
     { name: "电商平台", description: "基于 Nuxt 3 的电商平台项目" },
     { name: "数据可视化", description: "使用 ECharts 实现的数据分析平台" },
+    { name: "CS饰品数据", description: "CS饰品行情数据展示和分析平台" },
   ],
 });
 
@@ -31,6 +33,7 @@ onMounted(() => {
   setTimeout(() => {
     skillsRendered.value = true;
   }, 2000); // 2秒后显示项目经验
+  console.log({ "authStore.CSQAQKey": authStore.CSQAQKey });
 });
 
 // 获取项目路由
@@ -46,6 +49,9 @@ const goToCheckProjectRoute = (name: string) => {
       break;
     case "数据可视化":
       router.push("/data-visualization");
+      break;
+    case "CS饰品数据":
+      router.push("/cs-items");
       break;
     default:
       router.push("/");

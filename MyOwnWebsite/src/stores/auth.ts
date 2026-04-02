@@ -49,5 +49,6 @@ export const useAuthStore = defineStore("auth", () => {
     canAccessChatRoom,
     login,
     logout,
+    CSQAQKey,
   };
 });
