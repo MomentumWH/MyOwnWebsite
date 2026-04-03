@@ -1,90 +1,252 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { NButton, NCard, NLayout, NLayoutHeader, NLayoutContent, NLayoutSider, NMenu, NTab, NTabs, NSelect, NProgress } from 'naive-ui'
-import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart, CandlestickChart } from 'echarts/charts'
-import { TooltipComponent, LegendComponent, GridComponent, DataZoomComponent, VisualMapComponent } from 'echarts/components'
-import { ECharts } from 'echarts/core'
-import {bindLocalIp,
-        getCurrentData,
-        getSubData,
-        getKline,
-
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import {
+  NButton,
+  NCard,
+  NLayout,
+  NLayoutHeader,
+  NLayoutContent,
+  NLayoutSider,
+  NMenu,
+  NTab,
+  NTabs,
+  NSelect,
+  NProgress,
+  stepProps,
+} from "naive-ui";
+import {
+  HomeOutline,
+  ListOutline,
+  TrophyOutline,
+  CartOutline,
+  SwapHorizontalOutline,
+  FlameOutline,
+} from "@vicons/ionicons5";
+import { use } from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
+import { LineChart, CandlestickChart } from "echarts/charts";
+import {
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  DataZoomComponent,
+  VisualMapComponent,
+} from "echarts/components";
+import { ECharts } from "echarts/core";
+import {
+  bindLocalIp,
+  getCurrentData,
+  getSubData,
+  getKline,
 } from "../services/CSQaQ";
-import dayjs from 'dayjs'
-use([CanvasRenderer, LineChart, CandlestickChart, TooltipComponent, LegendComponent, GridComponent, DataZoomComponent, VisualMapComponent])
+import dayjs from "dayjs";
+import { scale } from "@visactor/vchart/esm/vchart-all";
+import { max, min } from "@visactor/vchart/esm/util";
+use([
+  CanvasRenderer,
+  LineChart,
+  CandlestickChart,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  DataZoomComponent,
+  VisualMapComponent,
+]);
 
-const router = useRouter()
-
+const router = useRouter();
+const currentTime = ref();
+const activeNavItem = ref("home");
 const menuOptions = [
-  { label: '首页', key: 'home' },
-  { label: '饰品列表', key: 'items' },
-  { label: '排行榜', key: 'ranking' },
-  { label: '库存监控', key: 'inventory' },
-  { label: '挂刀行情', key: 'knife' },
-  { label: '热门系列', key: 'series' },
-]
+  { label: "首页", key: "home", icon: HomeOutline },
+  { label: "饰品列表", key: "items", icon: ListOutline },
+  { label: "排行榜", key: "ranking", icon: TrophyOutline },
+  { label: "库存监控", key: "inventory", icon: CartOutline },
+  { label: "挂刀行情", key: "knife", icon: SwapHorizontalOutline },
+  { label: "热门系列", key: "series", icon: FlameOutline },
+];
 
-const currentTab = ref('index')
+const currentTab = ref();
 const tabs = [
-  { key: 'index', label: '饰品指数' },
-  { key: 'items', label: '饰品列表' },
-  { key: 'ranking', label: '排行榜' },
-]
+  { key: "index", label: "饰品指数" },
+  { key: "items", label: "饰品列表" },
+  { key: "ranking", label: "排行榜" },
+];
+
+const showHistoryChart = ref(false);
+let historyChartInstance: ECharts | null = null;
 
 const indexTabs = ref([
-  { id: 0, name: '饰品指数', change: 0.65, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20weapon%20skin%20icon&image_size=square' },
-  { id: 1, name: '租赁指数', change: -2.44, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=rent%20lease%20contract%20icon&image_size=square' },
-  { id: 2, name: '百元主战', change: 0.31, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=weapon%20rifle%20gun%20icon&image_size=square' },
-  { id: 3, name: '探员指数', change: 3.83, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=agent%20character%20icon&image_size=square' },
-  { id: 4, name: '原皮指数', change: 0.02, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=original%20skin%20weapon&image_size=square' },
-  { id: 5, name: '红皮指数', change: 0.31, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=red%20weapon%20skin%20icon&image_size=square' },
-  { id: 6, name: '千战指数', change: -0.09, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=trophy%20achievement%20icon&image_size=square' },
-  { id: 7, name: '武库指数', change: -4.13, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=weapon%20arsenal%20inventory&image_size=square' },
-  { id: 8, name: '贴纸指数', change: -38.7, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=sticker%20decal%20icon&image_size=square' },
-  { id: 9, name: '匕首指数', change: -0.33, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knife%20dagger%20icon&image_size=square' },
-  { id: 10, name: '手套指数', change: 0.21, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=glove%20handwear%20icon&image_size=square' },
-  { id: 11, name: '胸针指数', change: 12.25, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pin%20badge%20icon&image_size=square' },
-  { id: 12, name: '戒指指数', change: -5.39, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ring%20jewelry%20icon&image_size=square' },
-  { id: 13, name: '挂件指数', change: -0.08, up: false, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=charm%20keychain%20icon&image_size=square' },
-  { id: 14, name: '多普勒', change: 0.54, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=doppler%20weapon%20skin&image_size=square' },
-  { id: 15, name: '伽马多普勒', change: 1.01, up: true, img: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=gamma%20doppler%20skin&image_size=square' },
-])
+  {
+    id: 0,
+    name: "饰品指数",
+    change: 0.65,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20weapon%20skin%20icon&image_size=square",
+  },
+  {
+    id: 1,
+    name: "租赁指数",
+    change: -2.44,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=rent%20lease%20contract%20icon&image_size=square",
+  },
+  {
+    id: 2,
+    name: "百元主战",
+    change: 0.31,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=weapon%20rifle%20gun%20icon&image_size=square",
+  },
+  {
+    id: 3,
+    name: "探员指数",
+    change: 3.83,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=agent%20character%20icon&image_size=square",
+  },
+  {
+    id: 4,
+    name: "原皮指数",
+    change: 0.02,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=original%20skin%20weapon&image_size=square",
+  },
+  {
+    id: 5,
+    name: "红皮指数",
+    change: 0.31,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=red%20weapon%20skin%20icon&image_size=square",
+  },
+  {
+    id: 6,
+    name: "千战指数",
+    change: -0.09,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=trophy%20achievement%20icon&image_size=square",
+  },
+  {
+    id: 7,
+    name: "武库指数",
+    change: -4.13,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=weapon%20arsenal%20inventory&image_size=square",
+  },
+  {
+    id: 8,
+    name: "贴纸指数",
+    change: -38.7,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=sticker%20decal%20icon&image_size=square",
+  },
+  {
+    id: 9,
+    name: "匕首指数",
+    change: -0.33,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knife%20dagger%20icon&image_size=square",
+  },
+  {
+    id: 10,
+    name: "手套指数",
+    change: 0.21,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=glove%20handwear%20icon&image_size=square",
+  },
+  {
+    id: 11,
+    name: "胸针指数",
+    change: 12.25,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pin%20badge%20icon&image_size=square",
+  },
+  {
+    id: 12,
+    name: "戒指指数",
+    change: -5.39,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ring%20jewelry%20icon&image_size=square",
+  },
+  {
+    id: 13,
+    name: "挂件指数",
+    change: -0.08,
+    up: false,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=charm%20keychain%20icon&image_size=square",
+  },
+  {
+    id: 14,
+    name: "多普勒",
+    change: 0.54,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=doppler%20weapon%20skin&image_size=square",
+  },
+  {
+    id: 15,
+    name: "伽马多普勒",
+    change: 1.01,
+    up: true,
+    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=gamma%20doppler%20skin&image_size=square",
+  },
+]);
 
-const activeIndexTab = ref(0)
+const activeIndexTab = ref(0);
 
-const tabsScrollWrapper = ref<HTMLElement | null>(null)
-const tabsContainer = ref<HTMLElement | null>(null)
+const tabsScrollWrapper = ref<HTMLElement | null>(null);
+const tabsContainer = ref<HTMLElement | null>(null);
 
-const selectIndexTab = (index: number) => {
-  activeIndexTab.value = index
-}
+const selectIndexObjectTab = (index: number, tab: any) => {
+  activeIndexTab.value = index;
+  console.log(tab);
+  currentTab.value = tab;
+  kLineQueryParam.value.id = tab.id;
+  getKLineDataFromQueryParam();
+};
 
 const scrollTabs = (direction: number) => {
   if (tabsScrollWrapper.value) {
-    const scrollAmount = 200
+    const scrollAmount = 200;
     tabsScrollWrapper.value.scrollBy({
       left: direction * scrollAmount,
-      behavior: 'smooth'
-    })
+      behavior: "smooth",
+    });
   }
-}
+};
 
 const chartTabs = ref([
-  { id: 0, name: '饰品指数' },
-  { id: 1, name: '1小时' },
-  { id: 2, name: '4小时' },
-  { id: 3, name: '日线' },
-  { id: 4, name: '周线' },
-])
+  //{ id: 0, name: "饰品指数" },
+  { id: 1, name: "1小时", value: "1hour" },
+  { id: 2, name: "4小时", value: "4hour" },
+  { id: 3, name: "日线", value: "1day" },
+  { id: 4, name: "周线", value: "7day" },
+]);
 
-const activeChartTab = ref(0)
+const activeChartTab = ref(0);
 
-const selectChartTab = (index: number) => {
-  activeChartTab.value = index
-}
+const selectChartTimeTab = (index: number, tab: any) => {
+  activeChartTab.value = index;
+  console.log({ index: index, tab: tab });
+  switch (index) {
+    case 0:
+      kLineQueryParam.value.type = tab.value;
+      getKLineDataFromQueryParam();
+      break;
+    case 1:
+      kLineQueryParam.value.type = tab.value;
+      getKLineDataFromQueryParam();
+      break;
+    case 2:
+      kLineQueryParam.value.type = tab.value;
+      getKLineDataFromQueryParam();
+      break;
+    case 3:
+      kLineQueryParam.value.type = tab.value;
+      getKLineDataFromQueryParam();
+      break;
+      break;
+  }
+};
 
 const itemIndexData = ref({
   current: 2149.73,
@@ -92,255 +254,477 @@ const itemIndexData = ref({
   percent: 0.65,
   high: 2149.73,
   low: 2135.58,
-})
+});
 
 const marketData = ref({
   online: 673347,
   yesterdayChange: 68267,
   monthChange: 95075,
   steamPrice: 551.8,
-})
+});
 
 const hotItems = ref([
-  { name: '龙狙', price: 128000, change: 5.2, image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20dragon%20lore%20skin%20weapon&image_size=square' },
-  { name: '蝴蝶刀', price: 12500, change: -2.3, image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20butterfly%20knife%20skin&image_size=square' },
-  { name: 'AK-47', price: 8500, change: 3.1, image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AK47%20skin%20weapon&image_size=square' },
-  { name: 'AWP', price: 7200, change: 1.8, image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AWP%20sniper%20skin&image_size=square' },
-  { name: 'M4A4', price: 5600, change: -0.5, image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20weapon%20skin&image_size=square' },
-  { name: 'USP-S', price: 4200, change: 2.8, image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20USP%20pistol%20skin&image_size=square' },
-])
+  {
+    name: "M4A4 | 喧嚣杀戮 (崭新出厂)",
+    price: 4606.9,
+    stock: 889,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20rifle%20weapon%20skin&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "M4A4 | 喧嚣杀戮 (略有磨损)",
+    price: 2940,
+    stock: 1287,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20rifle%20weapon%20skin%20worn&image_size=square",
+    tag: "略有磨损",
+    tagType: "field-tested",
+  },
+  {
+    name: "印花 | paiN Gaming (全息)",
+    price: 97,
+    stock: 1184,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20holographic%20sticker%20logo&image_size=square",
+    tag: "全息",
+    tagType: "holo",
+  },
+  {
+    name: "M4A4 | 喧嚣杀戮 (久经沙场)",
+    price: 2164.5,
+    stock: 1553,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20rifle%20weapon%20skin%20battle%20scarred&image_size=square",
+    tag: "久经沙场",
+    tagType: "battle-scarred",
+  },
+  {
+    name: "USP 消音版 | 紫色 DOPAT",
+    price: 1419.5,
+    stock: 396,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20USP%20pistol%20purple%20skin&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "AK-47 | 怪兽在B (崭新出厂)",
+    price: 8149.5,
+    stock: 702,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AK47%20monster%20skin%20weapon&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "AK-47 | 抽象派 1337 (崭新出厂)",
+    price: 4887,
+    stock: 631,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AK47%20abstract%20art%20skin&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "M4A4 | 狮鹫 (崭新出厂)",
+    price: 875,
+    stock: 201,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20griffin%20skin%20weapon&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "运动手套 (★) | 树篱迷宫 (久经沙场)",
+    price: 33790,
+    stock: 630,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20sport%20gloves%20green%20skin&image_size=square",
+    tag: "久经沙场",
+    tagType: "battle-scarred",
+  },
+  {
+    name: "法玛斯 | 冥界之憎 (崭新出厂)",
+    price: 1420,
+    stock: 220,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20FAMAS%20rifle%20hades%20skin&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "M4A4 | 龙王 (崭新出厂)",
+    price: 821,
+    stock: 689,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20dragon%20king%20skin&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+  {
+    name: "AWP | CMYK (崭新出厂)",
+    price: 11210,
+    stock: 325,
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AWP%20CMYK%20sniper%20skin&image_size=square",
+    tag: "崭新出厂",
+    tagType: "factory-new",
+  },
+]);
 
-let chartInstance: ECharts | null = null
+const goToDetail = (item: any, index: number) => {
+  const id = item.id || index + 1;
+  console.log(item);
+  router.push("/CsItemDetail?id=" + id);
+};
+
+let chartInstance: ECharts | null = null;
 //绑定本机白名单IP
 const bindIp = async () => {
   await bindLocalIp();
 };
+const heatObjectData = ref([]);
+const hotTrend = ref();
 const initChart = () => {
-  const chartDom = document.getElementById('price-chart')
-  if (!chartDom) return
+  const chartDom = document.getElementById("price-chart");
+  if (!chartDom) return;
 
-  import('echarts').then((echarts) => {
-    chartInstance = echarts.init(chartDom)
-
-    // const generateData = () => {
-    //   const data = []
-    //   let value = 2000
-    //   for (let i = 0; i < 100; i++) {
-    //     const open = value + (Math.random() - 0.5) * 50
-    //     const close = open + (Math.random() - 0.5) * 50
-    //     const high = Math.max(open, close) + Math.random() * 30
-    //     const low = Math.min(open, close) - Math.random() * 30
-    //     value = close
-    //     data.push([
-    //       `2026-01-${String(i + 1).padStart(2, '0')}`,
-    //       open.toFixed(2),
-    //       close.toFixed(2),
-    //       low.toFixed(2),
-    //       high.toFixed(2),
-    //     ])
-    //   }
-    //   return data
-    // }
-
+  import("echarts").then((echarts) => {
+    chartInstance = echarts.init(chartDom);
     const option = {
-      backgroundColor: '#1a1a2e',
+      backgroundColor: "#1a1a2e",
       tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderColor: '#667eea',
+        trigger: "axis",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        borderColor: "#667eea",
       },
       grid: {
-        left: '5%',
-        right: '5%',
-        bottom: '10%',
-        top: '8%',
+        left: "5%",
+        right: "5%",
+        bottom: "10%",
+        top: "8%",
       },
       xAxis: {
-        type: 'category',
-        data: kLineData.value.map(k=>k.t),
-        axisLine: { lineStyle: { color: '#667eea' } },
-        axisLabel: { color: '#aaa' },
+        type: "category",
+        data: kLineData.value.map((k) => k.t),
+        axisLine: { lineStyle: { color: "#667eea" } },
+        axisLabel: { color: "#aaa" },
       },
       yAxis: {
-        type: 'value',
+        type: "value",
         scale: true,
-        axisLine: { lineStyle: { color: '#667eea' } },
-        axisLabel: { color: '#aaa' },
-        splitLine: { lineStyle: { color: '#2a2a4e' } },
+        axisLine: { lineStyle: { color: "#667eea" } },
+        axisLabel: { color: "#aaa" },
+        splitLine: { lineStyle: { color: "#2a2a4e" } },
       },
       dataZoom: [
         {
-          type: 'inside',
+          type: "inside",
           start: 50,
           end: 100,
         },
         {
           show: true,
-          type: 'slider',
-          bottom: '0%',
+          type: "slider",
+          bottom: "0%",
           start: 50,
           end: 100,
-          borderColor: '#667eea',
-          backgroundColor: '#1a1a2e',
-          fillerColor: 'rgba(102, 126, 234, 0.3)',
-          handleStyle: { color: '#667eea' },
+          borderColor: "#667eea",
+          backgroundColor: "#1a1a2e",
+          fillerColor: "rgba(102, 126, 234, 0.3)",
+          handleStyle: { color: "#667eea" },
         },
       ],
       series: [
         {
-          name: '价格',
-          type: 'candlestick',
-          data: kLineData.value.map(k => [
+          name: "价格",
+          type: "candlestick",
+          data: kLineData.value.map((k) => [
             parseFloat(k.o),
             parseFloat(k.c),
             parseFloat(k.l),
             parseFloat(k.h),
           ]),
           itemStyle: {
-            color: '#14b8a6',
-            color0: '#ef4444',
-            borderColor: '#14b8a6',
-            borderColor0: '#ef4444',
+            color: "#14b8a6",
+            color0: "#ef4444",
+            borderColor: "#14b8a6",
+            borderColor0: "#ef4444",
           },
         },
       ],
-    }
+    };
 
-    chartInstance.setOption(option)
-  })
-}
+    chartInstance.setOption(option);
+  });
+};
 
 const initOnlineChart = () => {
-  const chartDom = document.getElementById('online-chart')
-  if (!chartDom) return
-
-  import('echarts').then((echarts) => {
-    const onlineChart = echarts.init(chartDom)
-
-    const generateOnlineData = () => {
-      const data = []
-      for (let i = 0; i < 200; i++) {
-        data.push({
-          name: `第${i}天`,
-          value: [
-            `2026-0${Math.floor(i / 30) + 1}-${String(i % 30 + 1).padStart(2, '0')}`,
-            Math.floor(600000 + Math.random() * 200000),
-          ],
-        })
-      }
-      return data
-    }
-
+  const chartDom = document.getElementById("online-chart");
+  if (!chartDom) return;
+  import("echarts").then((echarts) => {
+    const onlineChart = echarts.init(chartDom);
     const option = {
-      backgroundColor: 'transparent',
+      backgroundColor: "transparent",
       tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        trigger: "axis",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: '5%',
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        top: "5%",
         containLabel: true,
       },
       xAxis: {
-        type: 'category',
-        data: generateOnlineData().map(d => d.value[0]),
+        type: "category",
+        // generateOnlineData().map((d) => d.value[0]),
+        data: onlineChartData2.value?.map((item) => item.d),
         boundaryGap: false,
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { color: '#888', fontSize: 10 },
+        axisLabel: { color: "#888", fontSize: 10 },
       },
       yAxis: {
-        type: 'value',
+        type: "value",
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { color: '#888', fontSize: 10 },
-        splitLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: "#888", fontSize: 10 },
+        splitLine: { lineStyle: { color: "#333" } },
       },
       series: [
         {
-          name: '在线人数',
-          type: 'line',
+          name: "在线人数",
+          type: "line",
           smooth: true,
-          symbol: 'none',
+          symbol: "none",
           areaStyle: {
             color: {
-              type: 'linear',
+              type: "linear",
               x: 0,
               y: 0,
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
-                { offset: 1, color: 'rgba(102, 126, 234, 0.05)' },
+                { offset: 0, color: "rgba(102, 126, 234, 0.5)" },
+                { offset: 1, color: "rgba(102, 126, 234, 0.05)" },
               ],
             },
           },
-          lineStyle: { color: '#667eea', width: 2 },
-          data: generateOnlineData().map(d => d.value[1]),
+          lineStyle: { color: "#667eea", width: 2 },
+          data: onlineChartData2.value?.map((item) => item.m),
+          // generateOnlineData().map((d) => d.value[1]),
         },
       ],
-    }
+    };
 
-    onlineChart.setOption(option)
-  })
-}
-
+    onlineChart.setOption(option);
+  });
+};
+const currentSelectMode = ref();
 const resizeChart = () => {
   if (chartInstance) {
-    chartInstance.resize()
+    chartInstance.resize();
   }
-}
-
+};
+const kLineQueryParam = ref({
+  id: 1,
+  type: "1day",
+});
+const getKLineDataFromQueryParam = () => {
+  getKline(kLineQueryParam.value).then((res) => {
+    kLineData.value = res.data;
+    kLineData.value.map(
+      (item) => (item.t = dayjs(Number(item.t)).format("YYYY-MM-DD")),
+    );
+    initChart();
+  });
+};
 const goHome = () => {
-  router.push('/')
-}
-const   kLineData=ref()
-onMounted(() => {
-  
-  initOnlineChart()
-    //bindIp();
-    getCurrentData('init').then(res=>{
-        console.log({"res":res})
-        indexTabs.value=res.data.sub_index_data
-        
-    }).catch(err=>{
+  router.push("/");
+};
 
+const toggleHistoryChart = () => {
+  showHistoryChart.value = !showHistoryChart.value;
+  if (showHistoryChart.value) {
+    setTimeout(() => {
+      initHistoryChart();
+    }, 100);
+  }
+};
+// const
+const initHistoryChart = () => {
+  const chartDom = document.getElementById("history-chart");
+  if (!chartDom) return;
+
+  import("echarts").then((echarts) => {
+    historyChartInstance = echarts.init(chartDom);
+    const option = {
+      backgroundColor: "transparent",
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        borderColor: "#667eea",
+      },
+      legend: {
+        data: ["热度", "大盘指数"],
+        textStyle: { color: "#fff", fontSize: 14 },
+        top: 10,
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        top: "15%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: heatLineData.value.map((d) => d[0]),
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: "#333" } },
+        axisTick: { show: false },
+        axisLabel: { color: "#888", fontSize: 12 },
+      },
+      yAxis: [
+        {
+          name: "热度",
+          scale: true,
+          min: 0,
+          max: 200,
+          type: "value",
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: "#888", fontSize: 12 },
+          splitLine: { lineStyle: { color: "#2a2a4e", type: "dashed" } },
+        },
+        {
+          type: "value",
+          name: "大盘指数",
+          position: "right",
+          scale: true,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: "#888", fontSize: 12, formatter: "{value}" },
+          splitLine: { lineStyle: { color: "#2a2a4e", type: "dashed" } },
+        },
+      ],
+      series: [
+        {
+          name: "热度",
+          type: "line",
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 8,
+          data: heatLineData.value.map((d) => d[1]),
+          lineStyle: { color: "#ef4444", width: 3 },
+          itemStyle: { color: "#ef4444" },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(239, 68, 68, 0.3)" },
+                { offset: 1, color: "rgba(239, 68, 68, 0)" },
+              ],
+            },
+          },
+        },
+        {
+          name: "大盘指数",
+          type: "line",
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 8,
+          data: kLineData.value.slice(-60).map((d) => d.c),
+          lineStyle: { color: "#667eea", width: 3 },
+          itemStyle: { color: "#667eea" },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(102, 126, 234, 0.3)" },
+                { offset: 1, color: "rgba(102, 126, 234, 0)" },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    historyChartInstance.setOption(option);
+  });
+};
+const heatLineData = ref();
+const kLineData = ref();
+const onlineChartData = ref([]);
+const onlineChartData2 = ref([]);
+const onlineData = ref();
+onMounted(() => {
+  setInterval(() => {
+    currentTime.value = dayjs(Date.now()).format("YYYY年MM月DD日 HH:mm:ss");
+    //console.log({ currentTime: currentTime.value });
+  }, 1000);
+  //bindIp();
+  getCurrentData("init")
+    .then((res) => {
+      console.log({ res: res });
+      indexTabs.value = res.data.sub_index_data;
+      onlineChartData.value = res.data.online_chart;
+      onlineChartData2.value = res.data.online_chart?.reverse();
+      onlineData.value = res.data.online_number;
+      hotTrend.value = res.data.greedy_status;
+      hotTrend.value.trendNumber =
+        res.data.greedy[res.data.greedy.length - 1][1];
+      currentTab.value = indexTabs.value[0];
+      heatLineData.value = res.data.greedy;
+      heatObjectData.value = res.data.view_count;
+      initOnlineChart();
     })
-    //indexTabs.value=res。
-    
-    let data={
-        //id:1,
-        type:'daily',
-    }
-    let data2={
-        id:1,
-        type:'1day',
-    }
-    setTimeout(()=>{
-        getSubData(data)
-    },3000)
-    setTimeout(()=>{
-        getKline(data2).then(res=>{
-            kLineData.value=res.data
-            kLineData.value.map(item=>item.t=dayjs(item.t).format('YYYY-MM-DD'))
-            initChart()
-        })
-    },6000)
-    
-    
-    //getCurrentData()
-  window.addEventListener('resize', resizeChart)
-})
+    .catch((err) => {});
+  //indexTabs.value=res。
+
+  let data = {
+    //id:1,
+    type: "daily",
+  };
+  let data2 = {
+    id: 1,
+    type: "1day",
+  };
+  setTimeout(() => {
+    getSubData(data);
+  }, 3000);
+  setTimeout(() => {
+    getKline(data2).then((res) => {
+      kLineData.value = res.data;
+      kLineData.value.map((item) => {
+        item.t = dayjs(Number(item.t)).format("YYYY-MM-DD");
+      });
+      initChart();
+    });
+  }, 1000);
+
+  //getCurrentData()
+  window.addEventListener("resize", resizeChart);
+});
 
 onUnmounted(() => {
-  window.removeEventListener('resize', resizeChart)
+  window.removeEventListener("resize", resizeChart);
   if (chartInstance) {
-    chartInstance.dispose()
+    chartInstance.dispose();
   }
-})
+});
 </script>
 
 <template>
@@ -351,14 +735,38 @@ onUnmounted(() => {
           <span class="logo-text">CS</span>
           <span class="logo-accent">饰品</span>
         </div>
-        <n-menu mode="horizontal" :options="menuOptions" class="nav-menu" />
+        <div class="nav-menu">
+          <div
+            v-for="item in menuOptions"
+            :key="item.key"
+            class="nav-item"
+            :class="{ active: activeNavItem === item.key }"
+            @click="activeNavItem = item.key"
+          >
+            <component :is="item.icon" class="nav-icon" />
+            <span class="nav-label">{{ item.label }}</span>
+          </div>
+        </div>
         <div class="header-right">
           <div class="search-box">
-            <input type="text" placeholder="搜索饰品名称..." class="search-input" />
+            <input
+              type="text"
+              placeholder="搜索饰品名称..."
+              class="search-input"
+            />
           </div>
           <n-button quaternary class="header-btn">登录</n-button>
           <n-button type="primary" class="header-btn">注册</n-button>
-          <n-button type="primary" class="header-btn" @click="goHome" style="margin-left: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+          <n-button
+            type="primary"
+            class="header-btn"
+            @click="goHome"
+            style="
+              margin-left: 8px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              border: none;
+            "
+          >
             ← 返回首页
           </n-button>
         </div>
@@ -367,36 +775,61 @@ onUnmounted(() => {
 
     <n-layout-content class="main-content">
       <div class="content-wrapper">
-        <div class="top-section fade-in-section" style="animation-delay: 0.2s;">
+        <div class="top-section fade-in-section" style="animation-delay: 0.2s">
           <div class="left-panel">
-            <div class="index-card fade-in-section" style="animation-delay: 0.4s;">
+            <div
+              class="index-card fade-in-section"
+              style="animation-delay: 0.4s"
+            >
               <div class="index-header">
                 <div class="index-title">
-                  <h2>饰品指数</h2>
+                  <h2>
+                    {{ currentTab?.name ? currentTab?.name : "--" }}
+                  </h2>
                   <span class="time-range">⟳ 连续3天</span>
                 </div>
                 <div class="index-time">
-                  <span>2026-04-02 09:21:07</span>
+                  <span>{{ currentTime }}</span>
                   <span>当前时间</span>
                 </div>
               </div>
               <div class="index-data">
                 <div class="index-main">
-                  <div class="index-value">{{ itemIndexData.current }}</div>
-                  <div class="index-change" :class="itemIndexData.change >= 0 ? 'up' : 'down'">
-                    <span class="change-arrow">{{ itemIndexData.change >= 0 ? '↑' : '↓' }}</span>
-                    <span>{{ Math.abs(itemIndexData.change) }}</span>
-                    <span class="change-percent">+{{ itemIndexData.percent }}%</span>
+                  <div class="index-value">
+                    {{
+                      currentTab?.market_index ? currentTab?.market_index : "--"
+                    }}
+                  </div>
+                  <div
+                    class="index-change"
+                    :class="currentTab?.chg_num >= 0 ? 'up' : 'down'"
+                  >
+                    <span class="change-arrow">{{
+                      currentTab?.chg_num >= 0 ? "↑" : "↓"
+                    }}</span>
+                    <span>{{
+                      currentTab?.chg_num ? currentTab?.chg_num : "--"
+                    }}</span>
+                    <span class="change-percent"
+                      >（{{ currentTab?.chg_rate > 0 ? "+" : ""
+                      }}{{
+                        currentTab?.chg_rate ? currentTab?.chg_rate : "--"
+                      }}%）</span
+                    >
                   </div>
                 </div>
                 <div class="index-range">
                   <div class="range-item">
                     <span class="range-label">今日最高</span>
-                    <span class="range-value">{{ itemIndexData.high }}</span>
+                    <span class="range-value">{{
+                      currentTab?.high ? currentTab?.high : "--"
+                    }}</span>
                   </div>
                   <div class="range-item">
                     <span class="range-label">今日最低</span>
-                    <span class="range-value">{{ itemIndexData.low }}</span>
+                    <span class="range-value">{{
+                      currentTab?.low ? currentTab?.low : "--"
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -406,18 +839,24 @@ onUnmounted(() => {
                 </button>
                 <div class="index-tabs-scroll-wrapper" ref="tabsScrollWrapper">
                   <div class="index-tabs" ref="tabsContainer">
-                    <div 
-                      v-for="(tab, index) in indexTabs" 
+                    <div
+                      v-for="(tab, index) in indexTabs"
                       :key="tab.id"
                       class="tab-item"
                       :class="{ active: activeIndexTab === index }"
-                      @click="selectIndexTab(index)"
+                      @click="selectIndexObjectTab(index, tab)"
                     >
                       <img class="tab-icon" :src="tab.img" :alt="tab.name" />
                       <div class="tab-content">
                         <span class="tab-name">{{ tab.name }}</span>
-                        <span class="tab-change" :class="{ up: tab.up, down: !tab.up }">
-                          {{ tab.up ? '+' : '' }}{{ tab.change }}%
+                        <span
+                          class="tab-change"
+                          :class="{
+                            up: tab?.chg_rate > 0,
+                            down: tab?.chg_rate < 0,
+                          }"
+                        >
+                          {{ tab?.chg_rate > 0 ? "+" : "" }}{{ tab?.chg_rate }}%
                         </span>
                       </div>
                     </div>
@@ -429,16 +868,28 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="chart-card fade-in-section" style="animation-delay: 0.6s;">
+            <div
+              class="chart-card fade-in-section"
+              style="animation-delay: 0.6s"
+            >
               <div class="chart-header">
                 <div class="chart-tabs-scroll-wrapper">
                   <div class="chart-tabs">
-                    <div 
-                      v-for="(tab, index) in chartTabs" 
+                    <div
+                      style="
+                        padding: 0px 0px;
+                        font-size: 24px;
+                        margin-right: 24px;
+                      "
+                    >
+                      饰品指数K线
+                    </div>
+                    <div
+                      v-for="(tab, index) in chartTabs"
                       :key="tab.id"
                       class="chart-tab"
                       :class="{ active: activeChartTab === index }"
-                      @click="selectChartTab(index)"
+                      @click="selectChartTimeTab(index, tab)"
                     >
                       {{ tab.name }}
                     </div>
@@ -456,106 +907,300 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="right-panel fade-in-section" style="animation-delay: 0.8s;">
-            <div class="market-card fade-in-section" style="animation-delay: 1s;">
+          <div
+            class="right-panel fade-in-section"
+            style="animation-delay: 0.8s"
+          >
+            <div
+              class="market-card fade-in-section"
+              style="animation-delay: 1s"
+            >
               <div class="market-header">
-                <h3>市场热度监测</h3>
-                <span class="market-time">历史数据</span>
+                <h3 v-if="!showHistoryChart">市场热度监测</h3>
+                <h3 v-else>历史市场热度</h3>
+                <span class="market-time" @click="toggleHistoryChart">
+                  {{ showHistoryChart ? "返回卡片" : "历史数据" }}
+                  <span class="toggle-icon">{{
+                    showHistoryChart ? "↑" : ""
+                  }}</span>
+                </span>
               </div>
-              <div class="market-desc">
-                <span class="desc-label">当前数值</span>
-                <span class="desc-value">111.5分（低迷）</span>
-              </div>
-              <div class="market-desc-small">
-                根据市场社区相关数据综合计算得出
-              </div>
+              <div>
+                <div class="market-desc" v-if="!showHistoryChart">
+                  <span class="desc-label">当前热度趋势</span>
+                  <span class="desc-value"
+                    >{{
+                      hotTrend?.trendNumber ? hotTrend?.trendNumber : "--"
+                    }}（{{ hotTrend?.label ? hotTrend?.label : "--" }}）</span
+                  >
+                </div>
+                <div class="market-desc-small" v-if="!showHistoryChart">
+                  根据市场社区相关数据综合计算得出
+                </div>
+                <div class="history-chart-section" v-if="showHistoryChart">
+                  <div id="history-chart" class="history-chart"></div>
+                </div>
+                <div class="online-section">
+                  <div class="online-header">
+                    <div>
+                      <h4>当前在线人数</h4>
+                      <span class="online-time">{{ currentTime }}</span>
+                    </div>
+                    <div class="online-badge">📈</div>
+                  </div>
+                  <div class="online-number">
+                    {{
+                      onlineData?.current_number
+                        ? onlineData.current_number
+                        : "--"
+                    }}
+                    人
+                  </div>
+                  <div class="online-stats">
+                    <div class="stat-item">
+                      <span class="stat-label">昨日同时段</span>
+                      <span
+                        class="stat-value up"
+                        v-if="
+                          onlineData?.current_number >
+                          onlineData?.same_time_number
+                        "
+                        >↑
+                        {{
+                          onlineData?.same_time_number
+                            ? onlineData?.same_time_number
+                            : "--"
+                        }}</span
+                      >
+                      <span
+                        class="stat-percent up"
+                        v-if="
+                          onlineData?.current_number >
+                          onlineData?.same_time_number
+                        "
+                        >{{ "+" + onlineData.rate + "%" }}</span
+                      >
+                      <span
+                        class="stat-value down"
+                        v-if="
+                          onlineData?.current_number <
+                          onlineData?.same_time_number
+                        "
+                        >↓
+                        {{
+                          onlineData?.same_time_number
+                            ? onlineData?.same_time_number
+                            : "--"
+                        }}</span
+                      >
+                      <span
+                        class="stat-percent down"
+                        v-if="
+                          onlineData?.current_number <
+                          onlineData?.same_time_number
+                        "
+                        >{{ onlineData.rate + "%" }}</span
+                      >
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">上周同时段</span>
+                      <span
+                        class="stat-value up"
+                        v-if="
+                          onlineData?.current_number >
+                          onlineData?.same_time_number_week
+                        "
+                        >↑
+                        {{
+                          onlineData?.same_time_number_week
+                            ? onlineData?.same_time_number_week
+                            : "--"
+                        }}</span
+                      >
+                      <span
+                        class="stat-percent up"
+                        v-if="
+                          onlineData?.current_number >
+                          onlineData?.same_time_number_week
+                        "
+                        >{{ "+" + onlineData?.rate_week + "%" }}</span
+                      >
+                      <span
+                        class="stat-value down"
+                        v-if="
+                          onlineData?.current_number <
+                          onlineData?.same_time_number_week
+                        "
+                        >↓
+                        {{
+                          onlineData?.same_time_number_week
+                            ? onlineData?.same_time_number_week
+                            : "--"
+                        }}</span
+                      >
+                      <span
+                        class="stat-percent down"
+                        v-if="
+                          onlineData?.current_number <
+                          onlineData?.same_time_number_week
+                        "
+                        >{{ onlineData?.rate_week + "%" }}</span
+                      >
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">全球月活玩家</span>
+                      <span
+                        class="stat-value up"
+                        v-if="
+                          onlineData?.month_player -
+                            onlineData?.same_month_player >
+                          0
+                        "
+                        >↑
+                        {{
+                          onlineData?.month_player
+                            ? onlineData?.month_player
+                            : "--"
+                        }}</span
+                      >
+                      <span
+                        class="stat-percent up"
+                        v-if="
+                          onlineData?.month_player -
+                            onlineData?.same_month_player >
+                          0
+                        "
+                        >{{
+                          "+" +
+                          (
+                            (onlineData?.month_player -
+                              onlineData?.same_month_player) /
+                            10000
+                          ).toFixed(2)
+                        }}万人
+                      </span>
+                      <span
+                        class="stat-value up"
+                        v-if="
+                          onlineData?.month_player -
+                            onlineData?.same_month_player <
+                          0
+                        "
+                        >↑
+                        {{
+                          onlineData?.month_player
+                            ? onlineData?.month_player
+                            : "--"
+                        }}</span
+                      >
+                      <span
+                        class="stat-percent down"
+                        v-if="
+                          onlineData?.month_player -
+                            onlineData?.same_month_player <
+                          0
+                        "
+                        >{{
+                          (
+                            (onlineData?.month_player -
+                              onlineData?.same_month_player) /
+                            10000
+                          ).toFixed(2)
+                        }}万人
+                      </span>
+                    </div>
+                  </div>
+                  <div id="online-chart" class="online-chart"></div>
+                  <div class="online-summary">
+                    <div class="summary-item">
+                      <span class="summary-label">昨日在线峰值</span>
+                      <span class="summary-value"
+                        >{{
+                          onlineChartData[1]?.m ? onlineChartData[1]?.m : "--"
+                        }}
+                        人</span
+                      >
+                    </div>
+                    <div class="summary-item">
+                      <span class="summary-label">本月在线峰值</span>
+                      <span class="summary-value"
+                        >{{
+                          onlineData?.month_peak ? onlineData?.month_peak : "--"
+                        }}
+                        人</span
+                      >
+                    </div>
+                  </div>
+                </div>
 
-              <div class="online-section">
-                <div class="online-header">
-                  <div>
-                    <h4>当前在线人数</h4>
-                    <span class="online-time">2026-04-02 09:16</span>
+                <div class="steam-section">
+                  <div class="steam-header">
+                    <h4>Steam卡价</h4>
+                    <div class="steam-tabs">
+                      <span class="steam-tab active">历史</span>
+                      <span class="steam-tab">客户端</span>
+                    </div>
                   </div>
-                  <div class="online-badge">📈</div>
-                </div>
-                <div class="online-number">{{ marketData.online.toLocaleString() }}</div>
-                <div class="online-stats">
-                  <div class="stat-item">
-                    <span class="stat-label">昨日同时段</span>
-                    <span class="stat-value up">↑ {{ marketData.yesterdayChange.toLocaleString() }}</span>
-                    <span class="stat-percent up">+6.4%</span>
+                  <div class="steam-price">
+                    <div class="price-label">今日均价</div>
+                    <div class="price-value">
+                      ¥ {{ marketData.steamPrice }} / 100$
+                    </div>
+                    <div class="price-note">美元区</div>
                   </div>
-                  <div class="stat-item">
-                    <span class="stat-label">上周同时段</span>
-                    <span class="stat-value up">↑ 66,227</span>
-                    <span class="stat-percent up">+8.6%</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-label">全月同时段</span>
-                    <span class="stat-value up">↑ {{ marketData.monthChange.toLocaleString() }}</span>
-                    <span class="stat-percent up">+9.0%</span>
+                  <div class="steam-hint">
+                    受手续费汇率等波动影响，价格仅供参考
                   </div>
                 </div>
-                <div id="online-chart" class="online-chart"></div>
-                <div class="online-summary">
-                  <div class="summary-item">
-                    <span class="summary-label">昨日在线峰值</span>
-                    <span class="summary-value">1,573,122 人</span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">本月在线峰值</span>
-                    <span class="summary-value">1,573,122 人</span>
-                  </div>
-                </div>
-              </div>
 
-              <div class="steam-section">
-                <div class="steam-header">
-                  <h4>Steam卡价</h4>
-                  <div class="steam-tabs">
-                    <span class="steam-tab active">历史</span>
-                    <span class="steam-tab">客户端</span>
+                <div class="ranking-section">
+                  <div class="ranking-header">
+                    <h4>涨跌分布</h4>
                   </div>
-                </div>
-                <div class="steam-price">
-                  <div class="price-label">今日均价</div>
-                  <div class="price-value">¥ {{ marketData.steamPrice }} / 100$</div>
-                  <div class="price-note">美元区</div>
-                </div>
-                <div class="steam-hint">受手续费汇率等波动影响，价格仅供参考</div>
-              </div>
-
-              <div class="ranking-section">
-                <div class="ranking-header">
-                  <h4>涨跌分布</h4>
-                </div>
-                <div class="ranking-tabs">
-                  <span class="ranking-tab active">饰品类型</span>
-                  <span class="ranking-tab">价格板块</span>
+                  <div class="ranking-tabs">
+                    <span class="ranking-tab active">饰品类型</span>
+                    <span class="ranking-tab">价格板块</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="hot-items-section fade-in-section" style="animation-delay: 1.2s;">
-          <div class="section-header fade-in-section" style="animation-delay: 1.4s;">
+        <div
+          class="hot-items-section fade-in-section"
+          style="animation-delay: 1.2s"
+        >
+          <div
+            class="section-header fade-in-section"
+            style="animation-delay: 1.4s"
+          >
             <h3>热门饰品</h3>
           </div>
-          <div class="items-grid fade-in-section" style="animation-delay: 1.6s;">
-            <div v-for="(item, index) in hotItems" :key="index" class="item-card fade-in-section" :style="{ animationDelay: `${1.8 + index * 0.2}s` }">
-              <div class="item-image">
-                <img :src="item.image" :alt="item.name" />
+          <div class="items-grid fade-in-section" style="animation-delay: 1.6s">
+            <div
+              v-for="(item, index) in heatObjectData"
+              :key="index"
+              class="item-card fade-in-section"
+              :style="{ animationDelay: `${1.8 + index * 0.2}s` }"
+              @click="goToDetail(item, index)"
+            >
+              <!-- <div class="item-tag" :class="item.tagType">
+                {{ item.tag }}
+              </div> -->
+              <div class="item-image-wrapper">
+                <img class="item-image" :src="item.img" :alt="item.name" />
               </div>
               <div class="item-info">
                 <h4 class="item-name">{{ item.name }}</h4>
-                <div class="item-price">
-                  <span class="price-label">¥</span>
-                  <span class="price-value">{{ item.price.toLocaleString() }}</span>
-                </div>
-                <div class="item-change" :class="item.change >= 0 ? 'up' : 'down'">
-                  <span class="change-arrow">{{ item.change >= 0 ? '↑' : '↓' }}</span>
-                  <span class="change-value">{{ Math.abs(item.change) }}%</span>
+                <div class="item-bottom">
+                  <div class="item-price">
+                    <span class="price-label">热度排名</span>
+                    <span class="price-value">{{ item.rank_num }}</span>
+                  </div>
+                  <div class="item-stock">
+                    热度上升{{ item.rank_num_change }}名
+                  </div>
                 </div>
               </div>
             </div>
@@ -617,13 +1262,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  
+
   .logo-text {
     font-size: 1.5rem;
     font-weight: 800;
     color: #f59e0b;
   }
-  
+
   .logo-accent {
     font-size: 1.5rem;
     font-weight: 700;
@@ -633,16 +1278,55 @@ onUnmounted(() => {
 
 .nav-menu {
   flex: 1;
-  max-width: 500px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 40px;
   background: transparent;
-  
-  :deep(.n-menu-item-content) {
-    color: #aaa;
-    &:hover {
-      color: #fff;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  color: #888;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.active {
+    color: #667eea;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #667eea;
+      border-radius: 2px;
     }
   }
+}
+
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .header-right {
@@ -664,11 +1348,11 @@ onUnmounted(() => {
   color: #fff;
   font-size: 0.9rem;
   outline: none;
-  
+
   &::placeholder {
     color: #666;
   }
-  
+
   &:focus {
     border-color: #667eea;
   }
@@ -741,13 +1425,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  
+
   h2 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
   }
-  
+
   .time-range {
     padding: 4px 12px;
     background: #2a2a4e;
@@ -787,19 +1471,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 1.1rem;
-  
+
   &.up {
     color: #14b8a6;
   }
-  
+
   &.down {
     color: #ef4444;
   }
-  
+
   .change-arrow {
     font-size: 1.3rem;
   }
-  
+
   .change-percent {
     font-size: 0.9rem;
     opacity: 0.8;
@@ -815,12 +1499,12 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  
+
   .range-label {
     font-size: 0.85rem;
     color: #666;
   }
-  
+
   .range-value {
     font-size: 1rem;
     font-weight: 600;
@@ -849,11 +1533,11 @@ onUnmounted(() => {
   font-size: 1.2rem;
   transition: all 0.3s ease;
   flex-shrink: 0;
-  
+
   &:hover {
     background: #3a3a5e;
   }
-  
+
   span {
     display: block;
     line-height: 1;
@@ -891,15 +1575,15 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: auto;
-  
+
   &:hover {
     background: #3a3a5e;
   }
-  
+
   &.active {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
-  
+
   .tab-icon {
     width: 24px;
     height: 24px;
@@ -908,27 +1592,27 @@ onUnmounted(() => {
     background: rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
   }
-  
+
   .tab-content {
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
-  
+
   .tab-name {
     font-size: 0.8rem;
     color: #fff;
     text-align: left;
     white-space: nowrap;
   }
-  
+
   .tab-change {
     font-size: 0.7rem;
-    
+
     &.up {
       color: #14b8a6;
     }
-    
+
     &.down {
       color: #ef4444;
     }
@@ -980,12 +1664,12 @@ onUnmounted(() => {
   border-radius: 8px;
   background: #2a2a4e;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: #3a3a5e;
     color: #fff;
   }
-  
+
   &.active {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
@@ -1003,7 +1687,7 @@ onUnmounted(() => {
   color: #666;
   cursor: pointer;
   transition: color 0.3s ease;
-  
+
   &:hover {
     color: #fff;
   }
@@ -1015,7 +1699,6 @@ onUnmounted(() => {
   margin-bottom: 20px;
   min-width: 0;
   overflow: hidden;
-
 }
 
 .market-card {
@@ -1031,7 +1714,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  
+
   h3 {
     margin: 0;
     font-size: 1.1rem;
@@ -1050,12 +1733,12 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  
+
   .desc-label {
     font-size: 0.9rem;
     color: #aaa;
   }
-  
+
   .desc-value {
     font-size: 0.9rem;
     color: #f59e0b;
@@ -1079,13 +1762,13 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  
+
   h4 {
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
   }
-  
+
   .online-time {
     font-size: 0.8rem;
     color: #666;
@@ -1115,33 +1798,33 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 0.85rem;
-  
+
   .stat-label {
     color: #666;
   }
-  
+
   .stat-value {
     color: #fff;
-    
+
     &.up {
       color: #14b8a6;
     }
-    
+
     &.down {
       color: #ef4444;
     }
   }
-  
+
   .stat-percent {
     padding: 2px 8px;
     background: #2a2a4e;
     border-radius: 4px;
     font-size: 0.75rem;
-    
+
     &.up {
       color: #14b8a6;
     }
-    
+
     &.down {
       color: #ef4444;
     }
@@ -1165,14 +1848,14 @@ onUnmounted(() => {
   background: #2a2a4e;
   border-radius: 8px;
   text-align: center;
-  
+
   .summary-label {
     display: block;
     font-size: 0.75rem;
     color: #666;
     margin-bottom: 4px;
   }
-  
+
   .summary-value {
     display: block;
     font-size: 0.9rem;
@@ -1192,7 +1875,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  
+
   h4 {
     margin: 0;
     font-size: 1rem;
@@ -1212,7 +1895,7 @@ onUnmounted(() => {
   font-size: 0.8rem;
   color: #666;
   cursor: pointer;
-  
+
   &.active {
     background: #667eea;
     color: #fff;
@@ -1222,14 +1905,14 @@ onUnmounted(() => {
 .steam-price {
   text-align: center;
   margin-bottom: 8px;
-  
+
   .price-label {
     display: block;
     font-size: 0.85rem;
     color: #666;
     margin-bottom: 4px;
   }
-  
+
   .price-value {
     display: block;
     font-size: 1.5rem;
@@ -1237,7 +1920,7 @@ onUnmounted(() => {
     color: #f59e0b;
     margin-bottom: 4px;
   }
-  
+
   .price-note {
     display: block;
     font-size: 0.8rem;
@@ -1272,7 +1955,7 @@ onUnmounted(() => {
   font-size: 0.9rem;
   color: #aaa;
   cursor: pointer;
-  
+
   &.active {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
@@ -1285,7 +1968,7 @@ onUnmounted(() => {
 
 .section-header {
   margin-bottom: 24px;
-  
+
   h3 {
     margin: 0;
     font-size: 1.5rem;
@@ -1295,7 +1978,7 @@ onUnmounted(() => {
 
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 20px;
 }
 
@@ -1306,78 +1989,145 @@ onUnmounted(() => {
   border: 1px solid #2a2a4e;
   transition: all 0.3s ease;
   cursor: pointer;
-  
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
   &:hover {
     transform: translateY(-4px);
     border-color: #667eea;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
   }
 }
 
-.item-image {
+.item-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  color: #fff;
+
+  &.factory-new {
+    background: #22c55e;
+  }
+
+  &.field-tested {
+    background: #3b82f6;
+  }
+
+  &.holo {
+    background: #fff;
+    color: #333;
+  }
+
+  &.battle-scarred {
+    background: #f97316;
+  }
+}
+
+.item-image-wrapper {
   width: 100%;
-  height: 180px;
+  padding-top: 100%;
+  position: relative;
   background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+}
+
+.item-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
 }
 
 .item-info {
-  padding: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
 }
 
 .item-name {
-  margin: 0 0 12px 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: #fff;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: auto;
 }
 
 .item-price {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  margin-bottom: 8px;
-  
+
   .price-label {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #f59e0b;
+    font-weight: 600;
   }
-  
+
   .price-value {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #f59e0b;
   }
 }
 
-.item-change {
+.item-stock {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.market-time {
+  cursor: pointer;
+  padding: 6px 16px;
+  border-radius: 8px;
+  background: #2a2a4e;
+  color: #667eea;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.95rem;
-  
-  &.up {
-    color: #14b8a6;
+
+  &:hover {
+    background: #3a3a5e;
   }
-  
-  &.down {
-    color: #ef4444;
-  }
-  
-  .change-arrow {
-    font-size: 1.1rem;
-  }
-  
-  .change-value {
-    font-weight: 600;
-  }
+}
+
+.toggle-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.history-chart-section {
+  padding: 16px 0;
+  height: 250px;
+}
+
+.history-chart {
+  width: 100%;
+  height: 250px;
 }
 </style>
