@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, reactive } from "vue";
 import { useRouter } from "vue-router";
+import { debounce } from "lodash";
 import {
   NButton,
   NCard,
@@ -22,6 +23,8 @@ import {
   CartOutline,
   SwapHorizontalOutline,
   FlameOutline,
+  SearchOutline,
+  CloseOutline,
 } from "@vicons/ionicons5";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
@@ -39,6 +42,7 @@ import {
   getCurrentData,
   getSubData,
   getKline,
+  suggest,
 } from "../services/CSQaQ";
 import dayjs from "dayjs";
 import { scale } from "@visactor/vchart/esm/vchart-all";
@@ -76,120 +80,7 @@ const tabs = [
 const showHistoryChart = ref(false);
 let historyChartInstance: ECharts | null = null;
 
-const indexTabs = ref([
-  {
-    id: 0,
-    name: "饰品指数",
-    change: 0.65,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20weapon%20skin%20icon&image_size=square",
-  },
-  {
-    id: 1,
-    name: "租赁指数",
-    change: -2.44,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=rent%20lease%20contract%20icon&image_size=square",
-  },
-  {
-    id: 2,
-    name: "百元主战",
-    change: 0.31,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=weapon%20rifle%20gun%20icon&image_size=square",
-  },
-  {
-    id: 3,
-    name: "探员指数",
-    change: 3.83,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=agent%20character%20icon&image_size=square",
-  },
-  {
-    id: 4,
-    name: "原皮指数",
-    change: 0.02,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=original%20skin%20weapon&image_size=square",
-  },
-  {
-    id: 5,
-    name: "红皮指数",
-    change: 0.31,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=red%20weapon%20skin%20icon&image_size=square",
-  },
-  {
-    id: 6,
-    name: "千战指数",
-    change: -0.09,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=trophy%20achievement%20icon&image_size=square",
-  },
-  {
-    id: 7,
-    name: "武库指数",
-    change: -4.13,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=weapon%20arsenal%20inventory&image_size=square",
-  },
-  {
-    id: 8,
-    name: "贴纸指数",
-    change: -38.7,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=sticker%20decal%20icon&image_size=square",
-  },
-  {
-    id: 9,
-    name: "匕首指数",
-    change: -0.33,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knife%20dagger%20icon&image_size=square",
-  },
-  {
-    id: 10,
-    name: "手套指数",
-    change: 0.21,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=glove%20handwear%20icon&image_size=square",
-  },
-  {
-    id: 11,
-    name: "胸针指数",
-    change: 12.25,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pin%20badge%20icon&image_size=square",
-  },
-  {
-    id: 12,
-    name: "戒指指数",
-    change: -5.39,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ring%20jewelry%20icon&image_size=square",
-  },
-  {
-    id: 13,
-    name: "挂件指数",
-    change: -0.08,
-    up: false,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=charm%20keychain%20icon&image_size=square",
-  },
-  {
-    id: 14,
-    name: "多普勒",
-    change: 0.54,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=doppler%20weapon%20skin&image_size=square",
-  },
-  {
-    id: 15,
-    name: "伽马多普勒",
-    change: 1.01,
-    up: true,
-    img: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=gamma%20doppler%20skin&image_size=square",
-  },
-]);
+const indexTabs = ref([]);
 
 const activeIndexTab = ref(0);
 
@@ -263,121 +154,73 @@ const marketData = ref({
   steamPrice: 551.8,
 });
 
-const hotItems = ref([
-  {
-    name: "M4A4 | 喧嚣杀戮 (崭新出厂)",
-    price: 4606.9,
-    stock: 889,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20rifle%20weapon%20skin&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "M4A4 | 喧嚣杀戮 (略有磨损)",
-    price: 2940,
-    stock: 1287,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20rifle%20weapon%20skin%20worn&image_size=square",
-    tag: "略有磨损",
-    tagType: "field-tested",
-  },
-  {
-    name: "印花 | paiN Gaming (全息)",
-    price: 97,
-    stock: 1184,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20holographic%20sticker%20logo&image_size=square",
-    tag: "全息",
-    tagType: "holo",
-  },
-  {
-    name: "M4A4 | 喧嚣杀戮 (久经沙场)",
-    price: 2164.5,
-    stock: 1553,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20rifle%20weapon%20skin%20battle%20scarred&image_size=square",
-    tag: "久经沙场",
-    tagType: "battle-scarred",
-  },
-  {
-    name: "USP 消音版 | 紫色 DOPAT",
-    price: 1419.5,
-    stock: 396,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20USP%20pistol%20purple%20skin&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "AK-47 | 怪兽在B (崭新出厂)",
-    price: 8149.5,
-    stock: 702,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AK47%20monster%20skin%20weapon&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "AK-47 | 抽象派 1337 (崭新出厂)",
-    price: 4887,
-    stock: 631,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AK47%20abstract%20art%20skin&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "M4A4 | 狮鹫 (崭新出厂)",
-    price: 875,
-    stock: 201,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20griffin%20skin%20weapon&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "运动手套 (★) | 树篱迷宫 (久经沙场)",
-    price: 33790,
-    stock: 630,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20sport%20gloves%20green%20skin&image_size=square",
-    tag: "久经沙场",
-    tagType: "battle-scarred",
-  },
-  {
-    name: "法玛斯 | 冥界之憎 (崭新出厂)",
-    price: 1420,
-    stock: 220,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20FAMAS%20rifle%20hades%20skin&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "M4A4 | 龙王 (崭新出厂)",
-    price: 821,
-    stock: 689,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20M4A4%20dragon%20king%20skin&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-  {
-    name: "AWP | CMYK (崭新出厂)",
-    price: 11210,
-    stock: 325,
-    image:
-      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CSGO%20AWP%20CMYK%20sniper%20skin&image_size=square",
-    tag: "崭新出厂",
-    tagType: "factory-new",
-  },
-]);
+const hotItems = ref([]);
 
 const goToDetail = (item: any, index: number) => {
   const id = item.id || index + 1;
   console.log(item);
-  router.push("/CsItemDetail?id=" + id);
+  router.push({
+    path: "/CsItemDetail",
+    query: {
+      id: id,
+    },
+  });
+};
+
+const searchQuery = ref("");
+const showSearchDropdown = ref(false);
+const searchListData = ref([]);
+const isSearchLoading = ref(false);
+
+const debounceSearch = debounce(() => {
+  if (!searchQuery.value.trim()) {
+    searchListData.value = [];
+    return;
+  }
+
+  isSearchLoading.value = true;
+  const queryParams = {
+    text: searchQuery.value,
+  };
+  suggest(queryParams)
+    .then((res) => {
+      searchListData.value = res.data;
+      //filteredItems.value = res.data;
+    })
+    .catch((err) => {
+      console.log(err);
+    })
+    .finally(() => {
+      isSearchLoading.value = false;
+    });
+}, 1000);
+// const filteredItems = computed(() => {
+//   if (!searchQuery.value.trim()) return [];
+//   return hotItems.value.filter((item) =>
+//     item.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
+//   );
+// });
+
+const handleSearchFocus = () => {
+  showSearchDropdown.value = true;
+};
+
+const handleSearchBlur = () => {
+  setTimeout(() => {
+    showSearchDropdown.value = false;
+  }, 200);
+};
+
+const clearSearch = () => {
+  searchQuery.value = "";
+  showSearchDropdown.value = false;
+};
+
+const selectItem = (item: any) => {
+  searchQuery.value = item.name;
+  showSearchDropdown.value = false;
+  const index = hotItems.value.findIndex((i) => i.id === item.id);
+  goToDetail(item, index !== -1 ? index : 0);
 };
 
 let chartInstance: ECharts | null = null;
@@ -671,6 +514,10 @@ const onlineChartData = ref([]);
 const onlineChartData2 = ref([]);
 const onlineData = ref();
 onMounted(() => {
+  hotItems.value = hotItems.value.map((item, index) => ({
+    ...item,
+    id: index + 1,
+  }));
   setInterval(() => {
     currentTime.value = dayjs(Date.now()).format("YYYY年MM月DD日 HH:mm:ss");
     //console.log({ currentTime: currentTime.value });
@@ -718,7 +565,6 @@ onMounted(() => {
   //getCurrentData()
   window.addEventListener("resize", resizeChart);
 });
-
 onUnmounted(() => {
   window.removeEventListener("resize", resizeChart);
   if (chartInstance) {
@@ -748,12 +594,53 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="header-right">
-          <div class="search-box">
-            <input
-              type="text"
-              placeholder="搜索饰品名称..."
-              class="search-input"
-            />
+          <div class="search-container">
+            <div class="search-box">
+              <n-icon class="search-icon">
+                <SearchOutline />
+              </n-icon>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索饰品名称..."
+                class="search-input"
+                @focus="handleSearchFocus"
+                @blur="handleSearchBlur"
+                @input="debounceSearch"
+              />
+              <n-icon
+                v-if="searchQuery"
+                class="clear-icon"
+                @click.stop="clearSearch"
+              >
+                <CloseOutline />
+              </n-icon>
+            </div>
+            <div
+              v-if="
+                showSearchDropdown &&
+                (searchListData.length > 0 || isSearchLoading)
+              "
+              class="search-dropdown"
+            >
+              <div v-if="isSearchLoading" class="search-loading">
+                <div class="loading-spinner"></div>
+                <span class="loading-text">搜索中...</span>
+              </div>
+              <transition-group name="list" tag="div" v-else>
+                <div
+                  v-for="item in searchListData"
+                  :key="item.id"
+                  class="search-dropdown-item"
+                  @mousedown="selectItem(item)"
+                >
+                  <n-icon class="dropdown-icon">
+                    <SearchOutline />
+                  </n-icon>
+                  <span class="dropdown-text">{{ item.value }}</span>
+                </div>
+              </transition-group>
+            </div>
           </div>
           <n-button quaternary class="header-btn">登录</n-button>
           <n-button type="primary" class="header-btn">注册</n-button>
@@ -1166,7 +1053,10 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-
+        <BoneyardSkeleton
+          name="blog-card"
+          :loading="isLoading"
+        ></BoneyardSkeleton>
         <div
           class="hot-items-section fade-in-section"
           style="animation-delay: 1.2s"
@@ -1224,9 +1114,11 @@ onUnmounted(() => {
   border-bottom: 1px solid #2a2a4e;
   height: 60px;
   padding: 0;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   animation: fadeInUp 0.8s ease forwards;
   opacity: 0;
 }
@@ -1335,27 +1227,161 @@ onUnmounted(() => {
   gap: 16px;
 }
 
+.search-container {
+  position: relative;
+  z-index: 1000;
+}
+
 .search-box {
   position: relative;
+  display: flex;
+  align-items: center;
+  background: #2a2a4e;
+  border: 1px solid #3a3a5e;
+  border-radius: 12px;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #4a4a6e;
+  }
+
+  &:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+}
+
+.search-icon {
+  color: #888;
+  font-size: 1.1rem;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .search-input {
-  width: 200px;
-  padding: 8px 16px;
-  background: #2a2a4e;
-  border: 1px solid #3a3a5e;
-  border-radius: 20px;
+  width: 220px;
+  background: transparent;
+  border: none;
   color: #fff;
   font-size: 0.9rem;
   outline: none;
+  flex: 1;
 
   &::placeholder {
     color: #666;
   }
+}
 
-  &:focus {
-    border-color: #667eea;
+.clear-icon {
+  color: #888;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #fff;
   }
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.search-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-dropdown::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+.search-dropdown::-webkit-scrollbar-thumb {
+  background: #3a3a5e;
+  border-radius: 3px;
+}
+
+.search-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #2a2a4e;
+  }
+}
+
+.dropdown-icon {
+  color: #667eea;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.dropdown-text {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #2a2a4e;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.list-move {
+  transition: transform 0.3s ease;
 }
 
 .header-btn {
@@ -1365,7 +1391,8 @@ onUnmounted(() => {
 .main-content {
   background: #0d0d1a;
   width: 100%;
-  min-height: calc(100vh - 60px);
+  min-height: 100vh;
+  padding-top: 60px;
 }
 
 .content-wrapper {

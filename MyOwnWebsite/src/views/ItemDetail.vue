@@ -37,26 +37,50 @@
         <div v-if="item" class="detail-wrapper fade-in-section">
           <div class="detail-header">
             <div class="item-image-section">
-              <div class="item-tag" :class="item.tagType">
-                {{ item.tag }}
-              </div>
-              <img :src="item.image" :alt="item.name" class="item-main-image" />
+              <!-- <div
+                class="item-tag"
+                :class="item.goods_info.exterior_localized_name"
+              >
+                {{ item.goods_info.exterior_localized_name }}
+              </div> -->
+              <img
+                :src="item.goods_info.img"
+                :alt="item.goods_info.name"
+                class="item-main-image"
+              />
             </div>
 
             <div class="item-info-section">
               <div class="item-title-row">
-                <h1 class="item-name">{{ item.name }}</h1>
+                <h1 class="item-name">{{ item.goods_info.name }}</h1>
               </div>
 
               <div class="item-meta">
                 <div class="meta-item">
                   <span class="meta-label">属性</span>
-                  <span class="meta-value">受限 普通狙击步枪</span>
+                  <span class="meta-value"
+                    >{{ item.goods_info.rarity_localized_name }}
+                    {{ item.goods_info.type_localized_name }}</span
+                  >
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">存世量</span>
-                  <span class="meta-value">62,785</span>
+                  <span class="meta-value">{{
+                    item.goods_info.statistic
+                  }}</span>
                 </div>
+              </div>
+
+              <div class="wear-tabs">
+                <button
+                  v-for="tab in wearTabs"
+                  :key="tab.value"
+                  class="wear-tab"
+                  :class="{ active: activeWearTab === tab.value }"
+                  @click="activeWearTab = tab.value"
+                >
+                  {{ tab.label }}
+                </button>
               </div>
 
               <div class="item-tags">
@@ -69,9 +93,11 @@
                   <div class="price-label">今日</div>
                   <div class="price-value">
                     <span class="currency">¥</span>
-                    <span class="number">{{
-                      item.price.toLocaleString()
-                    }}</span>
+                    <span class="number">
+                      <!-- {{
+                      //item.price.toLocaleString()
+                      }} -->
+                    </span>
                   </div>
                   <div class="price-change down">
                     <span>↓ 8.1 (-1.73%)</span>
@@ -96,21 +122,29 @@
                   <div class="platform-price">
                     <div class="sell-price">
                       <span class="label">在售价:</span>
-                      <span class="value">¥458.9</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.buff_sell_price }}</span
+                      >
                     </div>
                     <div class="stock-info">
                       <span class="label">在售数:</span>
-                      <span class="value">306件</span>
+                      <span class="value"
+                        >{{ item.goods_info.buff_sell_num }}件</span
+                      >
                     </div>
                   </div>
                   <div class="platform-buy">
                     <div class="buy-price">
                       <span class="label">求购价:</span>
-                      <span class="value">¥451</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.buff_buy_price }}</span
+                      >
                     </div>
                     <div class="buy-info">
                       <span class="label">求购数:</span>
-                      <span class="value">48件</span>
+                      <span class="value"
+                        >{{ item.goods_info.buff_buy_num }}件</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -121,21 +155,29 @@
                   <div class="platform-price">
                     <div class="sell-price">
                       <span class="label">在售价:</span>
-                      <span class="value">¥455</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.yyyp_sell_price }}</span
+                      >
                     </div>
                     <div class="stock-info">
                       <span class="label">在售数:</span>
-                      <span class="value">643件</span>
+                      <span class="value"
+                        >{{ item.goods_info.yyyp_sell_num }}件</span
+                      >
                     </div>
                   </div>
                   <div class="platform-buy">
                     <div class="buy-price">
                       <span class="label">求购价:</span>
-                      <span class="value">¥450</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.yyyp_buy_price }}</span
+                      >
                     </div>
                     <div class="buy-info">
                       <span class="label">求购数:</span>
-                      <span class="value">107件</span>
+                      <span class="value"
+                        >{{ item.goods_info?.yyyp_buy_num }}件</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -146,21 +188,29 @@
                   <div class="platform-price">
                     <div class="sell-price">
                       <span class="label">在售价:</span>
-                      <span class="value">¥587.92</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.steam_sell_price }}</span
+                      >
                     </div>
                     <div class="stock-info">
                       <span class="label">在售数:</span>
-                      <span class="value">84件</span>
+                      <span class="value"
+                        >{{ item.goods_info.steam_sell_num }}件</span
+                      >
                     </div>
                   </div>
                   <div class="platform-buy">
                     <div class="buy-price">
                       <span class="label">求购价:</span>
-                      <span class="value">¥574.36</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.steam_buy_price }}</span
+                      >
                     </div>
                     <div class="buy-info">
                       <span class="label">求购数:</span>
-                      <span class="value">19519件</span>
+                      <span class="value"
+                        >{{ item.goods_info.steam_buy_num }}件</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -171,11 +221,15 @@
                   <div class="platform-price">
                     <div class="sell-price">
                       <span class="label">在售价:</span>
-                      <span class="value">0¥</span>
+                      <span class="value"
+                        >¥{{ item.goods_info.r8_sell_price }}</span
+                      >
                     </div>
                     <div class="stock-info">
                       <span class="label">在售数:</span>
-                      <span class="value">0件</span>
+                      <span class="value"
+                        >{{ item.goods_info.r8_sell_num }}件</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -236,6 +290,9 @@ const item = ref<any>(null);
 const detailChartRef = ref<HTMLElement | null>(null);
 let detailChartInstance: ECharts | null = null;
 
+const wearTabs = ref([]);
+const activeWearTab = ref();
+
 const timeTabs = [
   { label: "1小时", value: "1h" },
   { label: "4小时", value: "4h" },
@@ -263,7 +320,6 @@ const initDetailChart = () => {
     const date = new Date();
     date.setDate(date.getDate() - 30 + i);
     dates.push(`${date.getMonth() + 1}-${date.getDate()}`);
-
     const change = (Math.random() - 0.45) * 20;
     basePrice = Math.max(100, basePrice + change);
     prices.push(basePrice.toFixed(2));
@@ -430,21 +486,40 @@ const calculateMA = (dayCount: number, data: any[]) => {
   }
   return result;
 };
-
-onMounted((e) => {
-  console.log({ e: e });
+const wearTabsStatTrak = ref([]);
+onMounted(() => {
   let queryParams = {
-    id: e.id,
+    id: route.query.id,
   };
   good(queryParams)
     .then((res) => {
       console.log(res);
+      item.value = res.data;
+      activeWearTab.value = res.data.goods_info.exterior_localized_name;
+      // wearTabs.value=res.data.statistic_list?.map((item) =>{
+      //   label: item.exterior_localized_name,
+      //   value: item.exterior_localized_name,
+      // })
+      res.data.statistic_list.forEach((item) => {
+        if (item.quality_localized_name !== "StatTrak™") {
+          wearTabs.value.push({
+            label: item.exterior_localized_name,
+            value: item.exterior_localized_name,
+          });
+        } else {
+          if (item.quality_localized_name === "StatTrak™") {
+            wearTabsStatTrak.value.push({
+              label: item.exterior_localized_name,
+              value: item.exterior_localized_name,
+            });
+          }
+        }
+      });
+      console.log(wearTabs.value);
     })
-    .catch((err) => {});
-  const itemId = route.params.id;
-  item.value =
-    hotItems.value.find((i) => i.id === Number(itemId)) || hotItems.value[0];
 
+    .catch((err) => {});
+  const itemId = route.query.id;
   setTimeout(() => {
     initDetailChart();
   }, 100);
@@ -585,6 +660,34 @@ const handleResize = () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.wear-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wear-tab {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #3a3a5e;
+  border-radius: 8px;
+  color: #888;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #4a4a6e;
+    color: #aaa;
+  }
+
+  &.active {
+    border-color: #f59e0b;
+    color: #f59e0b;
+  }
 }
 
 .item-title-row {
