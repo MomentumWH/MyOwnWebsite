@@ -34,15 +34,15 @@
 
     <n-layout-content class="content">
       <div class="detail-container">
+        <div v-if="isLoading" class="loading-overlay">
+          <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <span class="loading-text">加载中...</span>
+          </div>
+        </div>
         <div v-if="item" class="detail-wrapper fade-in-section">
           <div class="detail-header">
             <div class="item-image-section">
-              <!-- <div
-                class="item-tag"
-                :class="item.goods_info.exterior_localized_name"
-              >
-                {{ item.goods_info.exterior_localized_name }}
-              </div> -->
               <img
                 :src="item.goods_info.img"
                 :alt="item.goods_info.name"
@@ -74,12 +74,16 @@
               <div class="wear-tabs">
                 <button
                   v-for="tab in wearTabs"
-                  :key="tab.value"
+                  :key="tab.id"
                   class="wear-tab"
-                  :class="{ active: activeWearTab === tab.value }"
-                  @click="activeWearTab = tab.value"
+                  :class="{ active: activeWearTab === tab.id }"
+                  @click="chooseWearTab(tab)"
+                  v-if="!isStatTrak"
                 >
-                  {{ tab.label }}
+                  <n-icon class="toggle-icon" v-if="tab.switch === true">
+                    <Repeat />
+                  </n-icon>
+                  {{ tab.name }}
                 </button>
               </div>
 
@@ -92,25 +96,69 @@
                 <div class="price-card">
                   <div class="price-label">今日</div>
                   <div class="price-value">
-                    <span class="currency">¥</span>
+                    <span class="currency"
+                      >¥{{ item.goods_info?.yyyp_sell_price }}</span
+                    >
                     <span class="number">
                       <!-- {{
                       //item.price.toLocaleString()
                       }} -->
                     </span>
                   </div>
-                  <div class="price-change down">
-                    <span>↓ 8.1 (-1.73%)</span>
+                  <div
+                    class="price-change down"
+                    v-if="item.goods_info?.yyyp_sell_price_rate_1 < 0"
+                  >
+                    <span
+                      >↓ {{ item.goods_info?.yyyp_sell_price_1 }} （{{
+                        item.goods_info?.yyyp_sell_price_rate_1
+                      }}%）</span
+                    >
+                  </div>
+                  <div
+                    class="price-change up"
+                    v-if="
+                      item.goods_info?.yyyp_sell_price_rate_1 > 0 ||
+                      item.goods_info?.yyyp_sell_price_rate_1 === 0
+                    "
+                  >
+                    <span>
+                      ↑{{ item.goods_info?.yyyp_sell_price_1 }} （{{
+                        item.goods_info?.yyyp_sell_price_rate_1
+                      }}%）</span
+                    >
                   </div>
                 </div>
                 <div class="price-card">
-                  <div class="price-label">本周</div>
+                  <div class="price-label">本周价格波动</div>
                   <div class="price-value">
                     <span class="currency">¥</span>
-                    <span class="number">48.91</span>
+                    <span class="number">{{
+                      item.goods_info?.yyyp_sell_price_7
+                    }}</span>
                   </div>
-                  <div class="price-change up">
-                    <span>↑ 4.89 (11.93%)</span>
+                  <div
+                    class="price-change up"
+                    v-if="item.goods_info?.yyyp_sell_price_rate_7 > 0"
+                  >
+                    <span
+                      >↑ （{{
+                        item.goods_info?.yyyp_sell_price_rate_7
+                      }}%）</span
+                    >
+                  </div>
+                  <div
+                    class="price-change down"
+                    v-if="
+                      item.goods_info?.yyyp_sell_price_rate_7 < 0 ||
+                      item.goods_info?.yyyp_sell_price_rate_7 === 0
+                    "
+                  >
+                    <span
+                      >↓ （{{
+                        item.goods_info?.yyyp_sell_price_rate_7
+                      }}%）</span
+                    >
                   </div>
                 </div>
               </div>
@@ -214,25 +262,6 @@
                     </div>
                   </div>
                 </div>
-
-                <div class="platform-item">
-                  <div class="platform-icon r8game"></div>
-                  <div class="platform-name">R8GAME</div>
-                  <div class="platform-price">
-                    <div class="sell-price">
-                      <span class="label">在售价:</span>
-                      <span class="value"
-                        >¥{{ item.goods_info.r8_sell_price }}</span
-                      >
-                    </div>
-                    <div class="stock-info">
-                      <span class="label">在售数:</span>
-                      <span class="value"
-                        >{{ item.goods_info.r8_sell_num }}件</span
-                      >
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -244,7 +273,7 @@
                   v-for="tab in timeTabs"
                   :key="tab.value"
                   :type="activeTimeTab === tab.value ? 'primary' : 'default'"
-                  @click="activeTimeTab = tab.value"
+                  @click="changeLineTime(tab)"
                   size="small"
                 >
                   {{ tab.label }}
@@ -271,7 +300,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
   GameController,
@@ -282,24 +311,30 @@ import {
 } from "@vicons/ionicons5";
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
-import { good } from "../services/CSQaQ";
+import { good, getOneChart } from "../services/CSQaQ";
+import dayjs from "dayjs";
+
 const router = useRouter();
 const route = useRoute();
 
 const item = ref<any>(null);
 const detailChartRef = ref<HTMLElement | null>(null);
 let detailChartInstance: ECharts | null = null;
+const isLoading = ref(false);
 
 const wearTabs = ref([]);
 const activeWearTab = ref();
+const isStatTrak = ref(false);
 
 const timeTabs = [
-  { label: "1小时", value: "1h" },
-  { label: "4小时", value: "4h" },
-  { label: "日线", value: "day" },
-  { label: "周线", value: "week" },
+  { label: "近7天", value: "7" },
+  { label: "近30天", value: "30" },
+  { label: "近三个月", value: "90" },
+  { label: "近半年", value: "180" },
+  { label: "近一年", value: "365" },
+  { label: "近三年", value: "1095" },
 ];
-const activeTimeTab = ref("week");
+const activeTimeTab = ref("7");
 
 const hotItem = ref();
 const goBack = () => {
@@ -307,168 +342,241 @@ const goBack = () => {
 };
 
 const initDetailChart = () => {
-  if (!detailChartRef.value) return;
-
-  detailChartInstance = echarts.init(detailChartRef.value);
-
-  const dates = [];
-  const prices = [];
-  const volumes = [];
-  let basePrice = 400;
-
-  for (let i = 0; i < 30; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - 30 + i);
-    dates.push(`${date.getMonth() + 1}-${date.getDate()}`);
-    const change = (Math.random() - 0.45) * 20;
-    basePrice = Math.max(100, basePrice + change);
-    prices.push(basePrice.toFixed(2));
-    volumes.push(Math.floor(Math.random() * 5000 + 1000));
+  if (!detailChartRef.value) {
+    console.log("图表容器不存在");
+    return;
+  }
+  if (!lineData.value) {
+    console.log("图表数据不存在");
+    return;
   }
 
-  const option = {
-    backgroundColor: "transparent",
-    tooltip: {
-      trigger: "axis",
-      backgroundColor: "rgba(26, 26, 46, 0.95)",
-      borderColor: "#2a2a4e",
-      textStyle: { color: "#fff" },
-    },
-    legend: {
-      data: ["MA5", "MA10", "MA20", "MA30"],
-      textStyle: { color: "#888" },
-      top: 10,
-      right: 10,
-    },
-    grid: [
-      {
-        left: "3%",
-        right: "4%",
-        top: 60,
-        height: "55%",
-      },
-      {
-        left: "3%",
-        right: "4%",
-        top: "72%",
-        height: "16%",
-      },
-    ],
-    xAxis: [
-      {
-        type: "category",
-        data: dates,
-        axisLine: { lineStyle: { color: "#2a2a4e" } },
-        axisLabel: { color: "#888" },
-        boundaryGap: false,
-      },
-      {
-        type: "category",
-        gridIndex: 1,
-        data: dates,
-        axisLine: { lineStyle: { color: "#2a2a4e" } },
-        axisLabel: { color: "#888" },
-        boundaryGap: false,
-      },
-    ],
-    yAxis: [
-      {
-        type: "value",
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: { lineStyle: { color: "#2a2a4e" } },
-        axisLabel: { color: "#888" },
-      },
-      {
-        type: "value",
-        gridIndex: 1,
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: { lineStyle: { color: "#2a2a4e" } },
-        axisLabel: { color: "#888" },
-      },
-    ],
-    dataZoom: [
-      {
-        type: "inside",
-        xAxisIndex: [0, 1],
-        start: 0,
-        end: 100,
-      },
-    ],
-    series: [
-      {
-        name: "价格",
-        type: "line",
-        data: prices,
-        smooth: true,
-        lineStyle: { color: "#667eea" },
-        itemStyle: { color: "#667eea" },
-        areaStyle: {
-          color: {
-            type: "linear",
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: "rgba(102, 126, 234, 0.3)" },
-              { offset: 1, color: "rgba(102, 126, 234, 0.05)" },
-            ],
-          },
-        },
-      },
-      {
-        name: "MA5",
-        type: "line",
-        data: calculateMA(5, prices),
-        smooth: true,
-        lineStyle: { color: "#f59e0b" },
-        showSymbol: false,
-      },
-      {
-        name: "MA10",
-        type: "line",
-        data: calculateMA(10, prices),
-        smooth: true,
-        lineStyle: { color: "#10b981" },
-        showSymbol: false,
-      },
-      {
-        name: "MA20",
-        type: "line",
-        data: calculateMA(20, prices),
-        smooth: true,
-        lineStyle: { color: "#8b5cf6" },
-        showSymbol: false,
-      },
-      {
-        name: "MA30",
-        type: "line",
-        data: calculateMA(30, prices),
-        smooth: true,
-        lineStyle: { color: "#ec4899" },
-        showSymbol: false,
-      },
-      {
-        name: "成交量",
-        type: "bar",
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: volumes,
-        itemStyle: {
-          color: (params: any) => {
-            const idx = params.dataIndex;
-            return idx > 0 && prices[idx] >= prices[idx - 1]
-              ? "#10b981"
-              : "#ef4444";
-          },
-        },
-      },
-    ],
-  };
+  console.log("开始初始化图表，数据：", lineData.value);
 
-  detailChartInstance.setOption(option);
+  try {
+    if (!detailChartInstance) {
+      detailChartInstance = echarts.init(detailChartRef.value);
+    }
+
+    const prices = lineData.value.main_data || [];
+    const volumes = lineData.value.num_data || [];
+    const timestamps = lineData.value.timestamp || [];
+
+    console.log("处理后的价格数据：", prices);
+    console.log("处理后的成交量数据：", volumes);
+
+    const option = {
+      backgroundColor: "transparent",
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(26, 26, 46, 0.98)",
+        borderColor: "#2a2a4e",
+        borderWidth: 1,
+        textStyle: { color: "#fff" },
+        padding: [10, 20],
+        extraCssText:
+          "box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); border-radius: 8px;",
+        position: function (
+          point: any,
+          params: any,
+          dom: any,
+          rect: any,
+          size: any,
+        ) {
+          return {
+            left: 20,
+            top: 20,
+          };
+        },
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return "";
+
+          const dataIndex = params[0].dataIndex;
+          const date = timestamps[dataIndex];
+          const price = prices[dataIndex];
+          const volume = volumes[dataIndex];
+          const ma5 = calculateMA(5, prices)[dataIndex];
+          const ma10 = calculateMA(10, prices)[dataIndex];
+          const ma20 = calculateMA(20, prices)[dataIndex];
+          const ma30 = calculateMA(30, prices)[dataIndex];
+
+          let change = "-";
+          let changePercent = "-";
+          if (dataIndex > 0 && prices[dataIndex - 1]) {
+            const prevPrice = prices[dataIndex - 1];
+            change = (price - prevPrice).toFixed(2);
+            changePercent =
+              (((price - prevPrice) / prevPrice) * 100).toFixed(2) + "%";
+          }
+
+          return `
+            <div style="display: flex; gap: 24px; align-items: center; white-space: nowrap;">
+              <span style="color: #888; font-size: 13px;">时间: <span style="color: #fff;">${dayjs(date).format("YYYY-MM-DD")}</span></span>
+              <span style="color: #888; font-size: 13px;">价格: <span style="color: #fff; font-weight: 600;">¥${price}</span></span>
+              <span style="color: #888; font-size: 13px;">成交量: <span style="color: #fff;">${volume}</span></span>
+              <span style="color: #f59e0b; font-size: 13px;">MA5: ${ma5 || "-"}</span>
+              <span style="color: #10b981; font-size: 13px;">MA10: ${ma10 || "-"}</span>
+              <span style="color: #8b5cf6; font-size: 13px;">MA20: ${ma20 || "-"}</span>
+              <span style="color: #ec4899; font-size: 13px;">MA30: ${ma30 || "-"}</span>
+              ${dataIndex > 0 ? `<span style="color: ${parseFloat(change) >= 0 ? "#10b981" : "#ef4444"}; font-size: 13px; font-weight: 500;">${parseFloat(change) >= 0 ? "+" : ""}${change} (${changePercent})</span>` : ""}
+            </div>
+          `;
+        },
+      },
+      axisPointer: {
+        type: "cross",
+        link: { xAxisIndex: "all" },
+        crossStyle: {
+          color: "#667eea",
+          width: 1,
+          type: "dashed",
+        },
+        label: {
+          backgroundColor: "#2a2a4e",
+          color: "#fff",
+          fontSize: 12,
+          padding: [4, 8],
+        },
+      },
+      legend: {
+        data: ["MA5", "MA10", "MA20", "MA30"],
+        textStyle: { color: "#888" },
+        top: 10,
+        right: 10,
+      },
+      grid: [
+        {
+          left: "3%",
+          right: "4%",
+          top: 60,
+          height: "55%",
+        },
+        {
+          left: "3%",
+          right: "4%",
+          top: "72%",
+          height: "16%",
+        },
+      ],
+      xAxis: [
+        {
+          type: "category",
+          data: timestamps.map((item: any) => dayjs(item).format("YYYY-MM-DD")),
+          axisLine: { lineStyle: { color: "#2a2a4e" } },
+          axisLabel: { color: "#888" },
+          boundaryGap: false,
+        },
+        {
+          type: "category",
+          gridIndex: 1,
+          data: timestamps.map((item: any) => dayjs(item).format("YYYY-MM-DD")),
+          axisLine: { lineStyle: { color: "#2a2a4e" } },
+          axisLabel: { color: "#888" },
+          boundaryGap: false,
+        },
+      ],
+      yAxis: [
+        {
+          type: "value",
+          axisLine: { show: false },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { color: "#2a2a4e" } },
+          axisLabel: { color: "#888" },
+        },
+        {
+          type: "value",
+          gridIndex: 1,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { color: "#2a2a4e" } },
+          axisLabel: { color: "#888" },
+        },
+      ],
+      dataZoom: [
+        {
+          type: "inside",
+          xAxisIndex: [0, 1],
+          start: 0,
+          end: 100,
+        },
+      ],
+      series: [
+        {
+          name: "价格",
+          type: "line",
+          data: prices,
+          smooth: true,
+          lineStyle: { color: "#667eea" },
+          itemStyle: { color: "#667eea" },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(102, 126, 234, 0.3)" },
+                { offset: 1, color: "rgba(102, 126, 234, 0.05)" },
+              ],
+            },
+          },
+        },
+        {
+          name: "MA5",
+          type: "line",
+          data: calculateMA(5, prices),
+          smooth: true,
+          lineStyle: { color: "#f59e0b" },
+          showSymbol: false,
+        },
+        {
+          name: "MA10",
+          type: "line",
+          data: calculateMA(10, prices),
+          smooth: true,
+          lineStyle: { color: "#10b981" },
+          showSymbol: false,
+        },
+        {
+          name: "MA20",
+          type: "line",
+          data: calculateMA(20, prices),
+          smooth: true,
+          lineStyle: { color: "#8b5cf6" },
+          showSymbol: false,
+        },
+        {
+          name: "MA30",
+          type: "line",
+          data: calculateMA(30, prices),
+          smooth: true,
+          lineStyle: { color: "#ec4899" },
+          showSymbol: false,
+        },
+        {
+          name: "成交量",
+          type: "bar",
+          xAxisIndex: 1,
+          yAxisIndex: 1,
+          data: volumes,
+          itemStyle: {
+            color: (params: any) => {
+              const idx = params.dataIndex;
+              return idx > 0 && prices[idx] >= prices[idx - 1]
+                ? "#10b981"
+                : "#ef4444";
+            },
+          },
+        },
+      ],
+    };
+
+    detailChartInstance.setOption(option, true);
+    console.log("图表初始化完成");
+  } catch (error) {
+    console.error("图表初始化错误：", error);
+  }
 };
 
 const calculateMA = (dayCount: number, data: any[]) => {
@@ -486,44 +594,87 @@ const calculateMA = (dayCount: number, data: any[]) => {
   }
   return result;
 };
-const wearTabsStatTrak = ref([]);
-onMounted(() => {
+const chooseWearTab = (tab) => {
+  isLoading.value = true;
+  activeWearTab.value = tab.id;
+  currentId.value = tab.id;
   let queryParams = {
-    id: route.query.id,
+    id: tab.id,
   };
+  //wearTabs.value = [];
   good(queryParams)
     .then((res) => {
       console.log(res);
       item.value = res.data;
-      activeWearTab.value = res.data.goods_info.exterior_localized_name;
-      // wearTabs.value=res.data.statistic_list?.map((item) =>{
-      //   label: item.exterior_localized_name,
-      //   value: item.exterior_localized_name,
-      // })
-      res.data.statistic_list.forEach((item) => {
-        if (item.quality_localized_name !== "StatTrak™") {
-          wearTabs.value.push({
-            label: item.exterior_localized_name,
-            value: item.exterior_localized_name,
-          });
-        } else {
-          if (item.quality_localized_name === "StatTrak™") {
-            wearTabsStatTrak.value.push({
-              label: item.exterior_localized_name,
-              value: item.exterior_localized_name,
-            });
-          }
-        }
+      activeWearTab.value = res.data.goods_info.id;
+      console.log(wearTabs.value);
+      wearTabs.value = res.data.button_list;
+      setTimeout(() => {
+        getIdObjectKline(currentId.value);
+      }, 1000);
+    })
+    .catch((err) => {})
+    .finally(() => {
+      isLoading.value = false;
+    });
+};
+const lineData = ref();
+const wearTabsStatTrak = ref([]);
+const currentId = ref();
+const getIdObjectKline = (id) => {
+  console.log("开始获取图表数据，ID：", id);
+  let data = {
+    good_id: id,
+    key: "sell_price",
+    platform: 2,
+    period: activeTimeTab.value,
+    style: "all_style",
+  };
+  getOneChart(data)
+    .then((res) => {
+      console.log("获取图表数据成功：", res);
+      lineData.value = res.data;
+      console.log({ "lineData.value": lineData.value });
+    })
+    .catch((err) => {
+      console.error("获取图表数据失败：", err);
+    });
+};
+
+watch(
+  lineData,
+  (newData) => {
+    if (newData) {
+      console.log("lineData 数据变化，准备更新图表");
+      nextTick(() => {
+        initDetailChart();
       });
+    }
+  },
+  { deep: true },
+);
+
+onMounted(() => {
+  isLoading.value = true;
+  let queryParams = {
+    id: route.query.id,
+  };
+  currentId.value = route.query.id;
+  good(queryParams)
+    .then((res) => {
+      console.log(res);
+      item.value = res.data;
+      activeWearTab.value = res.data.goods_info.id;
+      wearTabs.value = res.data.button_list;
       console.log(wearTabs.value);
     })
-
-    .catch((err) => {});
-  const itemId = route.query.id;
+    .catch((err) => {})
+    .finally(() => {
+      isLoading.value = false;
+    });
   setTimeout(() => {
-    initDetailChart();
-  }, 100);
-
+    getIdObjectKline(currentId.value);
+  }, 1500);
   window.addEventListener("resize", handleResize);
 });
 
@@ -538,6 +689,10 @@ const handleResize = () => {
   if (detailChartInstance) {
     detailChartInstance.resize();
   }
+};
+const changeLineTime = (tab) => {
+  activeTimeTab.value = tab.value;
+  getIdObjectKline(currentId.value);
 };
 </script>
 
@@ -592,6 +747,59 @@ const handleResize = () => {
 .detail-container {
   max-width: 1600px;
   margin: 0 auto;
+  position: relative;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 13, 26, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #2a2a4e;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .detail-wrapper {
@@ -688,6 +896,42 @@ const handleResize = () => {
     border-color: #f59e0b;
     color: #f59e0b;
   }
+}
+
+.wear-tabs-divider {
+  width: 1px;
+  background: #3a3a5e;
+  margin: 0 8px;
+}
+
+.wear-tab-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #3a3a5e;
+  border-radius: 8px;
+  color: #888;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #4a4a6e;
+    color: #aaa;
+  }
+
+  &.active {
+    border-color: #667eea;
+    color: #667eea;
+  }
+}
+
+.toggle-icon {
+  font-size: 1.1rem;
+  /* color: red; */
 }
 
 .item-title-row {

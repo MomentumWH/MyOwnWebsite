@@ -36,7 +36,8 @@ import {
   DataZoomComponent,
   VisualMapComponent,
 } from "echarts/components";
-import { ECharts } from "echarts/core";
+import * as echarts from "echarts";
+type ECharts = echarts.ECharts;
 import {
   bindLocalIp,
   getCurrentData,
@@ -390,6 +391,15 @@ const goHome = () => {
   router.push("/");
 };
 
+const handleNavClick = (item: any) => {
+  activeNavItem.value = item.key;
+  if (item.key === "home") {
+    router.push("/cs-items");
+  } else if (item.key === "items") {
+    router.push("/item-list");
+  }
+};
+
 const toggleHistoryChart = () => {
   showHistoryChart.value = !showHistoryChart.value;
   if (showHistoryChart.value) {
@@ -587,7 +597,7 @@ onUnmounted(() => {
             :key="item.key"
             class="nav-item"
             :class="{ active: activeNavItem === item.key }"
-            @click="activeNavItem = item.key"
+            @click="handleNavClick(item)"
           >
             <component :is="item.icon" class="nav-icon" />
             <span class="nav-label">{{ item.label }}</span>

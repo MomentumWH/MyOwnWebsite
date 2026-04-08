@@ -10,6 +10,7 @@ import Profile from "../views/Profile.vue";
 import ChatRoom from "../views/ChatRoom.vue";
 import CSItems from "../views/CSItems.vue";
 import ItemDetail from "../views/ItemDetail.vue";
+import ItemList from "../views/ItemList.vue";
 
 const routes = [
   {
@@ -78,6 +79,12 @@ const routes = [
     name: "CsItemDetail",
     component: ItemDetail, // 匹配的组件
     meta: { title: "商品详情" },
+  },
+  {
+    path: "/item-list",
+    name: "item-list",
+    component: ItemList,
+    meta: { title: "饰品列表" },
   },
   // {
   // name: 'user', // 路由名称（用于编程式导航）
