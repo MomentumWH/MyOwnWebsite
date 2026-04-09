@@ -1,0 +1,58 @@
+# Nginx配置示例
+# 用于生产环境部署时的反向代理配置
+
+server {
+    listen 80;
+    server_name your-domain.com; # 替换为你的域名
+    root /path/to/your/dist; # 替换为你的dist目录路径
+    index index.html;
+
+    # 配置CSQAQ API反向代理（如果需要）
+    # 注意：如果使用了环境变量配置直接调用API，则不需要此配置
+    # location /api/csqaq {
+    #     proxy_pass https://api.csqaq.com;
+    #     proxy_set_header Host api.csqaq.com;
+    #     proxy_set_header X-Real-IP $remote_addr;
+    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #     proxy_set_header X-Forwarded-Proto $scheme;
+    # }
+
+    # 处理Vue Router的HTML5 History模式
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 静态文件缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+    }
+}
+
+# 如果需要HTTPS配置，可以添加以下server块
+# server {
+#     listen 443 ssl;
+#     server_name your-domain.com;
+#     root /path/to/your/dist;
+#     index index.html;
+# 
+#     # SSL配置
+#     ssl_certificate /path/to/your/certificate.crt;
+#     ssl_certificate_key /path/to/your/private.key;
+#     ssl_protocols TLSv1.2 TLSv1.3;
+#     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+#     ssl_prefer_server_ciphers off;
+#     ssl_session_cache shared:SSL:10m;
+#     ssl_session_timeout 10m;
+# 
+#     # 处理Vue Router的HTML5 History模式
+#     location / {
+#         try_files $uri $uri/ /index.html;
+#     }
+# 
+#     # 静态文件缓存
+#     location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+#         expires 30d;
+#         add_header Cache-Control "public, max-age=2592000";
+#     }
+# }

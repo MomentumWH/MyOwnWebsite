@@ -3,7 +3,7 @@ import axios from "axios";
 // const authStore = useAuthStore();
 
 const CSQAQAPI = axios.create({
-  baseURL: "/api/csqaq",
+  baseURL: import.meta.env.VITE_CSQAQ_API_BASE_URL || "/api/csqaq",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
