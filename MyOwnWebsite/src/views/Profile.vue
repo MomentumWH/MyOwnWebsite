@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -9,15 +9,15 @@ const authStore = useAuthStore()
 const isEditing = ref(false)
 const editField = ref('')
 
-const user = ref({
-  username: '吴昊',
-  teamName: '吴昊',
+const user = computed(() => ({
+  username: authStore.user?.username || '用户',
+  teamName: authStore.user?.username || '用户',
   phone: '18651032383',
   email: '',
   password: '********',
   wechat: '未绑定',
   feishu: '未绑定'
-})
+}))
 
 const handleEdit = (field: string) => {
   editField.value = field

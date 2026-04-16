@@ -43,7 +43,9 @@
           </div>
           <n-space>
             <n-button quaternary class="header-btn">登录</n-button>
-            <n-button type="primary" class="header-btn register-btn">注册</n-button>
+            <n-button type="primary" class="header-btn register-btn"
+              >注册</n-button
+            >
             <n-button class="back-btn" @click="goHome">
               <template #icon>
                 <n-icon><ArrowBackOutline /></n-icon>
@@ -70,8 +72,11 @@
                 class="main-search-input"
               />
             </div>
-            <n-button >
-               筛选
+            <n-button class="filter-btn" @click="showFilterDrawer = true">
+              <template #icon>
+                <n-icon><FilterOutline /></n-icon>
+              </template>
+              筛选
             </n-button>
           </div>
           <div class="tools-right">
@@ -134,99 +139,82 @@
           <n-button type="primary" ghost> 加载更多 </n-button>
         </div>
       </div>
-    </n-layout-content>
-  </n-layout>
-    <!-- </n-layout-content>
-  </n-layout> -->
-    <n-drawer
-    v-model:show="showFilterDrawer"
-    placement="right"
-    size="360"
-    :native-scrollbar="false"
-  >
-    <n-drawer-content title="筛选" :bordered="false" closable>
-      <div class="filter-drawer-content">
-            <div class="filter-section">
-              <h4 class="filter-title">类型</h4>
-              <div class="filter-options">
-                <div
-                  v-for="option in typeOptions"
-                  :key="option.value"
-                  class="filter-option"
-                  :class="{ active: filterType === option.value }"
-                  @click="filterType = option.value"
-                >
-                  {{ option.label }}
-                </div>
+
+      <n-drawer
+        v-model:show="showFilterDrawer"
+        placement="right"
+        size="600"
+        :native-scrollbar="false"
+      >
+        <n-drawer-content :bordered="false" closable>
+          <div class="filter-drawer-wrapper">
+            <div class="filter-nav">
+              <div
+                v-for="(group, index) in filterGroups"
+                :key="group.name"
+                class="nav-item"
+                :class="{ active: activeFilterNav === index }"
+                @click="scrollToGroup(index)"
+              >
+                {{ group.name }}
               </div>
             </div>
-
-            <div class="filter-section">
-              <h4 class="filter-title">品质</h4>
-              <div class="filter-options">
-                <div
-                  v-for="option in qualityOptions"
-                  :key="option.value"
-                  class="filter-option"
-                  :class="{ active: filterQuality === option.value }"
-                  @click="filterQuality = option.value"
-                >
-                  {{ option.label }}
-                </div>
-              </div>
-            </div>
-
-            <div class="filter-section">
-              <h4 class="filter-title">类别</h4>
-              <div class="filter-options">
-                <div
-                  v-for="option in categoryOptions"
-                  :key="option.value"
-                  class="filter-option"
-                  :class="{ active: filterCategory === option.value }"
-                  @click="filterCategory = option.value"
-                >
-                  {{ option.label }}
-                </div>
-              </div>
-            </div>
-
-            <div class="filter-section">
-              <h4 class="filter-title">磨损</h4>
-              <div class="filter-options">
-                <div
-                  v-for="option in wearOptions"
-                  :key="option.value"
-                  class="filter-option"
-                  :class="{ active: filterWear === option.value }"
-                  @click="filterWear = option.value"
-                >
-                  {{ option.label }}
+            <div class="filter-content">
+              <div
+                v-for="(group, groupIndex) in filterGroups"
+                :key="group.name"
+                class="filter-group"
+                :ref="(el) => setGroupRef(el, groupIndex)"
+              >
+                <h4 class="group-title">{{ group.name }}</h4>
+                <div class="filter-options">
+                  <div
+                    v-for="option in group.options"
+                    :key="option.value"
+                    class="filter-option"
+                    :class="{
+                      active: isOptionSelected(group.name, option.value),
+                    }"
+                    @click="toggleFilter(group.name, option.value)"
+                  >
+                    {{ option.label }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-      <div class="filter-drawer-footer">
-        <n-button class="footer-btn reset-btn" @click="resetFilters">
-          重置
-        </n-button>
-        <n-button
-          type="primary"
-          class="footer-btn apply-btn"
-          @click="applyFilters"
-        >
-          完成
-        </n-button>
-      </div>
-    </n-drawer-content>
-  </n-drawer>
+          <div class="filter-drawer-footer">
+            <n-button class="footer-btn reset-btn" @click="resetFilters">
+              重置
+            </n-button>
+            <n-button
+              type="primary"
+              class="footer-btn apply-btn"
+              @click="applyFilters"
+            >
+              完成
+            </n-button>
+          </div>
+        </n-drawer-content>
+      </n-drawer>
+    </n-layout-content>
+  </n-layout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { NButton, NLayout, NLayoutHeader, NLayoutContent, NSpace, NSelect, NDrawer, NDrawerContent } from "naive-ui";
+import {
+  NButton,
+  NLayout,
+  NLayoutHeader,
+  NLayoutContent,
+  NSpace,
+  NSelect,
+  NDrawer,
+  NDrawerContent,
+} from "naive-ui";
 import {
   HomeOutline,
   ListOutline,
@@ -248,33 +236,112 @@ const showSearchDropdown = ref(false);
 const activeCategoryTab = ref("all");
 const sortOrder = ref("price-asc");
 const showFilterDrawer = ref(false);
+const activeFilterNav = ref(0);
+const groupRefs = ref<(HTMLElement | null)[]>([]);
 
-const filterType = ref("");
-const filterQuality = ref("");
-const filterCategory = ref("");
-const filterWear = ref("");
+const setGroupRef = (el: HTMLElement | null, index: number) => {
+  if (el) {
+    groupRefs.value[index] = el;
+  }
+};
 
-const typeOptions = [
-  { label: "不限", value: "" },
-  { label: "匕首", value: "knife" },
-  { label: "M9 刺刀", value: "m9" },
-  { label: "廓尔喀刀", value: "gurkha" },
-  { label: "刺刀", value: "bayonet" },
-  { label: "流浪者匕首", value: "nomad" },
-  { label: "短剑", value: "stiletto" },
-  { label: "熊刀", value: "bear" },
-  { label: "系绳匕首", value: "tether" },
-  { label: "弯刀", value: "scimitar" },
-  { label: "鲍伊猎刀", value: "bowie" },
-  { label: "折刀", value: "claw" },
-  { label: "蝴蝶刀", value: "butterfly" },
-  { label: "折叠刀", value: "flip" },
-  { label: "海豹短刀", value: "seal" },
-  { label: "猎杀者匕首", value: "huntsman" },
-  { label: "求生匕首", value: "survival" },
-  { label: "暗影双刃", value: "shadow" },
-  { label: "穿肠刀", value: "gut" },
-];
+const scrollToGroup = (index: number) => {
+  activeFilterNav.value = index;
+  const groupEl = groupRefs.value[index];
+  if (groupEl) {
+    const contentEl = groupEl.parentElement;
+    if (contentEl) {
+      contentEl.scrollTo({
+        top: groupEl.offsetTop - 20,
+        behavior: "smooth",
+      });
+    }
+  }
+};
+
+const selectedFilters = ref<Record<string, Set<string>>>({
+  匕首: new Set(),
+  手套: new Set(),
+  步枪: new Set(),
+});
+
+const filterGroups = ref([
+  {
+    name: "匕首",
+    options: [
+      { label: "不限", value: "all" },
+      { label: "蝴蝶刀", value: "butterfly" },
+      { label: "M9 刺刀", value: "m9" },
+      { label: "爪子刀", value: "karambit" },
+      { label: "廓尔喀刀", value: "gurkha" },
+      { label: "骷髅匕首", value: "skeleton" },
+      { label: "刺刀", value: "bayonet" },
+      { label: "锯齿爪刀", value: "talon" },
+      { label: "流浪者匕首", value: "nomad" },
+      { label: "折叠刀", value: "flip" },
+      { label: "短剑", value: "stiletto" },
+      { label: "海豹短刀", value: "seal" },
+      { label: "熊刀", value: "bear" },
+      { label: "猎杀者匕首", value: "huntsman" },
+      { label: "系绳匕首", value: "tether" },
+      { label: "求生匕首", value: "survival" },
+      { label: "暗影双刃", value: "shadow" },
+      { label: "鲍伊猎刀", value: "bowie" },
+      { label: "弯刀", value: "scimitar" },
+      { label: "穿肠刀", value: "gut" },
+      { label: "折刀", value: "claw" },
+    ],
+  },
+  {
+    name: "手套",
+    options: [
+      { label: "不限", value: "all" },
+      { label: "运动手套", value: "sport" },
+      { label: "摩托手套", value: "moto" },
+      { label: "驾驶手套", value: "driver" },
+      { label: "手部束带", value: "handwrap" },
+      { label: "狂牙手套", value: "fang" },
+      { label: "九头蛇手套", value: "hydra" },
+      { label: "血猎手套", value: "bloodhound" },
+    ],
+  },
+  {
+    name: "步枪",
+    options: [
+      { label: "不限", value: "all" },
+      { label: "AK-47", value: "ak47" },
+      { label: "AWP", value: "awp" },
+      { label: "M4A1 消音版", value: "m4a1s" },
+      { label: "M4A4", value: "m4a4" },
+      { label: "SG 553", value: "sg553" },
+      { label: "AUG", value: "aug" },
+      { label: "法玛斯", value: "famas" },
+      { label: "加利尔 AR", value: "galil" },
+    ],
+  },
+]);
+
+const toggleFilter = (groupName: string, optionValue: string) => {
+  const groupFilters = selectedFilters.value[groupName];
+
+  if (optionValue === "all") {
+    groupFilters.clear();
+  } else {
+    if (groupFilters.has(optionValue)) {
+      groupFilters.delete(optionValue);
+    } else {
+      groupFilters.add(optionValue);
+    }
+  }
+};
+
+const isOptionSelected = (groupName: string, optionValue: string) => {
+  const groupFilters = selectedFilters.value[groupName];
+  if (optionValue === "all") {
+    return groupFilters.size === 0;
+  }
+  return groupFilters.has(optionValue);
+};
 
 const qualityOptions = [
   { label: "不限", value: "" },
@@ -334,7 +401,8 @@ const hotItems = ref([
     name: "运动手套 (★) | 树篱迷宫 (久经沙场)",
     price: 34600,
     stock: 636,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20sport%20gloves%20hedge%20maze%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20sport%20gloves%20hedge%20maze%20skin&image_size=square",
     tag: "久经沙场",
     tagType: "battle-scarred",
   },
@@ -343,7 +411,8 @@ const hotItems = ref([
     name: "印花 | paiN Gaming (全息) | 2020 RMR",
     price: 26,
     stock: 1559,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20holographic%20sticker%20pain%20gaming&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20holographic%20sticker%20pain%20gaming&image_size=square",
     tag: "全息",
     tagType: "holo",
   },
@@ -352,7 +421,8 @@ const hotItems = ref([
     name: "AK-47 | 皇后 (崭新出厂)",
     price: 7657.5,
     stock: 695,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20AK47%20empress%20skin%20factory%20new&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20AK47%20empress%20skin%20factory%20new&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -361,7 +431,8 @@ const hotItems = ref([
     name: "沙漠之鹰 | 印花集 (崭新出厂)",
     price: 53.1,
     stock: 417,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20desert%20eagle%20print%20stream%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20desert%20eagle%20print%20stream%20skin&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -370,7 +441,8 @@ const hotItems = ref([
     name: "运动手套 (★) | 树篱迷宫 (崭新出厂)",
     price: 58999.99,
     stock: 234,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20sport%20gloves%20hedge%20maze%20factory%20new&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20sport%20gloves%20hedge%20maze%20factory%20new&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -379,7 +451,8 @@ const hotItems = ref([
     name: "M4A4 | 喧嚣杀戮 (崭新出厂)",
     price: 4479.5,
     stock: 1100,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20M4A4%20desolate%20space%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20M4A4%20desolate%20space%20skin&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -388,7 +461,8 @@ const hotItems = ref([
     name: "M4A4 | 合纵 (崭新出厂)",
     price: 13200,
     stock: 374,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20M4A4%20alliance%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20M4A4%20alliance%20skin&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -397,7 +471,8 @@ const hotItems = ref([
     name: "印花 | G2 Esports (全息) | 2020 RMR",
     price: 261,
     stock: 1111,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20holographic%20sticker%20G2%20esports&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20holographic%20sticker%20G2%20esports&image_size=square",
     tag: "全息",
     tagType: "holo",
   },
@@ -406,7 +481,8 @@ const hotItems = ref([
     name: "M4A4 | 喧嚣杀戮 (久经沙场)",
     price: 2040,
     stock: 1558,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20M4A4%20desolate%20space%20battle%20scarred&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20M4A4%20desolate%20space%20battle%20scarred&image_size=square",
     tag: "久经沙场",
     tagType: "battle-scarred",
   },
@@ -415,7 +491,8 @@ const hotItems = ref([
     name: "格洛克 18 型 | 铁之作 (崭新出厂)",
     price: 143,
     stock: 331,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20glock%2018%20iron%20work%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20glock%2018%20iron%20work%20skin&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -424,7 +501,8 @@ const hotItems = ref([
     name: "沙漠之鹰 | 蟒蛇死神 (崭新出厂)",
     price: 415,
     stock: 224,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20desert%20eagle%20python%20death%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20desert%20eagle%20python%20death%20skin&image_size=square",
     tag: "崭新出厂",
     tagType: "factory-new",
   },
@@ -433,7 +511,8 @@ const hotItems = ref([
     name: "海军上尉迷彩服 | 海军军官",
     price: 237,
     stock: 3145,
-    image: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20naval%20officer%20agent%20skin&image_size=square",
+    image:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=CS%20GO%20naval%20officer%20agent%20skin&image_size=square",
     tag: "大师",
     tagType: "master",
   },
@@ -444,17 +523,11 @@ const filteredItems = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter((item) =>
-      item.name.toLowerCase().includes(query)
-    );
+    result = result.filter((item) => item.name.toLowerCase().includes(query));
   }
 
   if (activeCategoryTab.value !== "all") {
     result = result.filter((item) => item.tagType === activeCategoryTab.value);
-  }
-
-  if (filterWear.value) {
-    result = result.filter((item) => item.tagType === filterWear.value);
   }
 
   if (sortOrder.value === "price-asc") {
@@ -467,13 +540,13 @@ const filteredItems = computed(() => {
 });
 
 const resetFilters = () => {
-  filterType.value = "";
-  filterQuality.value = "";
-  filterCategory.value = "";
-  filterWear.value = "";
+  filterGroups.value.forEach((group) => {
+    selectedFilters.value[group.name].clear();
+  });
 };
 
 const applyFilters = () => {
+  console.log("应用筛选条件:", selectedFilters.value);
   showFilterDrawer.value = false;
 };
 
@@ -749,7 +822,7 @@ onMounted(() => {
 }
 
 .search-input-bar {
-width: 400px;
+  width: 400px;
   display: flex;
   align-items: center;
   background: #1a1a2e;
@@ -1021,10 +1094,58 @@ width: 400px;
   padding: 0;
 }
 
-.filter-drawer-content {
-  padding: 24px;
+.filter-drawer-wrapper {
+  display: flex;
+  height: calc(100vh - 140px);
   max-height: calc(100vh - 140px);
+}
+
+.filter-nav {
+  width: 100px;
+  background: #15152a;
+  border-right: 1px solid #2a2a4e;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 0;
+  flex-shrink: 0;
+
+  .nav-item {
+    padding: 12px 16px;
+    color: #667eea;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: right;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+      color: #8b9eff;
+    }
+
+    &.active {
+      color: #fff;
+
+      &::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: #667eea;
+        border-radius: 2px 0 0 2px;
+      }
+    }
+  }
+}
+
+.filter-content {
+  flex: 1;
+  padding: 24px;
   overflow-y: auto;
+  background: #1a1a2e;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -1038,6 +1159,21 @@ width: 400px;
     background: #2a2a4e;
     border-radius: 3px;
   }
+}
+
+.filter-group {
+  margin-bottom: 32px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.group-title {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #aaa;
 }
 
 .filter-section {

@@ -124,7 +124,9 @@ const handleLogin = () => {
     
     if (success) {
       message.success('登录成功')
-      router.push('/')
+      // 获取重定向路径
+      const redirect = (router.currentRoute.value.query.redirect as string) || '/'
+      router.push(redirect)
     } else {
       message.error('用户名或密码错误')
     }

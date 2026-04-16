@@ -3,6 +3,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { router } from "./router";
 import "./style.css";
+import "./permission";
 import { createFitScale } from "vfit";
 import "vfit/style.css"; // ⚠️ 划重点：一定要引入这个样式，不然布局组件会失效
 import "vfonts/Lato.css";

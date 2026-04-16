@@ -523,6 +523,117 @@ const kLineData = ref();
 const onlineChartData = ref([]);
 const onlineChartData2 = ref([]);
 const onlineData = ref();
+
+const activeRankingTab = ref("type");
+const showAllRanking = ref(false);
+
+const typeRankingData = ref([
+  { rank: 1, name: "工具", icon: "", change: 8.35, isUp: true },
+  { rank: 2, name: "MP5-SD", icon: "", change: -1.69, isUp: false },
+  { rank: 3, name: "手部束带", icon: "", change: -1.49, isUp: false },
+  { rank: 4, name: "专业手套", icon: "", change: -1.44, isUp: false },
+  { rank: 5, name: "法玛斯", icon: "", change: -1.32, isUp: false },
+  { rank: 6, name: "摩托手套", icon: "", change: -1.27, isUp: false },
+  { rank: 7, name: "猎杀者匕首", icon: "", change: -1.06, isUp: false },
+]);
+
+const priceSegmentData = ref([
+  { name: "中小件", value: 30, change: -0.3, color: "#60a5fa" },
+  { name: "小件", value: 15, change: -0.2, color: "#f472b6" },
+  { name: "大件", value: 25, change: -0.02, color: "#a78bfa" },
+  { name: "中件", value: 20, change: -0.38, color: "#f8b4b4" },
+  { name: "中大件", value: 18, change: -0.33, color: "#fcd34d" },
+]);
+
+const riseFallData = ref({
+  rise: 4008,
+  flat: 11751,
+  fall: 9589,
+});
+
+let priceChartInstance: ECharts | null = null;
+
+const initPriceChart = () => {
+  const chartDom = document.getElementById("price-segment-chart");
+  if (!chartDom) return;
+  import("echarts").then((echarts) => {
+    priceChartInstance = echarts.init(chartDom);
+    const option = {
+      backgroundColor: "transparent",
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        borderColor: "#333",
+      },
+      legend: {
+        show: false,
+      },
+      series: [
+        {
+          type: "pie",
+          radius: ["40%", "70%"],
+          center: ["50%", "50%"],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 4,
+            borderColor: "#1a1a2e",
+            borderWidth: 2,
+          },
+          label: {
+            show: false,
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 14,
+              fontWeight: "bold",
+              color: "#fff",
+            },
+          },
+          labelLine: {
+            show: true,
+            length: 20,
+            length2: 30,
+            lineStyle: {
+              color: "#aaa",
+            },
+          },
+          data: priceSegmentData.value.map((item) => ({
+            value: item.value,
+            name: item.name,
+            itemStyle: { color: item.color },
+          })),
+        },
+      ],
+    };
+    priceChartInstance.setOption(option);
+  });
+};
+
+const getRankColor = (rank: number) => {
+  switch (rank) {
+    case 1:
+      return "#ef4444";
+    case 2:
+      return "#f97316";
+    case 3:
+      return "#f59e0b";
+    default:
+      return "#888";
+  }
+};
+
+const getBarWidth = (type: string) => {
+  const total =
+    riseFallData.value.rise + riseFallData.value.flat + riseFallData.value.fall;
+  if (type === "rise") {
+    return (riseFallData.value.rise / total) * 100;
+  } else if (type === "flat") {
+    return (riseFallData.value.flat / total) * 100;
+  } else {
+    return (riseFallData.value.fall / total) * 100;
+  }
+};
 onMounted(() => {
   hotItems.value = hotItems.value.map((item, index) => ({
     ...item,
@@ -572,8 +683,17 @@ onMounted(() => {
     });
   }, 1000);
 
+  setTimeout(() => {
+    initPriceChart();
+  }, 500);
+
   //getCurrentData()
-  window.addEventListener("resize", resizeChart);
+  window.addEventListener("resize", () => {
+    resizeChart();
+    if (priceChartInstance) {
+      priceChartInstance.resize();
+    }
+  });
 });
 onUnmounted(() => {
   window.removeEventListener("resize", resizeChart);
@@ -1029,7 +1149,7 @@ onUnmounted(() => {
                     </div>
                   </div>
                 </div>
-
+                <!-- 
                 <div class="steam-section">
                   <div class="steam-header">
                     <h4>Steam卡价</h4>
@@ -1048,15 +1168,136 @@ onUnmounted(() => {
                   <div class="steam-hint">
                     受手续费汇率等波动影响，价格仅供参考
                   </div>
-                </div>
+                </div> -->
 
                 <div class="ranking-section">
                   <div class="ranking-header">
                     <h4>涨跌分布</h4>
+                    <div class="ranking-tabs">
+                      <span
+                        class="ranking-tab"
+                        :class="{ active: activeRankingTab === 'type' }"
+                        @click="activeRankingTab = 'type'"
+                      >
+                        饰品类型
+                      </span>
+                      <span
+                        class="ranking-tab"
+                        :class="{ active: activeRankingTab === 'price' }"
+                        @click="activeRankingTab = 'price'"
+                      >
+                        价格板块
+                      </span>
+                    </div>
                   </div>
-                  <div class="ranking-tabs">
-                    <span class="ranking-tab active">饰品类型</span>
-                    <span class="ranking-tab">价格板块</span>
+
+                  <div class="ranking-content">
+                    <div
+                      v-if="activeRankingTab === 'type'"
+                      class="type-ranking"
+                    >
+                      <div class="ranking-list-header">
+                        <span class="header-rank">排名/系列名</span>
+                        <span class="header-change">涨跌幅</span>
+                      </div>
+                      <div class="ranking-list">
+                        <div
+                          v-for="(item, index) in showAllRanking
+                            ? typeRankingData
+                            : typeRankingData.slice(0, 3)"
+                          :key="item.rank"
+                          class="ranking-item"
+                        >
+                          <span
+                            class="rank-number"
+                            :style="{ color: getRankColor(item.rank) }"
+                          >
+                            {{ item.rank }}
+                          </span>
+                          <div class="item-icon"></div>
+                          <span class="item-name">{{ item.name }}</span>
+                          <span
+                            class="item-change"
+                            :class="{ up: item.isUp, down: !item.isUp }"
+                          >
+                            <span v-if="item.isUp" class="change-icon">▲</span>
+                            <span v-else class="change-icon">▼</span>
+                            {{ Math.abs(item.change) }}%
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        v-if="typeRankingData.length > 4"
+                        class="show-more"
+                        @click="showAllRanking = !showAllRanking"
+                      >
+                        <span>{{ showAllRanking ? "收起" : "查看更多" }}</span>
+                        <span class="arrow" :class="{ up: showAllRanking }"
+                          >▼</span
+                        >
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="activeRankingTab === 'price'"
+                      class="price-segment"
+                    >
+                      <div class="price-chart-wrapper">
+                        <div class="chart-container">
+                          <div
+                            id="price-segment-chart"
+                            class="price-chart"
+                          ></div>
+                        </div>
+                        <div class="price-labels">
+                          <div
+                            v-for="(item, index) in priceSegmentData"
+                            :key="index"
+                            class="price-label-item"
+                            :style="{ color: item.color }"
+                          >
+                            <span class="label-name">{{ item.name }}</span>
+                            <span class="label-change">{{ item.change }}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="rise-fall-summary">
+                    <div class="summary-item rise">
+                      <span class="summary-label">上涨</span>
+                      <span class="summary-value"
+                        >{{ riseFallData.rise }}种</span
+                      >
+                    </div>
+                    <div class="summary-item flat">
+                      <span class="summary-label">持平</span>
+                      <span class="summary-value"
+                        >{{ riseFallData.flat }}种</span
+                      >
+                    </div>
+                    <div class="summary-item fall">
+                      <span class="summary-label">下跌</span>
+                      <span class="summary-value"
+                        >{{ riseFallData.fall }}种</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="rise-fall-bar">
+                    <div
+                      class="bar-segment rise"
+                      :style="{ width: getBarWidth('rise') + '%' }"
+                    ></div>
+                    <div
+                      class="bar-segment flat"
+                      :style="{ width: getBarWidth('flat') + '%' }"
+                    ></div>
+                    <div
+                      class="bar-segment fall"
+                      :style="{ width: getBarWidth('fall') + '%' }"
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -1732,7 +1973,7 @@ onUnmounted(() => {
 
 .price-chart {
   width: 100%;
-  height: calc(100% - 20px);
+  height: calc(100% - 120px);
   margin-bottom: 20px;
   min-width: 0;
   overflow: hidden;
@@ -1743,7 +1984,7 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 20px;
   border: 1px solid #2a2a4e;
-  height: 100%;
+  //height: 100%;
 }
 
 .market-header {
@@ -1971,31 +2212,276 @@ onUnmounted(() => {
   text-align: center;
 }
 
+.ranking-section {
+  padding: 20px;
+  background: #1a1a2e;
+  border-radius: 12px;
+  border: 1px solid #2a2a4e;
+}
+
 .ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
   h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 16px;
+    color: #aaa;
   }
 }
 
 .ranking-tabs {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ranking-tab {
-  padding: 8px 24px;
-  background: #2a2a4e;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  padding: 8px 20px;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 1rem;
   color: #aaa;
   cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
 
   &.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #667eea;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #667eea;
+      border-radius: 2px;
+    }
+  }
+
+  &:hover:not(.active) {
     color: #fff;
+  }
+}
+
+.ranking-content {
+  margin-bottom: 24px;
+}
+
+.type-ranking {
+  .ranking-list-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+
+    .header-rank {
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+
+    .header-change {
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+  }
+
+  .ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .rank-number {
+      font-size: 1.2rem;
+      font-weight: 700;
+      width: 32px;
+      text-align: center;
+    }
+
+    .item-icon {
+      width: 40px;
+      height: 40px;
+      background: #2a2a4e;
+      border-radius: 50%;
+    }
+
+    .item-name {
+      flex: 1;
+      color: #667eea;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    .item-change {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+
+      &.up {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.15);
+      }
+
+      &.down {
+        color: #14b8a6;
+        background: rgba(20, 184, 166, 0.15);
+      }
+
+      .change-icon {
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  .show-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 1rem;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #fff;
+    }
+
+    .arrow {
+      transition: transform 0.3s ease;
+
+      &.up {
+        transform: rotate(180deg);
+      }
+    }
+  }
+}
+
+.price-segment {
+  .price-chart-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+  }
+
+  .chart-container {
+    flex: 1;
+    height: 200px;
+  }
+
+  .price-chart {
+    width: 100%;
+    height: 100%;
+  }
+
+  .price-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .price-label-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 1rem;
+
+    .label-name {
+      font-weight: 500;
+    }
+
+    .label-change {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.rise-fall-summary {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    .summary-label {
+      font-size: 1rem;
+      color: #aaa;
+    }
+
+    .summary-value {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    &.rise {
+      .summary-value {
+        color: #ef4444;
+      }
+    }
+
+    &.flat {
+      .summary-value {
+        color: #aaa;
+      }
+    }
+
+    &.fall {
+      .summary-value {
+        color: #14b8a6;
+      }
+    }
+  }
+}
+
+.rise-fall-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+
+  .bar-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+
+    &.rise {
+      background: #ef4444;
+    }
+
+    &.flat {
+      background: #444;
+    }
+
+    &.fall {
+      background: #14b8a6;
+    }
   }
 }
 
