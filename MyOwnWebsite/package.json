@@ -31,7 +31,8 @@
     "vfit": "^2.0.2",
     "vicons": "^0.0.1",
     "vue": "^3.5.30",
-    "vue-request": "^2.0.4"
+    "vue-request": "^2.0.4",
+    "vue3-border-beam": "^0.0.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.7.2",

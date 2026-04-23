@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 
 interface User {
   username: string;
@@ -12,6 +12,7 @@ const USER_KEY = "auth_user";
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const isAuthenticated = ref(false);
+  const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));
 
   const accounts = [
     { username: "admin", password: "admin", role: "admin" },
@@ -26,10 +27,6 @@ export const useAuthStore = defineStore("auth", () => {
     return user.value.username === "Chonny" || user.value.username === "admin";
   });
 
-  const token = computed(() => {
-    return localStorage.getItem(TOKEN_KEY);
-  });
-
   const initAuth = () => {
     const savedToken = localStorage.getItem(TOKEN_KEY);
     const savedUser = localStorage.getItem(USER_KEY);
@@ -37,14 +34,20 @@ export const useAuthStore = defineStore("auth", () => {
     if (savedToken && savedUser) {
       try {
         user.value = JSON.parse(savedUser);
+        token.value = savedToken;
         isAuthenticated.value = true;
       } catch (e) {
         clearAuth();
       }
+    } else {
+      clearAuth();
     }
   };
 
   const clearAuth = () => {
+    token.value = null;
+    user.value = null;
+    isAuthenticated.value = false;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
   };
@@ -59,8 +62,9 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = userData;
       isAuthenticated.value = true;
 
-      const token = btoa(`${username}:${Date.now()}`);
-      localStorage.setItem(TOKEN_KEY, token);
+      const nextToken = btoa(`${username}:${Date.now()}`);
+      token.value = nextToken;
+      localStorage.setItem(TOKEN_KEY, nextToken);
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
 
       return true;
@@ -70,8 +74,6 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const logout = () => {
-    user.value = null;
-    isAuthenticated.value = false;
     clearAuth();
   };
 

@@ -109,7 +109,7 @@ onUnmounted(() => {
   cancelAnimationFrame(animationFrameId)
 })
 
-const handleLogin = () => {
+const handleLogin = async () => {
   if (!username.value || !password.value) {
     message.error('用户名或密码不能为空')
     return
@@ -118,15 +118,19 @@ const handleLogin = () => {
   isLoading.value = true
   
   // 模拟登录延迟
-  setTimeout(() => {
+  setTimeout(async () => {
     // 使用 Pinia 进行登录校验
     const success = authStore.login(username.value, password.value)
     
     if (success) {
       message.success('登录成功')
       // 获取重定向路径
-      const redirect = (router.currentRoute.value.query.redirect as string) || '/'
-      router.push(redirect)
+      const redirect = router.currentRoute.value.query.redirect
+      const target = typeof redirect === 'string' && redirect !== '/login'
+        ? redirect
+        : '/'
+
+      await router.replace(target)
     } else {
       message.error('用户名或密码错误')
     }

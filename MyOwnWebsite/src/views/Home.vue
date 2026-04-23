@@ -183,23 +183,24 @@ const showUploadBox = () => {
 const options = ref([
   {
     label: "个人中心",
-    value: "profile",
+    key: "profile",
   },
   {
     label: "聊天室",
-    value: "chat-room",
+    key: "chat-room",
   },
 ]);
-const handleSelectOptions = (e) => {
-  console.log({ e: e });
-  // switch () {
-  //   case "profile":
-  //     goToProfile();
-  //     break;
-  //   case "chat-room":
-  //     goToChatRoom();
-  //     break;
-  console.log(e);
+const handleSelectOptions = (key: string | number) => {
+  switch (key) {
+    case "profile":
+      goToProfile();
+      break;
+    case "chat-room":
+      goToChatRoom();
+      break;
+    default:
+      break;
+  }
 };
 onUnmounted(() => {
   cancelAnimationFrame(animationFrameId);
