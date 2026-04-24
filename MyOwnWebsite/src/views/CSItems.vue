@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { debounce } from "lodash";
+import { useElementSize } from "@vueuse/core";
 import {
   NButton,
   NCard,
@@ -59,8 +60,12 @@ use([
   VisualMapComponent,
 ]);
 
+const DASHBOARD_DESIGN_WIDTH = 1600;
+const MIN_DASHBOARD_SCALE = 0.62;
+
 const router = useRouter();
 const currentTime = ref();
+let currentTimeTimer: ReturnType<typeof setInterval> | null = null;
 const activeNavItem = ref("home");
 const menuOptions = [
   { label: "首页", key: "home", icon: HomeOutline },
@@ -87,6 +92,24 @@ const activeIndexTab = ref(0);
 
 const tabsScrollWrapper = ref<HTMLElement | null>(null);
 const tabsContainer = ref<HTMLElement | null>(null);
+const scaleViewport = ref<HTMLElement | null>(null);
+const scaleStage = ref<HTMLElement | null>(null);
+const { width: scaleViewportWidth } = useElementSize(scaleViewport);
+const { height: scaleStageHeight } = useElementSize(scaleStage);
+const dashboardScale = computed(() => {
+  if (!scaleViewportWidth.value) {
+    return 1;
+  }
+
+  const nextScale = scaleViewportWidth.value / DASHBOARD_DESIGN_WIDTH;
+  return Number(Math.max(MIN_DASHBOARD_SCALE, Math.min(nextScale, 1)).toFixed(4));
+});
+const scaleShellStyle = computed(() => ({
+  height: `${Math.max(scaleStageHeight.value * dashboardScale.value, 0)}px`,
+}));
+const scaleStageStyle = computed(() => ({
+  transform: `scale(${dashboardScale.value})`,
+}));
 
 const selectIndexObjectTab = (index: number, tab: any) => {
   activeIndexTab.value = index;
@@ -373,6 +396,12 @@ const resizeChart = () => {
   if (chartInstance) {
     chartInstance.resize();
   }
+  if (historyChartInstance) {
+    historyChartInstance.resize();
+  }
+  if (priceChartInstance) {
+    priceChartInstance.resize();
+  }
 };
 const kLineQueryParam = ref({
   id: 1,
@@ -634,12 +663,15 @@ const getBarWidth = (type: string) => {
     return (riseFallData.value.fall / total) * 100;
   }
 };
+const handleWindowResize = () => {
+  resizeChart();
+};
 onMounted(() => {
   hotItems.value = hotItems.value.map((item, index) => ({
     ...item,
     id: index + 1,
   }));
-  setInterval(() => {
+  currentTimeTimer = setInterval(() => {
     currentTime.value = dayjs(Date.now()).format("YYYY年MM月DD日 HH:mm:ss");
     //console.log({ currentTime: currentTime.value });
   }, 1000);
@@ -688,17 +720,21 @@ onMounted(() => {
   }, 500);
 
   //getCurrentData()
-  window.addEventListener("resize", () => {
-    resizeChart();
-    if (priceChartInstance) {
-      priceChartInstance.resize();
-    }
-  });
+  window.addEventListener("resize", handleWindowResize);
 });
 onUnmounted(() => {
-  window.removeEventListener("resize", resizeChart);
+  window.removeEventListener("resize", handleWindowResize);
+  if (currentTimeTimer) {
+    clearInterval(currentTimeTimer);
+  }
   if (chartInstance) {
     chartInstance.dispose();
+  }
+  if (historyChartInstance) {
+    historyChartInstance.dispose();
+  }
+  if (priceChartInstance) {
+    priceChartInstance.dispose();
   }
 });
 </script>
@@ -791,7 +827,9 @@ onUnmounted(() => {
     </n-layout-header>
 
     <n-layout-content class="main-content">
-      <div class="content-wrapper">
+      <div ref="scaleViewport" class="content-scale-shell" :style="scaleShellStyle">
+        <div ref="scaleStage" class="content-scale-stage" :style="scaleStageStyle">
+          <div class="content-wrapper">
         <div class="top-section fade-in-section" style="animation-delay: 0.2s">
           <div class="left-panel">
             <div
@@ -1347,6 +1385,8 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+          </div>
+        </div>
       </div>
     </n-layout-content>
   </n-layout>
@@ -1644,12 +1684,28 @@ onUnmounted(() => {
   width: 100%;
   min-height: 100vh;
   padding-top: 60px;
+  overflow-x: hidden;
+}
+
+.content-scale-shell {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.content-scale-stage {
+  width: 1600px;
+  transform-origin: top center;
+  will-change: transform;
 }
 
 .content-wrapper {
+  width: 1600px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: 0;
   padding: 24px;
+  box-sizing: border-box;
 }
 
 .top-section {

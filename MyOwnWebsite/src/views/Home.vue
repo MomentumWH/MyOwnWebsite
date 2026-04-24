@@ -155,6 +155,10 @@ const goToChatRoom = () => {
   router.push("/chat-room");
 };
 
+const goToPretextDemo = () => {
+  router.push("/pretext-demo");
+};
+
 onMounted(() => {
   const animate = () => {
     updateSnowflakes();
@@ -189,6 +193,10 @@ const options = ref([
     label: "聊天室",
     key: "chat-room",
   },
+  {
+    label: "pretextDemo",
+    key: "pretextDemo",
+  },
 ]);
 const handleSelectOptions = (key: string | number) => {
   switch (key) {
@@ -197,6 +205,9 @@ const handleSelectOptions = (key: string | number) => {
       break;
     case "chat-room":
       goToChatRoom();
+      break;
+    case "pretextDemo":
+      goToPretextDemo();
       break;
     default:
       break;

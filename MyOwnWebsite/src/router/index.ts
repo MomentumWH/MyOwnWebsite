@@ -11,6 +11,7 @@ import ChatRoom from "../views/ChatRoom.vue";
 import CSItems from "../views/CSItems.vue";
 import ItemDetail from "../views/ItemDetail.vue";
 import ItemList from "../views/ItemList.vue";
+import PretextDemo from "../views/pretextDemo.vue";
 
 const routes = [
   {
@@ -85,6 +86,12 @@ const routes = [
     name: "item-list",
     component: ItemList,
     meta: { title: "饰品列表" },
+  },
+  {
+    path: "/pretext-demo",
+    name: "pretextDemo",
+    component: PretextDemo,
+    meta: { title: "pretextDemo" },
   },
   // {
   // name: 'user', // 路由名称（用于编程式导航）
