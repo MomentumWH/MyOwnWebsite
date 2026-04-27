@@ -1,0 +1,227 @@
+Vue 进阶者快速入门 React 学习路线
+
+一、总体策略
+不要把 React 当成“语法不同的 Vue”。
+最快的方法是用“对照迁移”：
+1. 先建立 Vue -> React 的概念映射
+2. 再用 2 到 3 个真实页面做重写练习
+3. 最后再补生态，而不是一开始就学全家桶
+
+建议目标：
+1. 7 天完成 React 核心入门
+2. 14 天能独立重写中小型 Vue 页面
+3. 30 天具备 React 工程开发能力
+
+
+二、Vue 到 React 的核心映射
+1. template -> JSX
+React 不用模板指令，直接在 JSX 里写 JavaScript 表达式。
+
+2. ref / reactive -> useState
+Vue 是响应式追踪。
+React 更像“状态变化 -> 组件函数重新执行 -> 重新计算 UI”。
+
+3. computed -> 派生变量
+大多数场景直接写普通变量即可。
+只有昂贵计算才考虑 useMemo。
+
+4. watch -> useEffect
+但不要把 useEffect 当 watch 的平替乱用。
+React 里 useEffect 的主要用途是“和外部系统同步”。
+
+5. onMounted / onUnmounted -> useEffect + cleanup
+典型模式：
+useEffect(() => {
+  const timer = setInterval(...)
+  return () => clearInterval(timer)
+}, [])
+
+6. props + emits -> props + callback
+父传子还是 props。
+子通知父，一般传回调函数。
+
+7. v-model -> value + onChange
+React 表单核心是受控组件。
+
+8. slot -> children / render props
+React 组合能力很强，但写法和 Vue slot 不一样。
+
+
+三、必须先建立的 React 心智模型
+1. 组件本质是函数
+输入是 props，输出是 JSX。
+
+2. React 默认会重新执行组件函数
+不是 Vue 那种细粒度依赖追踪心智。
+
+3. 状态不要直接改
+数组、对象更新时要返回新引用。
+
+4. 少用 effect，多做派生
+能在渲染阶段算出来的，不要放进 useEffect。
+
+5. 先学状态提升，再学状态库
+很多 Vue 开发者会过早依赖 Pinia 风格状态管理。
+React 先把组件通信和状态归属搞清楚更重要。
+
+
+四、7 天学习路线
+Day 1：搭环境 + JSX + 组件
+1. 用 Vite 创建 React + TypeScript 项目
+2. 理解 JSX 语法
+3. 学函数组件和 props
+4. 完成一个静态页面重写
+
+Day 2：状态与事件
+1. 学 useState
+2. 学点击、输入、切换显示
+3. 重写一个 Vue 表单或搜索框页面
+
+Day 3：列表与条件渲染
+1. 列表渲染 map
+2. key 的作用
+3. 条件渲染
+4. 重写一个列表页
+
+Day 4：副作用与生命周期
+1. 学 useEffect
+2. 学 cleanup
+3. 学 useRef
+4. 重写一个有定时器、监听器、图表初始化的页面
+
+Day 5：父子通信与表单
+1. 状态提升
+2. 受控组件
+3. props + callback
+4. 把一个复杂筛选区域重写成 React
+
+Day 6：路由
+1. 学 React Router
+2. 路由跳转、参数、嵌套路由
+3. 把 Vue Router 中一个页面迁过去
+
+Day 7：综合练习
+1. 选你项目里的一个真实页面
+2. 用 React 完整重写
+3. 保持数据结构和接口层不变
+4. 重点复查状态归属和 effect 是否滥用
+
+
+五、14 天强化路线
+第 2 周建议补这些：
+1. 自定义 Hook
+2. Context
+3. React Router 深入
+4. 请求管理
+5. 性能优化基础
+6. 组件抽象与组合
+
+建议练习顺序：
+1. 搜索页
+2. 列表页
+3. 详情页
+4. 图表页
+5. 表单页
+
+
+六、最值得优先学的 React API
+必须掌握：
+1. useState
+2. useEffect
+3. useRef
+4. useMemo
+5. useContext
+
+理解即可，不要过早滥用：
+1. useCallback
+2. memo
+3. forwardRef
+
+
+七、Vue 开发者最常见的 React 误区
+1. 用 useEffect 计算派生状态
+错误思路：
+数据变了，用 effect 再 setState 一次
+正确思路：
+能直接算，就直接在渲染阶段算
+
+2. 直接修改 state 对象
+错误：
+state.user.name = "A"
+正确：
+setState({ ...state, user: { ...state.user, name: "A" } })
+
+3. 到处加 useMemo / useCallback
+React 优化不是“越多越好”。
+先保证逻辑正确，再基于瓶颈加优化。
+
+4. 把组件通信复杂化
+很多问题先用 props 就够了，不要过早上全局状态。
+
+5. 把 React 当 Vue 模板语法来写
+React 更偏 JavaScript 组合，不是指令驱动。
+
+
+八、实战建议
+建议你直接从当前项目里挑页面做对照练习：
+1. About 页面
+练 JSX、props、静态组件
+
+2. ItemList 页面
+练列表渲染、筛选、排序、表单控制
+
+3. ItemDetail 页面
+练 useEffect、图表实例管理、参数变化更新
+
+4. CSItems 页面
+练复杂状态、图表复用、渲染性能优化
+
+
+九、推荐学习资料
+优先级最高：
+1. React 官方文档 Learn 部分
+2. React 官方 useState / useEffect / useRef 文档
+3. React 官方 Thinking in React
+4. Vite 官方 React + TypeScript 模板说明
+
+学习原则：
+1. 先官方
+2. 先核心
+3. 先实战
+4. 后生态
+
+
+十、建议你的第一批练习题
+1. 把一个 Vue 搜索框改写成 React 受控组件
+2. 把一个 Vue 列表过滤逻辑改写成 React 派生数据
+3. 把一个 onMounted + onUnmounted 的定时器页面改写成 useEffect
+4. 把一个父子组件通信场景从 emits 改成 callback
+5. 把一个图表页面改成 React，并正确处理实例销毁
+
+
+十一、阶段验收标准
+入门完成标准：
+1. 能看懂 JSX
+2. 能写 useState / useEffect
+3. 能写表单和列表
+4. 能做父子通信
+5. 能独立接接口并渲染页面
+
+进阶完成标准：
+1. 能拆组件
+2. 能写自定义 Hook
+3. 能处理副作用边界
+4. 能定位不必要渲染
+5. 能独立从 Vue 页面迁移到 React 页面
+
+
+十二、最终建议
+对 Vue 进阶者来说，最快的学习法不是刷概念，而是：
+1. 学 20% React 核心
+2. 立刻重写 80% 真实页面
+
+如果后续要继续深入，建议下一步学习：
+1. React Router
+2. TanStack Query
+3. Zustand 或 Redux Toolkit
+4. Next.js
