@@ -300,7 +300,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick ,watch} from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
   GameController,
