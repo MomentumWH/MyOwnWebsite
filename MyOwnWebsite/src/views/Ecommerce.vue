@@ -1,50 +1,36 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import {
-  NDrawer,
-  NCarousel,
-  NCarouselItem,
-  NButton,
-  NCard,
-  NSpin,
-  useMessage,
-} from "naive-ui";
+import { useMessage } from "naive-ui";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { PieChart } from "echarts/charts";
 import { TooltipComponent, LegendComponent } from "echarts/components";
-import * as echarts from "echarts";
-type ECharts = echarts.ECharts;
+import VChart from "vue-echarts";
 import { fetchProducts, login } from "@/services/apiCalls";
 
-// 注册需要的组件
 use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent]);
+
 const message = useMessage();
 const router = useRouter();
+
 const features = ref([
-  { name: "商品展示和搜索", icon: "🔍" },
-  { name: "购物车和结算", icon: "🛒" },
-  { name: "用户登录和注册", icon: "👤" },
-  { name: "订单管理", icon: "📦" },
+  { name: "Product display and search", icon: "P" },
+  { name: "Cart and checkout", icon: "C" },
+  { name: "User auth", icon: "U" },
+  { name: "Order management", icon: "O" },
 ]);
 
 const techStack = ref([
-  { name: "Nuxt 3", icon: "⚡" },
-  { name: "Tailwind CSS", icon: "🎨" },
-  { name: "Pinia", icon: "🍍" },
-  { name: "Stripe 支付", icon: "💳" },
+  { name: "Nuxt 3", icon: "N" },
+  { name: "Tailwind CSS", icon: "T" },
+  { name: "Pinia", icon: "P" },
+  { name: "Stripe", icon: "S" },
 ]);
 
 const showDrawer = ref(false);
 const currentFeature = ref("");
-
-const carouselImages = ref([
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=e-commerce%20product%20display%20page%20with%20modern%20UI&image_size=square_hd",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=shopping%20cart%20checkout%20page%20design&image_size=square_hd",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20login%20and%20register%20interface&image_size=square_hd",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=order%20management%20dashboard&image_size=square_hd",
-]);
+const selectDrawer = ref("");
 
 const imgList = ref([
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg",
@@ -52,114 +38,67 @@ const imgList = ref([
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg",
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg",
 ]);
-const goBack = () => {
-  router.back();
-};
-const selectDrawer = ref();
-const handleFeatureClick = (featureName: string) => {
-  currentFeature.value = featureName;
-  showDrawer.value = true;
-  selectDrawer.value = featureName;
-};
 
-// 环形图数据
 const chartData = ref([
-  { name: "电子产品", value: 35 },
-  { name: "服装服饰", value: 25 },
-  { name: "家居用品", value: 20 },
-  { name: "食品饮料", value: 15 },
-  { name: "其他", value: 5 },
+  { name: "Electronics", value: 35 },
+  { name: "Fashion", value: 25 },
+  { name: "Home", value: 20 },
+  { name: "Food", value: 15 },
+  { name: "Other", value: 5 },
 ]);
 
-// 图表实例
-let chartInstance: ECharts | null = null;
-
-// 初始化图表
-const initChart = () => {
-  const chartDom = document.getElementById("ring-chart");
-  if (!chartDom) return;
-
-  // 动态导入 ECharts
-  import("echarts").then((echarts) => {
-    chartInstance = echarts.init(chartDom);
-
-    const option = {
-      tooltip: {
-        trigger: "item",
-        formatter: "{a} <br/>{b} : {c}%",
+const ringChartOption = computed(() => ({
+  tooltip: {
+    trigger: "item",
+    formatter: "{a} <br/>{b} : {c}%",
+  },
+  legend: {
+    orient: "horizontal",
+    bottom: "5%",
+    left: "center",
+    textStyle: {
+      color: "white",
+      fontSize: 14,
+    },
+  },
+  series: [
+    {
+      name: "Categories",
+      type: "pie",
+      radius: ["20%", "70%"],
+      center: ["50%", "40%"],
+      roseType: "area",
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 10,
+        borderColor: "#fff",
+        borderWidth: 2,
       },
-      legend: {
-        orient: "horizontal",
-        bottom: "5%",
-        left: "center",
-        textStyle: {
-          color: "white",
-          fontSize: 14,
+      label: {
+        show: true,
+        position: "outside",
+        formatter: "{b}: {c}%",
+        color: "white",
+        fontSize: 14,
+        fontWeight: "bold",
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 16,
+          fontWeight: "bold",
+        },
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: "rgba(0, 0, 0, 0.5)",
         },
       },
-      series: [
-        {
-          name: "商品分类",
-          type: "pie",
-          radius: ["20%", "70%"],
-          center: ["50%", "40%"],
-          roseType: "area",
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 10,
-            borderColor: "#fff",
-            borderWidth: 2,
-          },
-          label: {
-            show: true,
-            position: "outside",
-            formatter: "{b}: {c}%",
-            color: "white",
-            fontSize: 14,
-            fontWeight: "bold",
-          },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: 16,
-              fontWeight: "bold",
-            },
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: "rgba(0, 0, 0, 0.5)",
-            },
-          },
-          data: chartData.value,
-        },
-      ],
-    };
+      data: chartData.value,
+    },
+  ],
+}));
 
-    chartInstance.setOption(option);
-  });
-};
-
-// 响应式调整图表大小
-const resizeChart = () => {
-  if (chartInstance) {
-    chartInstance.resize();
-  }
-};
-
-onMounted(() => {
-  initChart();
-  window.addEventListener("resize", resizeChart);
-});
-
-// 组件卸载时销毁图表
-onUnmounted(() => {
-  window.removeEventListener("resize", resizeChart);
-  if (chartInstance) {
-    chartInstance.dispose();
-  }
-});
-
-// API调用demo相关状态
 const products = ref<any[]>([]);
 const loading = ref(false);
 const apiError = ref<string | null>(null);
@@ -169,42 +108,53 @@ const loginData = ref({
 });
 const loginLoading = ref(false);
 
-// 获取商品列表
+const goBack = () => {
+  router.back();
+};
+
+const handleFeatureClick = (featureName: string) => {
+  currentFeature.value = featureName;
+  showDrawer.value = true;
+  selectDrawer.value = featureName;
+};
+
 const handleFetchProducts = async () => {
   loading.value = true;
   apiError.value = null;
+
   try {
     const result = await fetchProducts();
     products.value = result || [];
-    message.success("商品列表获取成功");
+    message.success("Products loaded");
   } catch (error: any) {
-    apiError.value = error.message || "获取商品列表失败";
+    apiError.value = error.message || "Failed to load products";
     message.error(apiError.value);
   } finally {
     loading.value = false;
   }
 };
 
-// 登录
 const handleLogin = async () => {
   if (!loginData.value.username || !loginData.value.password) {
-    message.warning("请输入用户名和密码");
+    message.warning("Please enter username and password");
     return;
   }
 
   loginLoading.value = true;
+
   try {
     const result = await login(
       loginData.value.username,
       loginData.value.password,
     );
+
     if (result.token) {
       localStorage.setItem("token", result.token);
-      message.success("登录成功");
+      message.success("Login success");
       loginData.value = { username: "", password: "" };
     }
   } catch (error: any) {
-    message.error(error.message || "登录失败");
+    message.error(error.message || "Login failed");
   } finally {
     loginLoading.value = false;
   }
@@ -213,36 +163,30 @@ const handleLogin = async () => {
 
 <template>
   <div class="project-page">
-    <!-- class="project-header" -->
     <header class="fade-in-section" style="animation-delay: 0s">
       <div class="header-line">
         <div class="header-line-backButton">
-          <button @click="goBack" class="back-button">← 返回首页</button>
+          <button @click="goBack" class="back-button">Back</button>
         </div>
         <div class="header-line-title">
-          <h1>电商平台</h1>
+          <h1>Ecommerce Platform</h1>
         </div>
         <div class="header-line-content">
-          <p class="project-subtitle">基于 Nuxt 3 的电商平台项目</p>
+          <p class="project-subtitle">Built with Nuxt 3 and vue-echarts.</p>
         </div>
       </div>
     </header>
 
-    <section
-      class="project-details fade-in-section"
-      style="animation-delay: 0.2s"
-    >
-      <h2>项目介绍</h2>
+    <section class="project-details fade-in-section" style="animation-delay: 0.2s">
+      <h2>Overview</h2>
       <p>
-        这是一个功能完整的电商平台，支持商品展示、购物车管理、订单结算等功能，采用现代化的技术栈构建，提供良好的用户体验。
+        This page demonstrates product browsing, auth flow, charts, and basic API requests
+        while keeping the original data access pattern intact.
       </p>
     </section>
 
-    <section
-      class="project-features fade-in-section"
-      style="animation-delay: 0.4s"
-    >
-      <h2>主要功能</h2>
+    <section class="project-features fade-in-section" style="animation-delay: 0.4s">
+      <h2>Key Features</h2>
       <div class="features-grid">
         <div
           v-for="(feature, index) in features"
@@ -258,7 +202,7 @@ const handleLogin = async () => {
     </section>
 
     <section class="project-tech fade-in-section" style="animation-delay: 1s">
-      <h2>技术栈</h2>
+      <h2>Tech Stack</h2>
       <div class="tech-grid">
         <div
           v-for="(tech, index) in techStack"
@@ -272,13 +216,8 @@ const handleLogin = async () => {
       </div>
     </section>
 
-    <section
-      class="project-details fade-in-section"
-      style="animation-delay: 1.6s"
-    >
+    <section class="project-details fade-in-section" style="animation-delay: 1.6s">
       <n-list clickable hoverable class="nListBoxBackgroundColor">
-        <!-- <template #header> hhh </template> list头部会显示的内容-->
-        <!-- <template #footer> fff </template> list尾部显示的内容-->
         <n-list-item>
           <template #prefix>
             <n-button>Prefix</n-button>
@@ -286,8 +225,7 @@ const handleLogin = async () => {
           <template #suffix>
             <n-button>Suffix</n-button>
           </template>
-          <n-thing title="Thing" title-extra="extra" description="description">
-          </n-thing>
+          <n-thing title="Thing" title-extra="extra" description="description" />
         </n-list-item>
         <n-list-item>
           <template #prefix>
@@ -305,11 +243,7 @@ const handleLogin = async () => {
       </n-list>
     </section>
 
-    <footer class="project-footer fade-in-section" style="animation-delay: 2s">
-      <!-- <button @click="goBack" class="back-button">
-        ← 返回首页
-      </button> -->
-    </footer>
+    <footer class="project-footer fade-in-section" style="animation-delay: 2s"></footer>
 
     <n-drawer
       v-model:show="showDrawer"
@@ -325,45 +259,36 @@ const handleLogin = async () => {
     >
       <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
         <n-carousel show-arrow>
-          <img v-for="item in imgList" class="carousel-img" :src="item" />
+          <img v-for="item in imgList" :key="item" class="carousel-img" :src="item" />
         </n-carousel>
       </n-drawer-content>
     </n-drawer>
 
-    <!-- 环形图展示区域 -->
-    <section
-      class="chart-section fade-in-section"
-      style="animation-delay: 2.2s"
-    >
-      <h2>商品分类占比</h2>
-      <div id="ring-chart" class="ring-chart"></div>
+    <section class="chart-section fade-in-section" style="animation-delay: 2.2s">
+      <h2>Category Share</h2>
+      <VChart :option="ringChartOption" autoresize class="ring-chart" />
     </section>
 
-    <!-- API调用demo区域 -->
-    <section
-      class="api-demo-section fade-in-section"
-      style="animation-delay: 2.4s"
-    >
-      <h2>API调用演示</h2>
+    <section class="api-demo-section fade-in-section" style="animation-delay: 2.4s">
+      <h2>API Demo</h2>
 
-      <!-- 登录demo -->
-      <n-card title="用户登录" class="demo-card">
+      <n-card title="User Login" class="demo-card">
         <div class="login-form">
           <div class="form-group">
-            <label>用户名:</label>
+            <label>Username</label>
             <input
               v-model="loginData.username"
               type="text"
-              placeholder="请输入用户名"
+              placeholder="Enter username"
               class="form-input"
             />
           </div>
           <div class="form-group">
-            <label>密码:</label>
+            <label>Password</label>
             <input
               v-model="loginData.password"
               type="password"
-              placeholder="请输入密码"
+              placeholder="Enter password"
               class="form-input"
             />
           </div>
@@ -373,13 +298,12 @@ const handleLogin = async () => {
             :loading="loginLoading"
             class="submit-btn"
           >
-            登录
+            Login
           </n-button>
         </div>
       </n-card>
 
-      <!-- 商品列表demo -->
-      <n-card title="获取商品列表" class="demo-card">
+      <n-card title="Fetch Products" class="demo-card">
         <div class="product-demo">
           <n-button
             type="info"
@@ -387,7 +311,7 @@ const handleLogin = async () => {
             :loading="loading"
             class="fetch-btn"
           >
-            获取商品列表
+            Fetch Products
           </n-button>
 
           <div v-if="apiError" class="error-message">
@@ -401,7 +325,7 @@ const handleLogin = async () => {
               class="product-item"
             >
               <div class="product-info">
-                <h4>商品 {{ index + 1 }}</h4>
+                <h4>Product {{ index + 1 }}</h4>
                 <p>{{ JSON.stringify(product, null, 2) }}</p>
               </div>
             </div>
@@ -409,7 +333,7 @@ const handleLogin = async () => {
 
           <div v-if="loading" class="loading-container">
             <n-spin size="large" />
-            <p>加载中...</p>
+            <p>Loading...</p>
           </div>
         </div>
       </n-card>
@@ -418,7 +342,6 @@ const handleLogin = async () => {
     <n-back-top :right="100" />
   </div>
 </template>
-
 <style lang="scss" scoped>
 .project-page {
   min-width: 1200px;
@@ -482,7 +405,7 @@ const handleLogin = async () => {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* 环形图样式 */
+/* 闂傚倷鑳剁划顖滃垝閻樿鍨傚ù鐓庣摠閸ゅ霉閸忓吋缍戦柣鎰躬閺岋綁骞囬棃娑橆潾婵犮垻鎳撻ˇ閬嶅焵?*/
 .chart-section {
   margin-top: 4rem;
   margin-bottom: 4rem;
@@ -740,7 +663,7 @@ const handleLogin = async () => {
   border-radius: 20px;
 }
 
-/* API Demo样式 */
+/* API Demo闂傚倷绀侀幖顐ょ矓閹绢喖搴婇柤纰卞墯椤?*/
 .api-demo-section {
   margin-top: 4rem;
   margin-bottom: 4rem;

@@ -32,6 +32,7 @@
     "vfit": "^2.0.2",
     "vicons": "^0.0.1",
     "vue": "^3.5.30",
+    "vue-echarts": "^8.0.1",
     "vue-request": "^2.0.4",
     "vue3-border-beam": "^0.0.2"
   },
