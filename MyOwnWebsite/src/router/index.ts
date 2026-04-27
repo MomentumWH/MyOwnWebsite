@@ -1,107 +1,85 @@
-import { createRouter, createWebHistory } from "vue-router";
-import About from "../views/About.vue";
-import Home from "../views/Home.vue";
-import Blog from "../views/Blog.vue";
-import Ecommerce from "../views/Ecommerce.vue";
-import DataVisualization from "../views/DataVisualization.vue";
-import dragBox from "../views/dragBox.vue";
-import Login from "../views/Login.vue";
-import Profile from "../views/Profile.vue";
-import ChatRoom from "../views/ChatRoom.vue";
-import CSItems from "../views/CSItems.vue";
-import ItemDetail from "../views/ItemDetail.vue";
-import ItemList from "../views/ItemList.vue";
-import PretextDemo from "../views/pretextDemo.vue";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
-    path: "/login", // 路由路径
+    path: "/login",
     name: "login",
-    component: Login, // 匹配的组件
-    meta: { title: "登录" },
+    component: () => import("@/views/account/Login.vue"),
+    meta: { title: "Login" },
   },
   {
-    path: "/profile", // 路由路径
+    path: "/profile",
     name: "profile",
-    component: Profile, // 匹配的组件
-    meta: { requiresAuth: true, title: "个人中心" },
+    component: () => import("@/views/account/Profile.vue"),
+    meta: { requiresAuth: true, title: "Profile" },
   },
   {
-    path: "/", // 路由路径
-    name: "home",
-    component: Home, // 匹配的组件
-    meta: { title: "首页" },
-  },
-  {
-    path: "/about", // 路由路径
-    name: "about",
-    component: About, // 匹配的组件
-    props: true, // 将路由参数传递给组件
-    meta: { requiresAuth: true, title: "关于" },
-  },
-  {
-    path: "/blog", // 路由路径
-    name: "blog",
-    component: Blog, // 匹配的组件
-    meta: { title: "个人博客" },
-  },
-  {
-    path: "/ecommerce", // 路由路径
-    name: "ecommerce",
-    component: Ecommerce, // 匹配的组件
-    meta: { title: "电商平台" },
-  },
-  {
-    path: "/data-visualization", // 路由路径
-    name: "data-visualization",
-    component: DataVisualization, // 匹配的组件
-    meta: { title: "数据可视化" },
-  },
-  {
-    path: "/drag-box", // 路由路径
-    name: "drag-box",
-    component: dragBox, // 匹配的组件
-    meta: { title: "拖动盒子" },
-  },
-  {
-    path: "/chat-room", // 路由路径
+    path: "/chat-room",
     name: "chat-room",
-    component: ChatRoom, // 匹配的组件
-    meta: { title: "聊天室" },
+    component: () => import("@/views/account/ChatRoom.vue"),
+    meta: { title: "Chat Room" },
   },
   {
-    path: "/cs-items", // 路由路径
-    name: "cs-items",
-    component: CSItems, // 匹配的组件
-    meta: { title: "CS饰品数据" },
+    path: "/",
+    name: "home",
+    component: () => import("@/views/base/Home.vue"),
+    meta: { title: "Home" },
   },
   {
-    path: "/CsItemDetail", // 路由路径
-    name: "CsItemDetail",
-    component: ItemDetail, // 匹配的组件
-    meta: { title: "商品详情" },
+    path: "/about",
+    name: "about",
+    component: () => import("@/views/base/About.vue"),
+    props: true,
+    meta: { requiresAuth: true, title: "About" },
   },
   {
-    path: "/item-list",
-    name: "item-list",
-    component: ItemList,
-    meta: { title: "饰品列表" },
+    path: "/blog",
+    name: "blog",
+    component: () => import("@/views/labs/Blog.vue"),
+    meta: { title: "Blog" },
+  },
+  {
+    path: "/ecommerce",
+    name: "ecommerce",
+    component: () => import("@/views/labs/Ecommerce.vue"),
+    meta: { title: "Ecommerce" },
+  },
+  {
+    path: "/data-visualization",
+    name: "data-visualization",
+    component: () => import("@/views/labs/DataVisualization.vue"),
+    meta: { title: "Data Visualization" },
+  },
+  {
+    path: "/drag-box",
+    name: "drag-box",
+    component: () => import("@/views/labs/DragBox.vue"),
+    meta: { title: "Drag Box" },
   },
   {
     path: "/pretext-demo",
     name: "pretextDemo",
-    component: PretextDemo,
-    meta: { title: "pretextDemo" },
+    component: () => import("@/views/labs/PretextDemo.vue"),
+    meta: { title: "Pretext Demo" },
   },
-  // {
-  // name: 'user', // 路由名称（用于编程式导航）
-  // alias: '/profile', // 路由别名
-  // redirect: '/login', // 重定向
-  // meta: { requiresAuth: true }, // 元数据（用于路由守卫）
-  // props: true, // 将路由参数作为组件 props 传递
-  // caseSensitive: false, // 路径是否区分大小写
-  // pathMatch: 'full' // 路径匹配策略
-  // }
+  {
+    path: "/cs-items",
+    name: "cs-items",
+    component: () => import("@/views/csgo/CSItems.vue"),
+    meta: { title: "CS Items" },
+  },
+  {
+    path: "/CsItemDetail",
+    name: "CsItemDetail",
+    component: () => import("@/views/csgo/ItemDetail.vue"),
+    meta: { title: "Item Detail" },
+  },
+  {
+    path: "/item-list",
+    name: "item-list",
+    component: () => import("@/views/csgo/ItemList.vue"),
+    meta: { title: "Item List" },
+  },
 ];
 
 export const router = createRouter({
