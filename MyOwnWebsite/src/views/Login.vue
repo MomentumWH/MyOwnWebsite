@@ -1,156 +1,164 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui'
-import { useAuthStore } from '../stores/auth'
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { useMessage } from "naive-ui";
+import { useAuthStore } from "../stores/auth";
 
-const router = useRouter()
-const message = useMessage()
-const authStore = useAuthStore()
+const router = useRouter();
+const message = useMessage();
+const authStore = useAuthStore();
 
-const username = ref('')
-const password = ref('')
-const rememberMe = ref(false)
-const isLoading = ref(false)
+const username = ref("");
+const password = ref("");
+const rememberMe = ref(false);
+const isLoading = ref(false);
 
 // 星星动画
 interface Star {
-  x: number
-  y: number
-  size: number
-  speed: number
-  opacity: number
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
+  opacity: number;
 }
 
 interface Line {
-  x: number
-  y: number
-  length: number
-  speed: number
-  opacity: number
+  id: number;
+  x: number;
+  y: number;
+  length: number;
+  speed: number;
+  opacity: number;
 }
 
-const stars = ref<Star[]>([])
-const lines = ref<Line[]>([])
+const stars = ref<Star[]>([]);
+const lines = ref<Line[]>([]);
+let particleId = 0;
 
 const createStar = () => {
   return {
+    id: particleId++,
     x: Math.random() * window.innerWidth,
     y: -100,
     size: Math.random() * 6 + 2,
     speed: Math.random() * 3 + 1,
-    opacity: Math.random() * 0.5 + 0.5
-  }
-}
+    opacity: Math.random() * 0.5 + 0.5,
+  };
+};
 
 const createLine = () => {
   return {
+    id: particleId++,
     x: Math.random() * window.innerWidth,
     y: Math.random() * window.innerHeight,
     length: Math.random() * 200 + 100,
     speed: Math.random() * 2 + 1,
-    opacity: Math.random() * 0.3 + 0.2
-  }
-}
+    opacity: Math.random() * 0.3 + 0.2,
+  };
+};
 
 const updateStars = () => {
-  stars.value = stars.value.map(star => {
-    return {
-      ...star,
-      y: star.y + star.speed
+  for (let index = stars.value.length - 1; index >= 0; index -= 1) {
+    const star = stars.value[index];
+    star.y += star.speed;
+
+    if (star.y >= window.innerHeight) {
+      stars.value.splice(index, 1);
     }
-  })
-  
+  }
+
   // 移除超出屏幕的星星
-  stars.value = stars.value.filter(star => star.y < window.innerHeight)
-  
+
   // 添加新星星
   if (stars.value.length < 100) {
-    stars.value.push(createStar())
+    stars.value.push(createStar());
   }
-}
+};
 
 const updateLines = () => {
-  lines.value = lines.value.map(line => {
-    return {
-      ...line,
-      x: line.x - line.speed,
-      y: line.y + line.speed
+  for (let index = lines.value.length - 1; index >= 0; index -= 1) {
+    const line = lines.value[index];
+    line.x -= line.speed;
+    line.y += line.speed;
+
+    const endX = line.x + line.length * Math.cos(Math.PI / 4);
+    if (!(endX > 0 && line.y < window.innerHeight)) {
+      lines.value.splice(index, 1);
     }
-  })
-  
+  }
+
   // 移除完全超出屏幕的线条（考虑45度旋转后的实际位置）
   const cos45 = Math.cos(Math.PI / 4);
-  lines.value = lines.value.filter(line => {
+  lines.value = lines.value.filter((line) => {
     // 计算线条右端点的x坐标
     const endX = line.x + line.length * cos45;
     // 保留仍有部分在屏幕内的线条
     return endX > 0 && line.y < window.innerHeight;
-  })
-  
+  });
+
   // 添加新线条
   if (lines.value.length < 20) {
-    lines.value.push(createLine())
+    lines.value.push(createLine());
   }
-}
+};
 
-let animationFrameId = 0
+let animationFrameId = 0;
 
 onMounted(() => {
   const animate = () => {
-    updateStars()
-    updateLines()
-    animationFrameId = requestAnimationFrame(animate)
-  }
-  animate()
-})
+    updateStars();
+    updateLines();
+    animationFrameId = requestAnimationFrame(animate);
+  };
+  animate();
+});
 
 onUnmounted(() => {
-  cancelAnimationFrame(animationFrameId)
-})
+  cancelAnimationFrame(animationFrameId);
+});
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    message.error('用户名或密码不能为空')
-    return
+    message.error("用户名或密码不能为空");
+    return;
   }
-  
-  isLoading.value = true
-  
+
+  isLoading.value = true;
+
   // 模拟登录延迟
   setTimeout(async () => {
     // 使用 Pinia 进行登录校验
-    const success = authStore.login(username.value, password.value)
-    
+    const success = authStore.login(username.value, password.value);
+
     if (success) {
-      message.success('登录成功')
+      message.success("登录成功");
       // 获取重定向路径
-      const redirect = router.currentRoute.value.query.redirect
-      const target = typeof redirect === 'string' && redirect !== '/login'
-        ? redirect
-        : '/'
+      const redirect = router.currentRoute.value.query.redirect;
+      const target =
+        typeof redirect === "string" && redirect !== "/login" ? redirect : "/";
 
-      await router.replace(target)
+      await router.replace(target);
     } else {
-      message.error('用户名或密码错误')
+      message.error("用户名或密码错误");
     }
-    
-    isLoading.value = false
-  }, 1000)
-}
 
-const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
-  if (type === 'admin') {
-    username.value = 'admin'
-    password.value = 'admin'
-  } else if(type==='user'){
-    username.value = 'test'
-    password.value = 'test'
-  }else if(type==='Chonny'){
-    username.value = 'Chonny'
-    password.value = 'obj96OBJ'
+    isLoading.value = false;
+  }, 1000);
+};
+
+const useTestAccount = (type: "admin" | "user" | "Chonny") => {
+  if (type === "admin") {
+    username.value = "admin";
+    password.value = "admin";
+  } else if (type === "user") {
+    username.value = "test";
+    password.value = "test";
+  } else if (type === "Chonny") {
+    username.value = "Chonny";
+    password.value = "obj96OBJ";
   }
-}
+};
 </script>
 
 <template>
@@ -158,43 +166,43 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
     <!-- 星星背景 -->
     <div class="stars-container">
       <div
-        v-for="(star, index) in stars"
-        :key="index"
+        v-for="star in stars"
+        :key="star.id"
         class="star"
         :style="{
           left: `${star.x}px`,
           top: `${star.y}px`,
           width: `${star.size}px`,
           height: `${star.size}px`,
-          opacity: star.opacity
+          opacity: star.opacity,
         }"
       ></div>
     </div>
-    
+
     <!-- 斜向流动线条 -->
     <div class="lines-container">
       <div
-        v-for="(line, index) in lines"
-        :key="index"
+        v-for="line in lines"
+        :key="line.id"
         class="line"
         :style="{
           left: `${line.x}px`,
           top: `${line.y}px`,
           width: `${line.length}px`,
-          opacity: line.opacity
+          opacity: line.opacity,
         }"
       ></div>
     </div>
-    
+
     <div class="login-container">
       <div class="login-header">
         <div class="logo">
           <span class="logo-icon">📊</span>
-          <h1>Chonny's  Channel</h1>
+          <h1>Chonny's Channel</h1>
         </div>
         <p>欢迎回来，请登录您的账户</p>
       </div>
-      
+
       <div class="test-accounts">
         <h3>测试账号</h3>
         <div class="account-item">
@@ -207,13 +215,15 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
           <span class="account-info">test / test</span>
           <button @click="useTestAccount('user')" class="use-btn">使用</button>
         </div> -->
-         <div class="account-item">
+        <div class="account-item">
           <span class="account-label">Producer:</span>
           <span class="account-info">Chonny / obj96OBJ</span>
-          <button @click="useTestAccount('Chonny')" class="use-btn">使用</button>
+          <button @click="useTestAccount('Chonny')" class="use-btn">
+            使用
+          </button>
         </div>
       </div>
-      
+
       <div class="login-form">
         <div class="form-group">
           <label for="username">用户名或邮箱</label>
@@ -225,7 +235,7 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
             class="form-input"
           />
         </div>
-        
+
         <div class="form-group">
           <label for="password">密码</label>
           <input
@@ -236,7 +246,7 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
             class="form-input"
           />
         </div>
-        
+
         <div class="form-options">
           <label class="checkbox-label">
             <input v-model="rememberMe" type="checkbox" />
@@ -244,12 +254,12 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
           </label>
           <a href="#" class="forgot-password">忘记密码?</a>
         </div>
-        
+
         <button @click="handleLogin" class="login-btn" :disabled="isLoading">
           <span v-if="!isLoading">登录</span>
           <span v-else>登录中...</span>
         </button>
-        
+
         <div class="register-link">
           <span>还没有账户?</span>
           <a href="#" class="register-btn">立即注册</a>
@@ -272,19 +282,37 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
 }
 
 .login-page::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+  background:
+    radial-gradient(
+      circle at 20% 80%,
+      rgba(120, 119, 198, 0.3) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(255, 119, 198, 0.3) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 40%,
+      rgba(120, 119, 198, 0.2) 0%,
+      transparent 50%
+    );
   animation: twinkle 3s ease-in-out infinite;
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .stars-container {
@@ -305,8 +333,13 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
 }
 
 @keyframes starFade {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .lines-container {
@@ -328,8 +361,13 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
 }
 
 @keyframes lineFade {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .login-container {
@@ -482,7 +520,9 @@ const useTestAccount = (type: 'admin' | 'user' | 'Chonny') => {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   box-sizing: border-box;
 }
 

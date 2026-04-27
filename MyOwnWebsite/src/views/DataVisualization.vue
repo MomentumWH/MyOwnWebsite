@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { NDrawer, NCarousel, NCarouselItem } from "naive-ui";
+import { NDrawer, NCarousel } from "naive-ui";
 
 const router = useRouter();
 const features = ref([
@@ -19,21 +19,12 @@ const techStack = ref([
 ]);
 
 const showDrawer = ref(false);
-const currentFeature = ref("");
-
-const carouselImages = ref([
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=data%20visualization%20dashboard%20with%20charts%20and%20graphs&image_size=square_hd",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=real-time%20data%20updates%20dashboard%20interface&image_size=square_hd",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=multi-dimensional%20data%20analysis%20tools&image_size=square_hd",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=data%20report%20export%20functionality&image_size=square_hd",
-]);
 
 const goBack = () => {
   router.back();
 };
 const selectDrawer = ref();
 const handleFeatureClick = (featureName: string) => {
-  currentFeature.value = featureName;
   showDrawer.value = true;
   selectDrawer.value = featureName;
 };
@@ -126,7 +117,12 @@ const imgList = ref([
     >
       <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
         <n-carousel show-arrow>
-          <img v-for="item in imgList" class="carousel-img" :src="item" />
+          <img
+            v-for="item in imgList"
+            :key="item"
+            class="carousel-img"
+            :src="item"
+          />
         </n-carousel>
       </n-drawer-content>
     </n-drawer>

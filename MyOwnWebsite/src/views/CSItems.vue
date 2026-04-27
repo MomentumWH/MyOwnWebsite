@@ -1,22 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, reactive } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { debounce } from "lodash";
 import { useElementSize } from "@vueuse/core";
-import {
-  NButton,
-  NCard,
-  NLayout,
-  NLayoutHeader,
-  NLayoutContent,
-  NLayoutSider,
-  NMenu,
-  NTab,
-  NTabs,
-  NSelect,
-  NProgress,
-  stepProps,
-} from "naive-ui";
+import { NButton, NLayout, NLayoutHeader, NLayoutContent } from "naive-ui";
 import {
   HomeOutline,
   ListOutline,
@@ -40,15 +27,12 @@ import {
 import * as echarts from "echarts";
 type ECharts = echarts.ECharts;
 import {
-  bindLocalIp,
   getCurrentData,
   getSubData,
   getKline,
   suggest,
 } from "../services/CSQaQ";
 import dayjs from "dayjs";
-import { scale } from "@visactor/vchart/esm/vchart-all";
-import { max, min } from "@visactor/vchart/esm/util";
 use([
   CanvasRenderer,
   LineChart,
@@ -85,6 +69,7 @@ const tabs = [
 
 const showHistoryChart = ref(false);
 let historyChartInstance: ECharts | null = null;
+let onlineChartInstance: ECharts | null = null;
 
 const indexTabs = ref([]);
 
@@ -102,7 +87,9 @@ const dashboardScale = computed(() => {
   }
 
   const nextScale = scaleViewportWidth.value / DASHBOARD_DESIGN_WIDTH;
-  return Number(Math.max(MIN_DASHBOARD_SCALE, Math.min(nextScale, 1)).toFixed(4));
+  return Number(
+    Math.max(MIN_DASHBOARD_SCALE, Math.min(nextScale, 1)).toFixed(4),
+  );
 });
 const scaleShellStyle = computed(() => ({
   height: `${Math.max(scaleStageHeight.value * dashboardScale.value, 0)}px`,
@@ -138,29 +125,17 @@ const chartTabs = ref([
 ]);
 
 const activeChartTab = ref(0);
+const formatKLineData = (data: any[]) =>
+  data.map((item) => ({
+    ...item,
+    t: dayjs(Number(item.t)).format("YYYY-MM-DD"),
+  }));
 
 const selectChartTimeTab = (index: number, tab: any) => {
   activeChartTab.value = index;
   console.log({ index: index, tab: tab });
-  switch (index) {
-    case 0:
-      kLineQueryParam.value.type = tab.value;
-      getKLineDataFromQueryParam();
-      break;
-    case 1:
-      kLineQueryParam.value.type = tab.value;
-      getKLineDataFromQueryParam();
-      break;
-    case 2:
-      kLineQueryParam.value.type = tab.value;
-      getKLineDataFromQueryParam();
-      break;
-    case 3:
-      kLineQueryParam.value.type = tab.value;
-      getKLineDataFromQueryParam();
-      break;
-      break;
-  }
+  kLineQueryParam.value.type = tab.value;
+  getKLineDataFromQueryParam();
 };
 
 const itemIndexData = ref({
@@ -177,8 +152,6 @@ const marketData = ref({
   monthChange: 95075,
   steamPrice: 551.8,
 });
-
-const hotItems = ref([]);
 
 const goToDetail = (item: any, index: number) => {
   const id = item.id || index + 1;
@@ -212,7 +185,7 @@ const debounceSearch = debounce(() => {
       //filteredItems.value = res.data;
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     })
     .finally(() => {
       isSearchLoading.value = false;
@@ -243,158 +216,154 @@ const clearSearch = () => {
 const selectItem = (item: any) => {
   searchQuery.value = item.name;
   showSearchDropdown.value = false;
-  const index = hotItems.value.findIndex((i) => i.id === item.id);
-  goToDetail(item, index !== -1 ? index : 0);
+  goToDetail(item, 0);
 };
 
 let chartInstance: ECharts | null = null;
-//绑定本机白名单IP
-const bindIp = async () => {
-  await bindLocalIp();
-};
 const heatObjectData = ref([]);
 const hotTrend = ref();
+const getOrCreateChart = (chartDom: HTMLElement) =>
+  echarts.getInstanceByDom(chartDom) ?? echarts.init(chartDom);
+
 const initChart = () => {
   const chartDom = document.getElementById("price-chart");
   if (!chartDom) return;
 
-  import("echarts").then((echarts) => {
-    chartInstance = echarts.init(chartDom);
-    const option = {
-      backgroundColor: "#1a1a2e",
-      tooltip: {
-        trigger: "axis",
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
+  chartInstance = getOrCreateChart(chartDom);
+  const option = {
+    backgroundColor: "#1a1a2e",
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      borderColor: "#667eea",
+    },
+    grid: {
+      left: "5%",
+      right: "5%",
+      bottom: "10%",
+      top: "8%",
+    },
+    xAxis: {
+      type: "category",
+      data: kLineData.value.map((k) => k.t),
+      axisLine: { lineStyle: { color: "#667eea" } },
+      axisLabel: { color: "#aaa" },
+    },
+    yAxis: {
+      type: "value",
+      scale: true,
+      axisLine: { lineStyle: { color: "#667eea" } },
+      axisLabel: { color: "#aaa" },
+      splitLine: { lineStyle: { color: "#2a2a4e" } },
+    },
+    dataZoom: [
+      {
+        type: "inside",
+        start: 50,
+        end: 100,
+      },
+      {
+        show: true,
+        type: "slider",
+        bottom: "0%",
+        start: 50,
+        end: 100,
         borderColor: "#667eea",
+        backgroundColor: "#1a1a2e",
+        fillerColor: "rgba(102, 126, 234, 0.3)",
+        handleStyle: { color: "#667eea" },
       },
-      grid: {
-        left: "5%",
-        right: "5%",
-        bottom: "10%",
-        top: "8%",
-      },
-      xAxis: {
-        type: "category",
-        data: kLineData.value.map((k) => k.t),
-        axisLine: { lineStyle: { color: "#667eea" } },
-        axisLabel: { color: "#aaa" },
-      },
-      yAxis: {
-        type: "value",
-        scale: true,
-        axisLine: { lineStyle: { color: "#667eea" } },
-        axisLabel: { color: "#aaa" },
-        splitLine: { lineStyle: { color: "#2a2a4e" } },
-      },
-      dataZoom: [
-        {
-          type: "inside",
-          start: 50,
-          end: 100,
+    ],
+    series: [
+      {
+        name: "价格",
+        type: "candlestick",
+        data: kLineData.value.map((k) => [
+          parseFloat(k.o),
+          parseFloat(k.c),
+          parseFloat(k.l),
+          parseFloat(k.h),
+        ]),
+        itemStyle: {
+          color: "#14b8a6",
+          color0: "#ef4444",
+          borderColor: "#14b8a6",
+          borderColor0: "#ef4444",
         },
-        {
-          show: true,
-          type: "slider",
-          bottom: "0%",
-          start: 50,
-          end: 100,
-          borderColor: "#667eea",
-          backgroundColor: "#1a1a2e",
-          fillerColor: "rgba(102, 126, 234, 0.3)",
-          handleStyle: { color: "#667eea" },
-        },
-      ],
-      series: [
-        {
-          name: "价格",
-          type: "candlestick",
-          data: kLineData.value.map((k) => [
-            parseFloat(k.o),
-            parseFloat(k.c),
-            parseFloat(k.l),
-            parseFloat(k.h),
-          ]),
-          itemStyle: {
-            color: "#14b8a6",
-            color0: "#ef4444",
-            borderColor: "#14b8a6",
-            borderColor0: "#ef4444",
-          },
-        },
-      ],
-    };
+      },
+    ],
+  };
 
-    chartInstance.setOption(option);
-  });
+  chartInstance.setOption(option);
 };
 
 const initOnlineChart = () => {
   const chartDom = document.getElementById("online-chart");
   if (!chartDom) return;
-  import("echarts").then((echarts) => {
-    const onlineChart = echarts.init(chartDom);
-    const option = {
-      backgroundColor: "transparent",
-      tooltip: {
-        trigger: "axis",
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-      },
-      grid: {
-        left: "3%",
-        right: "4%",
-        bottom: "3%",
-        top: "5%",
-        containLabel: true,
-      },
-      xAxis: {
-        type: "category",
-        // generateOnlineData().map((d) => d.value[0]),
-        data: onlineChartData2.value?.map((item) => item.d),
-        boundaryGap: false,
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: { color: "#888", fontSize: 10 },
-      },
-      yAxis: {
-        type: "value",
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: { color: "#888", fontSize: 10 },
-        splitLine: { lineStyle: { color: "#333" } },
-      },
-      series: [
-        {
-          name: "在线人数",
-          type: "line",
-          smooth: true,
-          symbol: "none",
-          areaStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "rgba(102, 126, 234, 0.5)" },
-                { offset: 1, color: "rgba(102, 126, 234, 0.05)" },
-              ],
-            },
+  onlineChartInstance = getOrCreateChart(chartDom);
+  const option = {
+    backgroundColor: "transparent",
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+    },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      top: "5%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      // generateOnlineData().map((d) => d.value[0]),
+      data: onlineChartData2.value?.map((item) => item.d),
+      boundaryGap: false,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: "#888", fontSize: 10 },
+    },
+    yAxis: {
+      type: "value",
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: "#888", fontSize: 10 },
+      splitLine: { lineStyle: { color: "#333" } },
+    },
+    series: [
+      {
+        name: "在线人数",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(102, 126, 234, 0.5)" },
+              { offset: 1, color: "rgba(102, 126, 234, 0.05)" },
+            ],
           },
-          lineStyle: { color: "#667eea", width: 2 },
-          data: onlineChartData2.value?.map((item) => item.m),
-          // generateOnlineData().map((d) => d.value[1]),
         },
-      ],
-    };
+        lineStyle: { color: "#667eea", width: 2 },
+        data: onlineChartData2.value?.map((item) => item.m),
+        // generateOnlineData().map((d) => d.value[1]),
+      },
+    ],
+  };
 
-    onlineChart.setOption(option);
-  });
+  onlineChartInstance.setOption(option);
 };
-const currentSelectMode = ref();
 const resizeChart = () => {
   if (chartInstance) {
     chartInstance.resize();
+  }
+  if (onlineChartInstance) {
+    onlineChartInstance.resize();
   }
   if (historyChartInstance) {
     historyChartInstance.resize();
@@ -409,10 +378,7 @@ const kLineQueryParam = ref({
 });
 const getKLineDataFromQueryParam = () => {
   getKline(kLineQueryParam.value).then((res) => {
-    kLineData.value = res.data;
-    kLineData.value.map(
-      (item) => (item.t = dayjs(Number(item.t)).format("YYYY-MM-DD")),
-    );
+    kLineData.value = formatKLineData(res.data);
     initChart();
   });
 };
@@ -432,9 +398,10 @@ const handleNavClick = (item: any) => {
 const toggleHistoryChart = () => {
   showHistoryChart.value = !showHistoryChart.value;
   if (showHistoryChart.value) {
-    setTimeout(() => {
+    nextTick(() => {
       initHistoryChart();
-    }, 100);
+      historyChartInstance?.resize();
+    });
   }
 };
 // const
@@ -442,110 +409,108 @@ const initHistoryChart = () => {
   const chartDom = document.getElementById("history-chart");
   if (!chartDom) return;
 
-  import("echarts").then((echarts) => {
-    historyChartInstance = echarts.init(chartDom);
-    const option = {
-      backgroundColor: "transparent",
-      tooltip: {
-        trigger: "axis",
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        borderColor: "#667eea",
-      },
-      legend: {
-        data: ["热度", "大盘指数"],
-        textStyle: { color: "#fff", fontSize: 14 },
-        top: 10,
-      },
-      grid: {
-        left: "3%",
-        right: "4%",
-        bottom: "3%",
-        top: "15%",
-        containLabel: true,
-      },
-      xAxis: {
-        type: "category",
-        data: heatLineData.value.map((d) => d[0]),
-        boundaryGap: false,
-        axisLine: { lineStyle: { color: "#333" } },
+  historyChartInstance = getOrCreateChart(chartDom);
+  const option = {
+    backgroundColor: "transparent",
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      borderColor: "#667eea",
+    },
+    legend: {
+      data: ["热度", "大盘指数"],
+      textStyle: { color: "#fff", fontSize: 14 },
+      top: 10,
+    },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      top: "15%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: heatLineData.value.map((d) => d[0]),
+      boundaryGap: false,
+      axisLine: { lineStyle: { color: "#333" } },
+      axisTick: { show: false },
+      axisLabel: { color: "#888", fontSize: 12 },
+    },
+    yAxis: [
+      {
+        name: "热度",
+        scale: true,
+        min: 0,
+        max: 200,
+        type: "value",
+        axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { color: "#888", fontSize: 12 },
+        splitLine: { lineStyle: { color: "#2a2a4e", type: "dashed" } },
       },
-      yAxis: [
-        {
-          name: "热度",
-          scale: true,
-          min: 0,
-          max: 200,
-          type: "value",
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: { color: "#888", fontSize: 12 },
-          splitLine: { lineStyle: { color: "#2a2a4e", type: "dashed" } },
-        },
-        {
-          type: "value",
-          name: "大盘指数",
-          position: "right",
-          scale: true,
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: { color: "#888", fontSize: 12, formatter: "{value}" },
-          splitLine: { lineStyle: { color: "#2a2a4e", type: "dashed" } },
-        },
-      ],
-      series: [
-        {
-          name: "热度",
-          type: "line",
-          smooth: true,
-          symbol: "circle",
-          symbolSize: 8,
-          data: heatLineData.value.map((d) => d[1]),
-          lineStyle: { color: "#ef4444", width: 3 },
-          itemStyle: { color: "#ef4444" },
-          areaStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "rgba(239, 68, 68, 0.3)" },
-                { offset: 1, color: "rgba(239, 68, 68, 0)" },
-              ],
-            },
+      {
+        type: "value",
+        name: "大盘指数",
+        position: "right",
+        scale: true,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: "#888", fontSize: 12, formatter: "{value}" },
+        splitLine: { lineStyle: { color: "#2a2a4e", type: "dashed" } },
+      },
+    ],
+    series: [
+      {
+        name: "热度",
+        type: "line",
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 8,
+        data: heatLineData.value.map((d) => d[1]),
+        lineStyle: { color: "#ef4444", width: 3 },
+        itemStyle: { color: "#ef4444" },
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(239, 68, 68, 0.3)" },
+              { offset: 1, color: "rgba(239, 68, 68, 0)" },
+            ],
           },
         },
-        {
-          name: "大盘指数",
-          type: "line",
-          smooth: true,
-          symbol: "circle",
-          symbolSize: 8,
-          data: kLineData.value.slice(-60).map((d) => d.c),
-          lineStyle: { color: "#667eea", width: 3 },
-          itemStyle: { color: "#667eea" },
-          areaStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "rgba(102, 126, 234, 0.3)" },
-                { offset: 1, color: "rgba(102, 126, 234, 0)" },
-              ],
-            },
+      },
+      {
+        name: "大盘指数",
+        type: "line",
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 8,
+        data: kLineData.value.slice(-60).map((d) => d.c),
+        lineStyle: { color: "#667eea", width: 3 },
+        itemStyle: { color: "#667eea" },
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(102, 126, 234, 0.3)" },
+              { offset: 1, color: "rgba(102, 126, 234, 0)" },
+            ],
           },
         },
-      ],
-    };
+      },
+    ],
+  };
 
-    historyChartInstance.setOption(option);
-  });
+  historyChartInstance.setOption(option);
 };
 const heatLineData = ref();
 const kLineData = ref();
@@ -585,58 +550,56 @@ let priceChartInstance: ECharts | null = null;
 const initPriceChart = () => {
   const chartDom = document.getElementById("price-segment-chart");
   if (!chartDom) return;
-  import("echarts").then((echarts) => {
-    priceChartInstance = echarts.init(chartDom);
-    const option = {
-      backgroundColor: "transparent",
-      tooltip: {
-        trigger: "item",
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        borderColor: "#333",
-      },
-      legend: {
-        show: false,
-      },
-      series: [
-        {
-          type: "pie",
-          radius: ["40%", "70%"],
-          center: ["50%", "50%"],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 4,
-            borderColor: "#1a1a2e",
-            borderWidth: 2,
-          },
-          label: {
-            show: false,
-          },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: 14,
-              fontWeight: "bold",
-              color: "#fff",
-            },
-          },
-          labelLine: {
-            show: true,
-            length: 20,
-            length2: 30,
-            lineStyle: {
-              color: "#aaa",
-            },
-          },
-          data: priceSegmentData.value.map((item) => ({
-            value: item.value,
-            name: item.name,
-            itemStyle: { color: item.color },
-          })),
+  priceChartInstance = getOrCreateChart(chartDom);
+  const option = {
+    backgroundColor: "transparent",
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      borderColor: "#333",
+    },
+    legend: {
+      show: false,
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["40%", "70%"],
+        center: ["50%", "50%"],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 4,
+          borderColor: "#1a1a2e",
+          borderWidth: 2,
         },
-      ],
-    };
-    priceChartInstance.setOption(option);
-  });
+        label: {
+          show: false,
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 14,
+            fontWeight: "bold",
+            color: "#fff",
+          },
+        },
+        labelLine: {
+          show: true,
+          length: 20,
+          length2: 30,
+          lineStyle: {
+            color: "#aaa",
+          },
+        },
+        data: priceSegmentData.value.map((item) => ({
+          value: item.value,
+          name: item.name,
+          itemStyle: { color: item.color },
+        })),
+      },
+    ],
+  };
+  priceChartInstance.setOption(option);
 };
 
 const getRankColor = (rank: number) => {
@@ -663,25 +626,28 @@ const getBarWidth = (type: string) => {
     return (riseFallData.value.fall / total) * 100;
   }
 };
-const handleWindowResize = () => {
-  resizeChart();
-};
+
+watch(activeRankingTab, (tab) => {
+  if (tab === "price") {
+    nextTick(() => {
+      initPriceChart();
+      priceChartInstance?.resize();
+    });
+  }
+});
+
 onMounted(() => {
-  hotItems.value = hotItems.value.map((item, index) => ({
-    ...item,
-    id: index + 1,
-  }));
-  currentTimeTimer = setInterval(() => {
+  const updateCurrentTime = () => {
     currentTime.value = dayjs(Date.now()).format("YYYY年MM月DD日 HH:mm:ss");
-    //console.log({ currentTime: currentTime.value });
-  }, 1000);
-  //bindIp();
+  };
+  updateCurrentTime();
+  currentTimeTimer = setInterval(updateCurrentTime, 1000);
   getCurrentData("init")
     .then((res) => {
       console.log({ res: res });
       indexTabs.value = res.data.sub_index_data;
       onlineChartData.value = res.data.online_chart;
-      onlineChartData2.value = res.data.online_chart?.reverse();
+      onlineChartData2.value = [...(res.data.online_chart ?? [])].reverse();
       onlineData.value = res.data.online_number;
       hotTrend.value = res.data.greedy_status;
       hotTrend.value.trendNumber =
@@ -702,33 +668,25 @@ onMounted(() => {
     id: 1,
     type: "1day",
   };
-  setTimeout(() => {
-    getSubData(data);
-  }, 3000);
-  setTimeout(() => {
-    getKline(data2).then((res) => {
-      kLineData.value = res.data;
-      kLineData.value.map((item) => {
-        item.t = dayjs(Number(item.t)).format("YYYY-MM-DD");
-      });
-      initChart();
-    });
-  }, 1000);
-
-  setTimeout(() => {
-    initPriceChart();
-  }, 500);
+  getSubData(data);
+  getKline(data2).then((res) => {
+    kLineData.value = formatKLineData(res.data);
+    initChart();
+  });
 
   //getCurrentData()
-  window.addEventListener("resize", handleWindowResize);
+  window.addEventListener("resize", resizeChart);
 });
 onUnmounted(() => {
-  window.removeEventListener("resize", handleWindowResize);
+  window.removeEventListener("resize", resizeChart);
   if (currentTimeTimer) {
     clearInterval(currentTimeTimer);
   }
   if (chartInstance) {
     chartInstance.dispose();
+  }
+  if (onlineChartInstance) {
+    onlineChartInstance.dispose();
   }
   if (historyChartInstance) {
     historyChartInstance.dispose();
@@ -827,367 +785,400 @@ onUnmounted(() => {
     </n-layout-header>
 
     <n-layout-content class="main-content">
-      <div ref="scaleViewport" class="content-scale-shell" :style="scaleShellStyle">
-        <div ref="scaleStage" class="content-scale-stage" :style="scaleStageStyle">
+      <div
+        ref="scaleViewport"
+        class="content-scale-shell"
+        :style="scaleShellStyle"
+      >
+        <div
+          ref="scaleStage"
+          class="content-scale-stage"
+          :style="scaleStageStyle"
+        >
           <div class="content-wrapper">
-        <div class="top-section fade-in-section" style="animation-delay: 0.2s">
-          <div class="left-panel">
             <div
-              class="index-card fade-in-section"
-              style="animation-delay: 0.4s"
+              class="top-section fade-in-section"
+              style="animation-delay: 0.2s"
             >
-              <div class="index-header">
-                <div class="index-title">
-                  <h2>
-                    {{ currentTab?.name ? currentTab?.name : "--" }}
-                  </h2>
-                  <span class="time-range">⟳ 连续3天</span>
-                </div>
-                <div class="index-time">
-                  <span>{{ currentTime }}</span>
-                  <span>当前时间</span>
-                </div>
-              </div>
-              <div class="index-data">
-                <div class="index-main">
-                  <div class="index-value">
-                    {{
-                      currentTab?.market_index ? currentTab?.market_index : "--"
-                    }}
+              <div class="left-panel">
+                <div
+                  class="index-card fade-in-section"
+                  style="animation-delay: 0.4s"
+                >
+                  <div class="index-header">
+                    <div class="index-title">
+                      <h2>
+                        {{ currentTab?.name ? currentTab?.name : "--" }}
+                      </h2>
+                      <span class="time-range">⟳ 连续3天</span>
+                    </div>
+                    <div class="index-time">
+                      <span>{{ currentTime }}</span>
+                      <span>当前时间</span>
+                    </div>
                   </div>
-                  <div
-                    class="index-change"
-                    :class="currentTab?.chg_num >= 0 ? 'up' : 'down'"
-                  >
-                    <span class="change-arrow">{{
-                      currentTab?.chg_num >= 0 ? "↑" : "↓"
-                    }}</span>
-                    <span>{{
-                      currentTab?.chg_num ? currentTab?.chg_num : "--"
-                    }}</span>
-                    <span class="change-percent"
-                      >（{{ currentTab?.chg_rate > 0 ? "+" : ""
-                      }}{{
-                        currentTab?.chg_rate ? currentTab?.chg_rate : "--"
-                      }}%）</span
-                    >
-                  </div>
-                </div>
-                <div class="index-range">
-                  <div class="range-item">
-                    <span class="range-label">今日最高</span>
-                    <span class="range-value">{{
-                      currentTab?.high ? currentTab?.high : "--"
-                    }}</span>
-                  </div>
-                  <div class="range-item">
-                    <span class="range-label">今日最低</span>
-                    <span class="range-value">{{
-                      currentTab?.low ? currentTab?.low : "--"
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="index-tabs-container">
-                <button class="scroll-btn scroll-left" @click="scrollTabs(-1)">
-                  <span>‹</span>
-                </button>
-                <div class="index-tabs-scroll-wrapper" ref="tabsScrollWrapper">
-                  <div class="index-tabs" ref="tabsContainer">
-                    <div
-                      v-for="(tab, index) in indexTabs"
-                      :key="tab.id"
-                      class="tab-item"
-                      :class="{ active: activeIndexTab === index }"
-                      @click="selectIndexObjectTab(index, tab)"
-                    >
-                      <img class="tab-icon" :src="tab.img" :alt="tab.name" />
-                      <div class="tab-content">
-                        <span class="tab-name">{{ tab.name }}</span>
-                        <span
-                          class="tab-change"
-                          :class="{
-                            up: tab?.chg_rate > 0,
-                            down: tab?.chg_rate < 0,
-                          }"
+                  <div class="index-data">
+                    <div class="index-main">
+                      <div class="index-value">
+                        {{
+                          currentTab?.market_index
+                            ? currentTab?.market_index
+                            : "--"
+                        }}
+                      </div>
+                      <div
+                        class="index-change"
+                        :class="currentTab?.chg_num >= 0 ? 'up' : 'down'"
+                      >
+                        <span class="change-arrow">{{
+                          currentTab?.chg_num >= 0 ? "↑" : "↓"
+                        }}</span>
+                        <span>{{
+                          currentTab?.chg_num ? currentTab?.chg_num : "--"
+                        }}</span>
+                        <span class="change-percent"
+                          >（{{ currentTab?.chg_rate > 0 ? "+" : ""
+                          }}{{
+                            currentTab?.chg_rate ? currentTab?.chg_rate : "--"
+                          }}%）</span
                         >
-                          {{ tab?.chg_rate > 0 ? "+" : "" }}{{ tab?.chg_rate }}%
-                        </span>
+                      </div>
+                    </div>
+                    <div class="index-range">
+                      <div class="range-item">
+                        <span class="range-label">今日最高</span>
+                        <span class="range-value">{{
+                          currentTab?.high ? currentTab?.high : "--"
+                        }}</span>
+                      </div>
+                      <div class="range-item">
+                        <span class="range-label">今日最低</span>
+                        <span class="range-value">{{
+                          currentTab?.low ? currentTab?.low : "--"
+                        }}</span>
                       </div>
                     </div>
                   </div>
-                </div>
-                <button class="scroll-btn scroll-right" @click="scrollTabs(1)">
-                  <span>›</span>
-                </button>
-              </div>
-            </div>
-
-            <div
-              class="chart-card fade-in-section"
-              style="animation-delay: 0.6s"
-            >
-              <div class="chart-header">
-                <div class="chart-tabs-scroll-wrapper">
-                  <div class="chart-tabs">
-                    <div
-                      style="
-                        padding: 0px 0px;
-                        font-size: 24px;
-                        margin-right: 24px;
-                      "
+                  <div class="index-tabs-container">
+                    <button
+                      class="scroll-btn scroll-left"
+                      @click="scrollTabs(-1)"
                     >
-                      饰品指数K线
-                    </div>
+                      <span>‹</span>
+                    </button>
                     <div
-                      v-for="(tab, index) in chartTabs"
-                      :key="tab.id"
-                      class="chart-tab"
-                      :class="{ active: activeChartTab === index }"
-                      @click="selectChartTimeTab(index, tab)"
+                      class="index-tabs-scroll-wrapper"
+                      ref="tabsScrollWrapper"
                     >
-                      {{ tab.name }}
+                      <div class="index-tabs" ref="tabsContainer">
+                        <div
+                          v-for="(tab, index) in indexTabs"
+                          :key="tab.id"
+                          class="tab-item"
+                          :class="{ active: activeIndexTab === index }"
+                          @click="selectIndexObjectTab(index, tab)"
+                        >
+                          <img
+                            class="tab-icon"
+                            :src="tab.img"
+                            :alt="tab.name"
+                          />
+                          <div class="tab-content">
+                            <span class="tab-name">{{ tab.name }}</span>
+                            <span
+                              class="tab-change"
+                              :class="{
+                                up: tab?.chg_rate > 0,
+                                down: tab?.chg_rate < 0,
+                              }"
+                            >
+                              {{ tab?.chg_rate > 0 ? "+" : ""
+                              }}{{ tab?.chg_rate }}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                    <button
+                      class="scroll-btn scroll-right"
+                      @click="scrollTabs(1)"
+                    >
+                      <span>›</span>
+                    </button>
                   </div>
                 </div>
-                <div class="chart-tools">
-                  <span class="tool-item">MA</span>
-                  <span class="tool-item">指标</span>
-                  <span class="tool-item">设置</span>
-                  <span class="tool-item">截屏</span>
-                  <span class="tool-item">全屏</span>
-                </div>
-              </div>
-              <div id="price-chart" class="price-chart"></div>
-            </div>
-          </div>
 
-          <div
-            class="right-panel fade-in-section"
-            style="animation-delay: 0.8s"
-          >
-            <div
-              class="market-card fade-in-section"
-              style="animation-delay: 1s"
-            >
-              <div class="market-header">
-                <h3 v-if="!showHistoryChart">市场热度监测</h3>
-                <h3 v-else>历史市场热度</h3>
-                <span class="market-time" @click="toggleHistoryChart">
-                  {{ showHistoryChart ? "返回卡片" : "历史数据" }}
-                  <span class="toggle-icon">{{
-                    showHistoryChart ? "↑" : ""
-                  }}</span>
-                </span>
+                <div
+                  class="chart-card fade-in-section"
+                  style="animation-delay: 0.6s"
+                >
+                  <div class="chart-header">
+                    <div class="chart-tabs-scroll-wrapper">
+                      <div class="chart-tabs">
+                        <div
+                          style="
+                            padding: 0px 0px;
+                            font-size: 24px;
+                            margin-right: 24px;
+                          "
+                        >
+                          饰品指数K线
+                        </div>
+                        <div
+                          v-for="(tab, index) in chartTabs"
+                          :key="tab.id"
+                          class="chart-tab"
+                          :class="{ active: activeChartTab === index }"
+                          @click="selectChartTimeTab(index, tab)"
+                        >
+                          {{ tab.name }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="chart-tools">
+                      <span class="tool-item">MA</span>
+                      <span class="tool-item">指标</span>
+                      <span class="tool-item">设置</span>
+                      <span class="tool-item">截屏</span>
+                      <span class="tool-item">全屏</span>
+                    </div>
+                  </div>
+                  <div id="price-chart" class="price-chart"></div>
+                </div>
               </div>
-              <div>
-                <div class="market-desc" v-if="!showHistoryChart">
-                  <span class="desc-label">当前热度趋势</span>
-                  <span class="desc-value"
-                    >{{
-                      hotTrend?.trendNumber ? hotTrend?.trendNumber : "--"
-                    }}（{{ hotTrend?.label ? hotTrend?.label : "--" }}）</span
-                  >
-                </div>
-                <div class="market-desc-small" v-if="!showHistoryChart">
-                  根据市场社区相关数据综合计算得出
-                </div>
-                <div class="history-chart-section" v-if="showHistoryChart">
-                  <div id="history-chart" class="history-chart"></div>
-                </div>
-                <div class="online-section">
-                  <div class="online-header">
-                    <div>
-                      <h4>当前在线人数</h4>
-                      <span class="online-time">{{ currentTime }}</span>
-                    </div>
-                    <div class="online-badge">📈</div>
+
+              <div
+                class="right-panel fade-in-section"
+                style="animation-delay: 0.8s"
+              >
+                <div
+                  class="market-card fade-in-section"
+                  style="animation-delay: 1s"
+                >
+                  <div class="market-header">
+                    <h3 v-if="!showHistoryChart">市场热度监测</h3>
+                    <h3 v-else>历史市场热度</h3>
+                    <span class="market-time" @click="toggleHistoryChart">
+                      {{ showHistoryChart ? "返回卡片" : "历史数据" }}
+                      <span class="toggle-icon">{{
+                        showHistoryChart ? "↑" : ""
+                      }}</span>
+                    </span>
                   </div>
-                  <div class="online-number">
-                    {{
-                      onlineData?.current_number
-                        ? onlineData.current_number
-                        : "--"
-                    }}
-                    人
-                  </div>
-                  <div class="online-stats">
-                    <div class="stat-item">
-                      <span class="stat-label">昨日同时段</span>
-                      <span
-                        class="stat-value up"
-                        v-if="
-                          onlineData?.current_number >
-                          onlineData?.same_time_number
-                        "
-                        >↑
-                        {{
-                          onlineData?.same_time_number
-                            ? onlineData?.same_time_number
-                            : "--"
-                        }}</span
-                      >
-                      <span
-                        class="stat-percent up"
-                        v-if="
-                          onlineData?.current_number >
-                          onlineData?.same_time_number
-                        "
-                        >{{ "+" + onlineData.rate + "%" }}</span
-                      >
-                      <span
-                        class="stat-value down"
-                        v-if="
-                          onlineData?.current_number <
-                          onlineData?.same_time_number
-                        "
-                        >↓
-                        {{
-                          onlineData?.same_time_number
-                            ? onlineData?.same_time_number
-                            : "--"
-                        }}</span
-                      >
-                      <span
-                        class="stat-percent down"
-                        v-if="
-                          onlineData?.current_number <
-                          onlineData?.same_time_number
-                        "
-                        >{{ onlineData.rate + "%" }}</span
+                  <div>
+                    <div class="market-desc" v-if="!showHistoryChart">
+                      <span class="desc-label">当前热度趋势</span>
+                      <span class="desc-value"
+                        >{{
+                          hotTrend?.trendNumber ? hotTrend?.trendNumber : "--"
+                        }}（{{
+                          hotTrend?.label ? hotTrend?.label : "--"
+                        }}）</span
                       >
                     </div>
-                    <div class="stat-item">
-                      <span class="stat-label">上周同时段</span>
-                      <span
-                        class="stat-value up"
-                        v-if="
-                          onlineData?.current_number >
-                          onlineData?.same_time_number_week
-                        "
-                        >↑
-                        {{
-                          onlineData?.same_time_number_week
-                            ? onlineData?.same_time_number_week
-                            : "--"
-                        }}</span
-                      >
-                      <span
-                        class="stat-percent up"
-                        v-if="
-                          onlineData?.current_number >
-                          onlineData?.same_time_number_week
-                        "
-                        >{{ "+" + onlineData?.rate_week + "%" }}</span
-                      >
-                      <span
-                        class="stat-value down"
-                        v-if="
-                          onlineData?.current_number <
-                          onlineData?.same_time_number_week
-                        "
-                        >↓
-                        {{
-                          onlineData?.same_time_number_week
-                            ? onlineData?.same_time_number_week
-                            : "--"
-                        }}</span
-                      >
-                      <span
-                        class="stat-percent down"
-                        v-if="
-                          onlineData?.current_number <
-                          onlineData?.same_time_number_week
-                        "
-                        >{{ onlineData?.rate_week + "%" }}</span
-                      >
+                    <div class="market-desc-small" v-if="!showHistoryChart">
+                      根据市场社区相关数据综合计算得出
                     </div>
-                    <div class="stat-item">
-                      <span class="stat-label">全球月活玩家</span>
-                      <span
-                        class="stat-value up"
-                        v-if="
-                          onlineData?.month_player -
-                            onlineData?.same_month_player >
-                          0
-                        "
-                        >↑
-                        {{
-                          onlineData?.month_player
-                            ? onlineData?.month_player
-                            : "--"
-                        }}</span
-                      >
-                      <span
-                        class="stat-percent up"
-                        v-if="
-                          onlineData?.month_player -
-                            onlineData?.same_month_player >
-                          0
-                        "
-                        >{{
-                          "+" +
-                          (
-                            (onlineData?.month_player -
-                              onlineData?.same_month_player) /
-                            10000
-                          ).toFixed(2)
-                        }}万人
-                      </span>
-                      <span
-                        class="stat-value up"
-                        v-if="
-                          onlineData?.month_player -
-                            onlineData?.same_month_player <
-                          0
-                        "
-                        >↑
-                        {{
-                          onlineData?.month_player
-                            ? onlineData?.month_player
-                            : "--"
-                        }}</span
-                      >
-                      <span
-                        class="stat-percent down"
-                        v-if="
-                          onlineData?.month_player -
-                            onlineData?.same_month_player <
-                          0
-                        "
-                        >{{
-                          (
-                            (onlineData?.month_player -
-                              onlineData?.same_month_player) /
-                            10000
-                          ).toFixed(2)
-                        }}万人
-                      </span>
+                    <div class="history-chart-section" v-if="showHistoryChart">
+                      <div id="history-chart" class="history-chart"></div>
                     </div>
-                  </div>
-                  <div id="online-chart" class="online-chart"></div>
-                  <div class="online-summary">
-                    <div class="summary-item">
-                      <span class="summary-label">昨日在线峰值</span>
-                      <span class="summary-value"
-                        >{{
-                          onlineChartData[1]?.m ? onlineChartData[1]?.m : "--"
+                    <div class="online-section">
+                      <div class="online-header">
+                        <div>
+                          <h4>当前在线人数</h4>
+                          <span class="online-time">{{ currentTime }}</span>
+                        </div>
+                        <div class="online-badge">📈</div>
+                      </div>
+                      <div class="online-number">
+                        {{
+                          onlineData?.current_number
+                            ? onlineData.current_number
+                            : "--"
                         }}
-                        人</span
-                      >
+                        人
+                      </div>
+                      <div class="online-stats">
+                        <div class="stat-item">
+                          <span class="stat-label">昨日同时段</span>
+                          <span
+                            class="stat-value up"
+                            v-if="
+                              onlineData?.current_number >
+                              onlineData?.same_time_number
+                            "
+                            >↑
+                            {{
+                              onlineData?.same_time_number
+                                ? onlineData?.same_time_number
+                                : "--"
+                            }}</span
+                          >
+                          <span
+                            class="stat-percent up"
+                            v-if="
+                              onlineData?.current_number >
+                              onlineData?.same_time_number
+                            "
+                            >{{ "+" + onlineData.rate + "%" }}</span
+                          >
+                          <span
+                            class="stat-value down"
+                            v-if="
+                              onlineData?.current_number <
+                              onlineData?.same_time_number
+                            "
+                            >↓
+                            {{
+                              onlineData?.same_time_number
+                                ? onlineData?.same_time_number
+                                : "--"
+                            }}</span
+                          >
+                          <span
+                            class="stat-percent down"
+                            v-if="
+                              onlineData?.current_number <
+                              onlineData?.same_time_number
+                            "
+                            >{{ onlineData.rate + "%" }}</span
+                          >
+                        </div>
+                        <div class="stat-item">
+                          <span class="stat-label">上周同时段</span>
+                          <span
+                            class="stat-value up"
+                            v-if="
+                              onlineData?.current_number >
+                              onlineData?.same_time_number_week
+                            "
+                            >↑
+                            {{
+                              onlineData?.same_time_number_week
+                                ? onlineData?.same_time_number_week
+                                : "--"
+                            }}</span
+                          >
+                          <span
+                            class="stat-percent up"
+                            v-if="
+                              onlineData?.current_number >
+                              onlineData?.same_time_number_week
+                            "
+                            >{{ "+" + onlineData?.rate_week + "%" }}</span
+                          >
+                          <span
+                            class="stat-value down"
+                            v-if="
+                              onlineData?.current_number <
+                              onlineData?.same_time_number_week
+                            "
+                            >↓
+                            {{
+                              onlineData?.same_time_number_week
+                                ? onlineData?.same_time_number_week
+                                : "--"
+                            }}</span
+                          >
+                          <span
+                            class="stat-percent down"
+                            v-if="
+                              onlineData?.current_number <
+                              onlineData?.same_time_number_week
+                            "
+                            >{{ onlineData?.rate_week + "%" }}</span
+                          >
+                        </div>
+                        <div class="stat-item">
+                          <span class="stat-label">全球月活玩家</span>
+                          <span
+                            class="stat-value up"
+                            v-if="
+                              onlineData?.month_player -
+                                onlineData?.same_month_player >
+                              0
+                            "
+                            >↑
+                            {{
+                              onlineData?.month_player
+                                ? onlineData?.month_player
+                                : "--"
+                            }}</span
+                          >
+                          <span
+                            class="stat-percent up"
+                            v-if="
+                              onlineData?.month_player -
+                                onlineData?.same_month_player >
+                              0
+                            "
+                            >{{
+                              "+" +
+                              (
+                                (onlineData?.month_player -
+                                  onlineData?.same_month_player) /
+                                10000
+                              ).toFixed(2)
+                            }}万人
+                          </span>
+                          <span
+                            class="stat-value up"
+                            v-if="
+                              onlineData?.month_player -
+                                onlineData?.same_month_player <
+                              0
+                            "
+                            >↑
+                            {{
+                              onlineData?.month_player
+                                ? onlineData?.month_player
+                                : "--"
+                            }}</span
+                          >
+                          <span
+                            class="stat-percent down"
+                            v-if="
+                              onlineData?.month_player -
+                                onlineData?.same_month_player <
+                              0
+                            "
+                            >{{
+                              (
+                                (onlineData?.month_player -
+                                  onlineData?.same_month_player) /
+                                10000
+                              ).toFixed(2)
+                            }}万人
+                          </span>
+                        </div>
+                      </div>
+                      <div id="online-chart" class="online-chart"></div>
+                      <div class="online-summary">
+                        <div class="summary-item">
+                          <span class="summary-label">昨日在线峰值</span>
+                          <span class="summary-value"
+                            >{{
+                              onlineChartData[1]?.m
+                                ? onlineChartData[1]?.m
+                                : "--"
+                            }}
+                            人</span
+                          >
+                        </div>
+                        <div class="summary-item">
+                          <span class="summary-label">本月在线峰值</span>
+                          <span class="summary-value"
+                            >{{
+                              onlineData?.month_peak
+                                ? onlineData?.month_peak
+                                : "--"
+                            }}
+                            人</span
+                          >
+                        </div>
+                      </div>
                     </div>
-                    <div class="summary-item">
-                      <span class="summary-label">本月在线峰值</span>
-                      <span class="summary-value"
-                        >{{
-                          onlineData?.month_peak ? onlineData?.month_peak : "--"
-                        }}
-                        人</span
-                      >
-                    </div>
-                  </div>
-                </div>
-                <!-- 
+                    <!-- 
                 <div class="steam-section">
                   <div class="steam-header">
                     <h4>Steam卡价</h4>
@@ -1208,183 +1199,192 @@ onUnmounted(() => {
                   </div>
                 </div> -->
 
-                <div class="ranking-section">
-                  <div class="ranking-header">
-                    <h4>涨跌分布</h4>
-                    <div class="ranking-tabs">
-                      <span
-                        class="ranking-tab"
-                        :class="{ active: activeRankingTab === 'type' }"
-                        @click="activeRankingTab = 'type'"
-                      >
-                        饰品类型
-                      </span>
-                      <span
-                        class="ranking-tab"
-                        :class="{ active: activeRankingTab === 'price' }"
-                        @click="activeRankingTab = 'price'"
-                      >
-                        价格板块
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="ranking-content">
-                    <div
-                      v-if="activeRankingTab === 'type'"
-                      class="type-ranking"
-                    >
-                      <div class="ranking-list-header">
-                        <span class="header-rank">排名/系列名</span>
-                        <span class="header-change">涨跌幅</span>
+                    <div class="ranking-section">
+                      <div class="ranking-header">
+                        <h4>涨跌分布</h4>
+                        <div class="ranking-tabs">
+                          <span
+                            class="ranking-tab"
+                            :class="{ active: activeRankingTab === 'type' }"
+                            @click="activeRankingTab = 'type'"
+                          >
+                            饰品类型
+                          </span>
+                          <span
+                            class="ranking-tab"
+                            :class="{ active: activeRankingTab === 'price' }"
+                            @click="activeRankingTab = 'price'"
+                          >
+                            价格板块
+                          </span>
+                        </div>
                       </div>
-                      <div class="ranking-list">
+
+                      <div class="ranking-content">
                         <div
-                          v-for="(item, index) in showAllRanking
-                            ? typeRankingData
-                            : typeRankingData.slice(0, 3)"
-                          :key="item.rank"
-                          class="ranking-item"
+                          v-if="activeRankingTab === 'type'"
+                          class="type-ranking"
                         >
-                          <span
-                            class="rank-number"
-                            :style="{ color: getRankColor(item.rank) }"
+                          <div class="ranking-list-header">
+                            <span class="header-rank">排名/系列名</span>
+                            <span class="header-change">涨跌幅</span>
+                          </div>
+                          <div class="ranking-list">
+                            <div
+                              v-for="(item, index) in showAllRanking
+                                ? typeRankingData
+                                : typeRankingData.slice(0, 3)"
+                              :key="item.rank"
+                              class="ranking-item"
+                            >
+                              <span
+                                class="rank-number"
+                                :style="{ color: getRankColor(item.rank) }"
+                              >
+                                {{ item.rank }}
+                              </span>
+                              <div class="item-icon"></div>
+                              <span class="item-name">{{ item.name }}</span>
+                              <span
+                                class="item-change"
+                                :class="{ up: item.isUp, down: !item.isUp }"
+                              >
+                                <span v-if="item.isUp" class="change-icon"
+                                  >▲</span
+                                >
+                                <span v-else class="change-icon">▼</span>
+                                {{ Math.abs(item.change) }}%
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            v-if="typeRankingData.length > 4"
+                            class="show-more"
+                            @click="showAllRanking = !showAllRanking"
                           >
-                            {{ item.rank }}
-                          </span>
-                          <div class="item-icon"></div>
-                          <span class="item-name">{{ item.name }}</span>
-                          <span
-                            class="item-change"
-                            :class="{ up: item.isUp, down: !item.isUp }"
-                          >
-                            <span v-if="item.isUp" class="change-icon">▲</span>
-                            <span v-else class="change-icon">▼</span>
-                            {{ Math.abs(item.change) }}%
-                          </span>
+                            <span>{{
+                              showAllRanking ? "收起" : "查看更多"
+                            }}</span>
+                            <span class="arrow" :class="{ up: showAllRanking }"
+                              >▼</span
+                            >
+                          </div>
                         </div>
-                      </div>
-                      <div
-                        v-if="typeRankingData.length > 4"
-                        class="show-more"
-                        @click="showAllRanking = !showAllRanking"
-                      >
-                        <span>{{ showAllRanking ? "收起" : "查看更多" }}</span>
-                        <span class="arrow" :class="{ up: showAllRanking }"
-                          >▼</span
-                        >
-                      </div>
-                    </div>
 
-                    <div
-                      v-if="activeRankingTab === 'price'"
-                      class="price-segment"
-                    >
-                      <div class="price-chart-wrapper">
-                        <div class="chart-container">
-                          <div
-                            id="price-segment-chart"
-                            class="price-chart"
-                          ></div>
-                        </div>
-                        <div class="price-labels">
-                          <div
-                            v-for="(item, index) in priceSegmentData"
-                            :key="index"
-                            class="price-label-item"
-                            :style="{ color: item.color }"
-                          >
-                            <span class="label-name">{{ item.name }}</span>
-                            <span class="label-change">{{ item.change }}%</span>
+                        <div
+                          v-if="activeRankingTab === 'price'"
+                          class="price-segment"
+                        >
+                          <div class="price-chart-wrapper">
+                            <div class="chart-container">
+                              <div
+                                id="price-segment-chart"
+                                class="price-chart"
+                              ></div>
+                            </div>
+                            <div class="price-labels">
+                              <div
+                                v-for="(item, index) in priceSegmentData"
+                                :key="index"
+                                class="price-label-item"
+                                :style="{ color: item.color }"
+                              >
+                                <span class="label-name">{{ item.name }}</span>
+                                <span class="label-change"
+                                  >{{ item.change }}%</span
+                                >
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div class="rise-fall-summary">
-                    <div class="summary-item rise">
-                      <span class="summary-label">上涨</span>
-                      <span class="summary-value"
-                        >{{ riseFallData.rise }}种</span
-                      >
-                    </div>
-                    <div class="summary-item flat">
-                      <span class="summary-label">持平</span>
-                      <span class="summary-value"
-                        >{{ riseFallData.flat }}种</span
-                      >
-                    </div>
-                    <div class="summary-item fall">
-                      <span class="summary-label">下跌</span>
-                      <span class="summary-value"
-                        >{{ riseFallData.fall }}种</span
-                      >
-                    </div>
-                  </div>
+                      <div class="rise-fall-summary">
+                        <div class="summary-item rise">
+                          <span class="summary-label">上涨</span>
+                          <span class="summary-value"
+                            >{{ riseFallData.rise }}种</span
+                          >
+                        </div>
+                        <div class="summary-item flat">
+                          <span class="summary-label">持平</span>
+                          <span class="summary-value"
+                            >{{ riseFallData.flat }}种</span
+                          >
+                        </div>
+                        <div class="summary-item fall">
+                          <span class="summary-label">下跌</span>
+                          <span class="summary-value"
+                            >{{ riseFallData.fall }}种</span
+                          >
+                        </div>
+                      </div>
 
-                  <div class="rise-fall-bar">
-                    <div
-                      class="bar-segment rise"
-                      :style="{ width: getBarWidth('rise') + '%' }"
-                    ></div>
-                    <div
-                      class="bar-segment flat"
-                      :style="{ width: getBarWidth('flat') + '%' }"
-                    ></div>
-                    <div
-                      class="bar-segment fall"
-                      :style="{ width: getBarWidth('fall') + '%' }"
-                    ></div>
+                      <div class="rise-fall-bar">
+                        <div
+                          class="bar-segment rise"
+                          :style="{ width: getBarWidth('rise') + '%' }"
+                        ></div>
+                        <div
+                          class="bar-segment flat"
+                          :style="{ width: getBarWidth('flat') + '%' }"
+                        ></div>
+                        <div
+                          class="bar-segment fall"
+                          :style="{ width: getBarWidth('fall') + '%' }"
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <BoneyardSkeleton
-          name="blog-card"
-          :loading="isLoading"
-        ></BoneyardSkeleton>
-        <div
-          class="hot-items-section fade-in-section"
-          style="animation-delay: 1.2s"
-        >
-          <div
-            class="section-header fade-in-section"
-            style="animation-delay: 1.4s"
-          >
-            <h3>热门饰品</h3>
-          </div>
-          <div class="items-grid fade-in-section" style="animation-delay: 1.6s">
+            <BoneyardSkeleton
+              name="blog-card"
+              :loading="isLoading"
+            ></BoneyardSkeleton>
             <div
-              v-for="(item, index) in heatObjectData"
-              :key="index"
-              class="item-card fade-in-section"
-              :style="{ animationDelay: `${1.8 + index * 0.2}s` }"
-              @click="goToDetail(item, index)"
+              class="hot-items-section fade-in-section"
+              style="animation-delay: 1.2s"
             >
-              <!-- <div class="item-tag" :class="item.tagType">
+              <div
+                class="section-header fade-in-section"
+                style="animation-delay: 1.4s"
+              >
+                <h3>热门饰品</h3>
+              </div>
+              <div
+                class="items-grid fade-in-section"
+                style="animation-delay: 1.6s"
+              >
+                <div
+                  v-for="(item, index) in heatObjectData"
+                  :key="index"
+                  class="item-card fade-in-section"
+                  :style="{ animationDelay: `${1.8 + index * 0.2}s` }"
+                  @click="goToDetail(item, index)"
+                >
+                  <!-- <div class="item-tag" :class="item.tagType">
                 {{ item.tag }}
               </div> -->
-              <div class="item-image-wrapper">
-                <img class="item-image" :src="item.img" :alt="item.name" />
-              </div>
-              <div class="item-info">
-                <h4 class="item-name">{{ item.name }}</h4>
-                <div class="item-bottom">
-                  <div class="item-price">
-                    <span class="price-label">热度排名</span>
-                    <span class="price-value">{{ item.rank_num }}</span>
+                  <div class="item-image-wrapper">
+                    <img class="item-image" :src="item.img" :alt="item.name" />
                   </div>
-                  <div class="item-stock">
-                    热度上升{{ item.rank_num_change }}名
+                  <div class="item-info">
+                    <h4 class="item-name">{{ item.name }}</h4>
+                    <div class="item-bottom">
+                      <div class="item-price">
+                        <span class="price-label">热度排名</span>
+                        <span class="price-value">{{ item.rank_num }}</span>
+                      </div>
+                      <div class="item-stock">
+                        热度上升{{ item.rank_num_change }}名
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
           </div>
         </div>
       </div>

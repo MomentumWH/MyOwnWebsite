@@ -1,40 +1,40 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from "vue";
 
-const isDragging = ref(false)
-const position = ref({ x: 100, y: 100 })
-const offset = ref({ x: 0, y: 0 })
+const isDragging = ref(false);
+const position = ref({ x: 100, y: 100 });
+const offset = ref({ x: 0, y: 0 });
 
 const handleMouseDown = (e: MouseEvent) => {
-  isDragging.value = true
+  isDragging.value = true;
   offset.value = {
     x: e.clientX - position.value.x,
-    y: e.clientY - position.value.y
-  }
-}
+    y: e.clientY - position.value.y,
+  };
+};
 
 const handleMouseMove = (e: MouseEvent) => {
-  if (!isDragging.value) return
-  
+  if (!isDragging.value) return;
+
   position.value = {
     x: e.clientX - offset.value.x,
-    y: e.clientY - offset.value.y
-  }
-}
+    y: e.clientY - offset.value.y,
+  };
+};
 
 const handleMouseUp = () => {
-  isDragging.value = false
-}
+  isDragging.value = false;
+};
 
 onMounted(() => {
-  window.addEventListener('mousemove', handleMouseMove)
-  window.addEventListener('mouseup', handleMouseUp)
-})
+  window.addEventListener("mousemove", handleMouseMove);
+  window.addEventListener("mouseup", handleMouseUp);
+});
 
 onUnmounted(() => {
-  window.removeEventListener('mousemove', handleMouseMove)
-  window.removeEventListener('mouseup', handleMouseUp)
-})
+  window.removeEventListener("mousemove", handleMouseMove);
+  window.removeEventListener("mouseup", handleMouseUp);
+});
 </script>
 
 <template>

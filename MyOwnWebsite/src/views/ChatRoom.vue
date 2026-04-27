@@ -1,149 +1,158 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { NInput, NButton, NIcon, NAvatar, NScrollbar } from 'naive-ui'
-import { useChatStore } from '../stores/chat'
-import { useAuthStore } from '../stores/auth'
+import { ref, nextTick, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { NInput, NButton, NIcon, NAvatar, NScrollbar } from "naive-ui";
+import { useChatStore } from "../stores/chat";
+import { useAuthStore } from "../stores/auth";
 
-const router = useRouter()
-const chatStore = useChatStore()
-const authStore = useAuthStore()
+const router = useRouter();
+const chatStore = useChatStore();
+const authStore = useAuthStore();
 
-const inputText = ref('')
-const messageListRef = ref<HTMLElement | null>(null)
+const inputText = ref("");
+const messageListRef = ref<HTMLElement | null>(null);
 
 const initialMessages = [
   {
-    id: '1',
-    user: 'Ian',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square',
-    content: '菜塔',
-    time: '10:20',
+    id: "1",
+    user: "Ian",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square",
+    content: "菜塔",
+    time: "10:20",
     isSelf: false,
-    type: 'text' as const
+    type: "text" as const,
   },
   {
-    id: '2',
-    user: 'Ian',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square',
-    content: '好中锋也不会用',
-    time: '10:20',
+    id: "2",
+    user: "Ian",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square",
+    content: "好中锋也不会用",
+    time: "10:20",
     isSelf: false,
-    type: 'text' as const
+    type: "text" as const,
   },
   {
-    id: '3',
-    user: 'Ian',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square',
-    content: '🐱',
-    time: '10:20',
+    id: "3",
+    user: "Ian",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20avatar%20portrait&image_size=square",
+    content: "🐱",
+    time: "10:20",
     isSelf: false,
-    type: 'emoji' as const
+    type: "emoji" as const,
   },
   {
-    id: '4',
-    user: 'Alex',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square',
-    content: '瑞典3-1乌克兰晋级附加赛决赛，哲凯赖什帽子戏法\n\n懂球帝/陌议室《瑞典3-1乌克兰晋级附加赛决赛，哲凯赖什帽子戏法》https://m.don...',
-    time: '10:21',
+    id: "4",
+    user: "Alex",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square",
+    content:
+      "瑞典3-1乌克兰晋级附加赛决赛，哲凯赖什帽子戏法\n\n懂球帝/陌议室《瑞典3-1乌克兰晋级附加赛决赛，哲凯赖什帽子戏法》https://m.don...",
+    time: "10:21",
     isSelf: false,
-    type: 'text' as const
+    type: "text" as const,
   },
   {
-    id: '5',
-    user: 'Alex',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square',
-    content: '🟢 你亦亦子靓版',
-    time: '10:21',
+    id: "5",
+    user: "Alex",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square",
+    content: "🟢 你亦亦子靓版",
+    time: "10:21",
     isSelf: false,
-    type: 'text' as const
+    type: "text" as const,
   },
   {
-    id: '6',
-    user: 'Alex',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square',
-    content: '是我们拖累了哲凯',
-    time: '10:21',
+    id: "6",
+    user: "Alex",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=male%20cartoon%20avatar%20portrait&image_size=square",
+    content: "是我们拖累了哲凯",
+    time: "10:21",
     isSelf: false,
-    type: 'text' as const
+    type: "text" as const,
   },
   {
-    id: '7',
-    user: 'Chinesesocialist',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=older%20male%20cartoon%20avatar%20portrait&image_size=square',
-    content: '法国队锋线太恐怖了',
-    time: '10:21',
+    id: "7",
+    user: "Chinesesocialist",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=older%20male%20cartoon%20avatar%20portrait&image_size=square",
+    content: "法国队锋线太恐怖了",
+    time: "10:21",
     isSelf: false,
-    type: 'text' as const
+    type: "text" as const,
   },
   {
-    id: '8',
-    user: 'Chinesesocialist',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=older%20male%20cartoon%20avatar%20portrait&image_size=square',
-    content: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20penguin%20watching%20TV%20with%20popcorn&image_size=square_hd',
-    time: '10:22',
+    id: "8",
+    user: "Chinesesocialist",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=older%20male%20cartoon%20avatar%20portrait&image_size=square",
+    content:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20penguin%20watching%20TV%20with%20popcorn&image_size=square_hd",
+    time: "10:22",
     isSelf: false,
-    type: 'image' as const
-  }
-]
+    type: "image" as const,
+  },
+];
 
 const goBack = () => {
-  router.back()
-}
+  router.back();
+};
 
 const scrollToBottom = () => {
   nextTick(() => {
     if (messageListRef.value) {
-      messageListRef.value.scrollTop = messageListRef.value.scrollHeight
+      messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
     }
-  })
-}
+  });
+};
 
 const sendMessage = () => {
-  if (!inputText.value.trim()) return
-  
+  if (!inputText.value.trim()) return;
+
   chatStore.addMessage({
-    user: '我',
-    avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar%20profile%20picture&image_size=square',
+    user: "我",
+    avatar:
+      "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar%20profile%20picture&image_size=square",
     content: inputText.value,
-    type: 'text',
-    isSelf: true
-  })
-  
-  inputText.value = ''
-  scrollToBottom()
-}
+    type: "text",
+    isSelf: true,
+  });
+
+  inputText.value = "";
+  scrollToBottom();
+};
 
 const handleKeyPress = (event: KeyboardEvent) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault()
-    sendMessage()
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
   }
-}
+};
 
 onMounted(() => {
   if (!authStore.canAccessChatRoom) {
-    router.push('/')
-    return
+    router.push("/");
+    return;
   }
-  
-  chatStore.loadFromStorage()
+
+  chatStore.loadFromStorage();
   if (chatStore.messages.length === 0) {
-    initialMessages.forEach(msg => {
-      chatStore.messages.push(msg)
-    })
+    initialMessages.forEach((msg) => {
+      chatStore.messages.push(msg);
+    });
   }
-  scrollToBottom()
-})
+  scrollToBottom();
+});
 </script>
 
 <template>
   <div class="chat-room">
     <header class="chat-header">
       <div class="header-left">
-        <button @click="goBack" class="back-button">
-          ←
-        </button>
+        <button @click="goBack" class="back-button">←</button>
         <div class="chat-info">
           <h1 class="chat-title">【五群】桃园球迷交友群(361)</h1>
         </div>
@@ -163,13 +172,23 @@ onMounted(() => {
 
     <div class="chat-content" ref="messageListRef">
       <div class="messages-list">
-        <div v-for="(message, index) in chatStore.messages" :key="message.id" class="message-item" :class="{ 'message-self': message.isSelf }">
+        <div
+          v-for="(message, index) in chatStore.messages"
+          :key="message.id"
+          class="message-item"
+          :class="{ 'message-self': message.isSelf }"
+        >
           <div v-if="!message.isSelf" class="message-avatar">
             <n-avatar :src="message.avatar" :size="40" />
           </div>
           <div class="message-wrapper">
-            <div v-if="!message.isSelf" class="message-username">{{ message.user }}</div>
-            <div class="message-bubble" :class="{ 'bubble-self': message.isSelf }">
+            <div v-if="!message.isSelf" class="message-username">
+              {{ message.user }}
+            </div>
+            <div
+              class="message-bubble"
+              :class="{ 'bubble-self': message.isSelf }"
+            >
               <div v-if="message.type === 'image'" class="message-image">
                 <img :src="message.content" alt="聊天图片" />
               </div>
@@ -219,7 +238,11 @@ onMounted(() => {
           />
         </div>
         <div class="send-button-wrapper">
-          <n-button type="primary" @click="sendMessage" :disabled="!inputText.trim()">
+          <n-button
+            type="primary"
+            @click="sendMessage"
+            :disabled="!inputText.trim()"
+          >
             发送
           </n-button>
         </div>
@@ -235,7 +258,7 @@ onMounted(() => {
   width: 100vw;
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .chat-header {

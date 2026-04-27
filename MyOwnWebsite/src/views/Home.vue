@@ -5,12 +5,12 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { CashOutline as CashIcon } from "@vicons/ionicons5";
 import { useAuthStore } from "../stores/auth";
+import TypeIt from "typeit";
 
 const message = useMessage();
 const dialog = useDialog();
 const authStore = useAuthStore();
-import TypeIt from "typeit";
-const typePrinterMaker = ref(null);
+const typePrinterMaker = ref<HTMLElement | null>(null);
 const profile = ref({
   name: "张三",
   title: "前端开发工程师",
@@ -27,13 +27,16 @@ const profile = ref({
 });
 
 const skillsRendered = ref(false);
+const MAX_SNOWFLAKES = 50;
+const SKILLS_RENDER_DELAY = 2000;
+let skillsTimer: ReturnType<typeof setTimeout> | null = null;
+let typeItInstance: TypeIt | null = null;
 
 // 技能栈渲染完成后显示项目经验
 onMounted(() => {
-  setTimeout(() => {
+  skillsTimer = setTimeout(() => {
     skillsRendered.value = true;
-  }, 2000); // 2秒后显示项目经验
-  console.log({ "authStore.CSQAQKey": authStore.CSQAQKey });
+  }, SKILLS_RENDER_DELAY); // 2秒后显示项目经验
 });
 
 // 获取项目路由
@@ -82,13 +85,15 @@ const createSnowflake = () => {
 };
 
 const updateSnowflakes = () => {
-  snowflakes.value = snowflakes.value.map((snowflake) => {
-    return {
-      ...snowflake,
-      y: snowflake.y + snowflake.speed,
-      x: snowflake.x + Math.sin(snowflake.y / 100) * 2,
-    };
-  });
+  for (let index = snowflakes.value.length - 1; index >= 0; index -= 1) {
+    const snowflake = snowflakes.value[index];
+    snowflake.y += snowflake.speed;
+    snowflake.x += Math.sin(snowflake.y / 100) * 2;
+
+    if (snowflake.y >= window.innerHeight) {
+      snowflakes.value.splice(index, 1);
+    }
+  }
 
   // 移除超出屏幕的雪花
   snowflakes.value = snowflakes.value.filter(
@@ -96,7 +101,7 @@ const updateSnowflakes = () => {
   );
 
   // 添加新雪花
-  if (snowflakes.value.length < 50) {
+  if (snowflakes.value.length < MAX_SNOWFLAKES) {
     snowflakes.value.push(createSnowflake());
   }
 };
@@ -166,7 +171,7 @@ onMounted(() => {
   };
   animate();
   if (typePrinterMaker.value) {
-    new TypeIt(typePrinterMaker.value, {
+    typeItInstance = new TypeIt(typePrinterMaker.value, {
       strings: [
         "Welcome  to  SoyBean   Introduction !",
         "This is the first Admin  powered by  Chonny !",
@@ -215,6 +220,10 @@ const handleSelectOptions = (key: string | number) => {
 };
 onUnmounted(() => {
   cancelAnimationFrame(animationFrameId);
+  if (skillsTimer) {
+    clearTimeout(skillsTimer);
+  }
+  typeItInstance?.destroy();
 });
 </script>
 
@@ -330,7 +339,7 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <setion v-if="skillsRendered">
+    <section v-if="skillsRendered">
       <div class="dragBox">
         <!-- <n-button @click="goToDrag" dashed  type="info">This is drag button demo</n-button> -->
         <div class="dragButtonBox">
@@ -385,7 +394,7 @@ onUnmounted(() => {
           <UploadBox v-if="isShowUploadBox"></UploadBox>
         </transition>
       </div>
-    </setion>
+    </section>
 
     <!-- </n-message-provider> -->
     <n-back-top :right="100" />

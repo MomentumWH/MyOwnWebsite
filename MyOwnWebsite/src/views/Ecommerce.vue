@@ -177,15 +177,21 @@ const handleLogin = async () => {
       </div>
     </header>
 
-    <section class="project-details fade-in-section" style="animation-delay: 0.2s">
+    <section
+      class="project-details fade-in-section"
+      style="animation-delay: 0.2s"
+    >
       <h2>Overview</h2>
       <p>
-        This page demonstrates product browsing, auth flow, charts, and basic API requests
-        while keeping the original data access pattern intact.
+        This page demonstrates product browsing, auth flow, charts, and basic
+        API requests while keeping the original data access pattern intact.
       </p>
     </section>
 
-    <section class="project-features fade-in-section" style="animation-delay: 0.4s">
+    <section
+      class="project-features fade-in-section"
+      style="animation-delay: 0.4s"
+    >
       <h2>Key Features</h2>
       <div class="features-grid">
         <div
@@ -216,7 +222,10 @@ const handleLogin = async () => {
       </div>
     </section>
 
-    <section class="project-details fade-in-section" style="animation-delay: 1.6s">
+    <section
+      class="project-details fade-in-section"
+      style="animation-delay: 1.6s"
+    >
       <n-list clickable hoverable class="nListBoxBackgroundColor">
         <n-list-item>
           <template #prefix>
@@ -225,7 +234,11 @@ const handleLogin = async () => {
           <template #suffix>
             <n-button>Suffix</n-button>
           </template>
-          <n-thing title="Thing" title-extra="extra" description="description" />
+          <n-thing
+            title="Thing"
+            title-extra="extra"
+            description="description"
+          />
         </n-list-item>
         <n-list-item>
           <template #prefix>
@@ -243,7 +256,10 @@ const handleLogin = async () => {
       </n-list>
     </section>
 
-    <footer class="project-footer fade-in-section" style="animation-delay: 2s"></footer>
+    <footer
+      class="project-footer fade-in-section"
+      style="animation-delay: 2s"
+    ></footer>
 
     <n-drawer
       v-model:show="showDrawer"
@@ -259,17 +275,28 @@ const handleLogin = async () => {
     >
       <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
         <n-carousel show-arrow>
-          <img v-for="item in imgList" :key="item" class="carousel-img" :src="item" />
+          <img
+            v-for="item in imgList"
+            :key="item"
+            class="carousel-img"
+            :src="item"
+          />
         </n-carousel>
       </n-drawer-content>
     </n-drawer>
 
-    <section class="chart-section fade-in-section" style="animation-delay: 2.2s">
+    <section
+      class="chart-section fade-in-section"
+      style="animation-delay: 2.2s"
+    >
       <h2>Category Share</h2>
       <VChart :option="ringChartOption" autoresize class="ring-chart" />
     </section>
 
-    <section class="api-demo-section fade-in-section" style="animation-delay: 2.4s">
+    <section
+      class="api-demo-section fade-in-section"
+      style="animation-delay: 2.4s"
+    >
       <h2>API Demo</h2>
 
       <n-card title="User Login" class="demo-card">
@@ -321,7 +348,7 @@ const handleLogin = async () => {
           <div v-if="products.length > 0" class="products-list">
             <div
               v-for="(product, index) in products"
-              :key="index"
+              :key="product.id ?? product.name ?? index"
               class="product-item"
             >
               <div class="product-info">

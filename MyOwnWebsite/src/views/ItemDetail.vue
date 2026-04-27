@@ -300,7 +300,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
   GameController,
@@ -336,7 +336,6 @@ const timeTabs = [
 ];
 const activeTimeTab = ref("7");
 
-const hotItem = ref();
 const goBack = () => {
   router.back();
 };
@@ -361,6 +360,13 @@ const initDetailChart = () => {
     const prices = lineData.value.main_data || [];
     const volumes = lineData.value.num_data || [];
     const timestamps = lineData.value.timestamp || [];
+    const formattedTimestamps = timestamps.map((item: any) =>
+      dayjs(item).format("YYYY-MM-DD"),
+    );
+    const ma5Data = calculateMA(5, prices);
+    const ma10Data = calculateMA(10, prices);
+    const ma20Data = calculateMA(20, prices);
+    const ma30Data = calculateMA(30, prices);
 
     console.log("处理后的价格数据：", prices);
     console.log("处理后的成交量数据：", volumes);
@@ -392,13 +398,13 @@ const initDetailChart = () => {
           if (!params || params.length === 0) return "";
 
           const dataIndex = params[0].dataIndex;
-          const date = timestamps[dataIndex];
+          const date = formattedTimestamps[dataIndex];
           const price = prices[dataIndex];
           const volume = volumes[dataIndex];
-          const ma5 = calculateMA(5, prices)[dataIndex];
-          const ma10 = calculateMA(10, prices)[dataIndex];
-          const ma20 = calculateMA(20, prices)[dataIndex];
-          const ma30 = calculateMA(30, prices)[dataIndex];
+          const ma5 = ma5Data[dataIndex];
+          const ma10 = ma10Data[dataIndex];
+          const ma20 = ma20Data[dataIndex];
+          const ma30 = ma30Data[dataIndex];
 
           let change = "-";
           let changePercent = "-";
@@ -411,7 +417,7 @@ const initDetailChart = () => {
 
           return `
             <div style="display: flex; gap: 24px; align-items: center; white-space: nowrap;">
-              <span style="color: #888; font-size: 13px;">时间: <span style="color: #fff;">${dayjs(date).format("YYYY-MM-DD")}</span></span>
+              <span style="color: #888; font-size: 13px;">时间: <span style="color: #fff;">${date}</span></span>
               <span style="color: #888; font-size: 13px;">价格: <span style="color: #fff; font-weight: 600;">¥${price}</span></span>
               <span style="color: #888; font-size: 13px;">成交量: <span style="color: #fff;">${volume}</span></span>
               <span style="color: #f59e0b; font-size: 13px;">MA5: ${ma5 || "-"}</span>
@@ -461,7 +467,7 @@ const initDetailChart = () => {
       xAxis: [
         {
           type: "category",
-          data: timestamps.map((item: any) => dayjs(item).format("YYYY-MM-DD")),
+          data: formattedTimestamps,
           axisLine: { lineStyle: { color: "#2a2a4e" } },
           axisLabel: { color: "#888" },
           boundaryGap: false,
@@ -469,7 +475,7 @@ const initDetailChart = () => {
         {
           type: "category",
           gridIndex: 1,
-          data: timestamps.map((item: any) => dayjs(item).format("YYYY-MM-DD")),
+          data: formattedTimestamps,
           axisLine: { lineStyle: { color: "#2a2a4e" } },
           axisLabel: { color: "#888" },
           boundaryGap: false,
@@ -525,7 +531,7 @@ const initDetailChart = () => {
         {
           name: "MA5",
           type: "line",
-          data: calculateMA(5, prices),
+          data: ma5Data,
           smooth: true,
           lineStyle: { color: "#f59e0b" },
           showSymbol: false,
@@ -533,7 +539,7 @@ const initDetailChart = () => {
         {
           name: "MA10",
           type: "line",
-          data: calculateMA(10, prices),
+          data: ma10Data,
           smooth: true,
           lineStyle: { color: "#10b981" },
           showSymbol: false,
@@ -541,7 +547,7 @@ const initDetailChart = () => {
         {
           name: "MA20",
           type: "line",
-          data: calculateMA(20, prices),
+          data: ma20Data,
           smooth: true,
           lineStyle: { color: "#8b5cf6" },
           showSymbol: false,
@@ -549,7 +555,7 @@ const initDetailChart = () => {
         {
           name: "MA30",
           type: "line",
-          data: calculateMA(30, prices),
+          data: ma30Data,
           smooth: true,
           lineStyle: { color: "#ec4899" },
           showSymbol: false,
@@ -609,9 +615,7 @@ const chooseWearTab = (tab) => {
       activeWearTab.value = res.data.goods_info.id;
       console.log(wearTabs.value);
       wearTabs.value = res.data.button_list;
-      setTimeout(() => {
-        getIdObjectKline(currentId.value);
-      }, 1000);
+      getIdObjectKline(currentId.value);
     })
     .catch((err) => {})
     .finally(() => {
@@ -619,7 +623,6 @@ const chooseWearTab = (tab) => {
     });
 };
 const lineData = ref();
-const wearTabsStatTrak = ref([]);
 const currentId = ref();
 const getIdObjectKline = (id) => {
   console.log("开始获取图表数据，ID：", id);
@@ -634,7 +637,6 @@ const getIdObjectKline = (id) => {
     .then((res) => {
       console.log("获取图表数据成功：", res);
       lineData.value = res.data;
-      console.log({ "lineData.value": lineData.value });
     })
     .catch((err) => {
       console.error("获取图表数据失败：", err);
@@ -667,14 +669,12 @@ onMounted(() => {
       activeWearTab.value = res.data.goods_info.id;
       wearTabs.value = res.data.button_list;
       console.log(wearTabs.value);
+      getIdObjectKline(currentId.value);
     })
     .catch((err) => {})
     .finally(() => {
       isLoading.value = false;
     });
-  setTimeout(() => {
-    getIdObjectKline(currentId.value);
-  }, 1500);
   window.addEventListener("resize", handleResize);
 });
 

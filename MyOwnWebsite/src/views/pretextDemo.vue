@@ -101,8 +101,9 @@ onMounted(async () => {
           <span class="eyebrow">Basic Example</span>
           <h1>chenglou/pretext 基本使用示例</h1>
           <p class="intro">
-            这个页面演示最基础的用法：先用 <code>prepare()</code>
-            预处理文本，再用 <code>layout()</code> 根据宽度和行高计算文本高度与行数。
+            这个页面演示最基础的用法：先用
+            <code>prepare()</code> 预处理文本，再用
+            <code>layout()</code> 根据宽度和行高计算文本高度与行数。
           </p>
         </div>
 
@@ -141,22 +142,12 @@ onMounted(async () => {
 
           <label class="field">
             <span class="field-label">行高：{{ lineHeight }}px</span>
-            <input
-              v-model.number="lineHeight"
-              type="range"
-              min="20"
-              max="44"
-            />
+            <input v-model.number="lineHeight" type="range" min="20" max="44" />
           </label>
 
           <label class="field">
             <span class="field-label">字号：{{ fontSize }}px</span>
-            <input
-              v-model.number="fontSize"
-              type="range"
-              min="14"
-              max="28"
-            />
+            <input v-model.number="fontSize" type="range" min="14" max="28" />
           </label>
 
           <label class="field">
@@ -225,14 +216,19 @@ onMounted(async () => {
               </div>
               <div class="tips-box">
                 <p>
-                  <code>prepare()</code> 适合放在冷路径，只在文本或字体相关参数变化时执行。
+                  <code>prepare()</code>
+                  适合放在冷路径，只在文本或字体相关参数变化时执行。
                 </p>
                 <p>
-                  <code>layout()</code> 适合放在热路径，只根据当前宽度和行高快速计算结果。
+                  <code>layout()</code>
+                  适合放在热路径，只根据当前宽度和行高快速计算结果。
                 </p>
                 <p>如果你只想拿到“高度 + 行数”，这是最简单的一套 API 组合。</p>
                 <p>
-                  当前参数：<code>layout(prepared, {{ containerWidth }}, {{ lineHeight }})</code>
+                  当前参数：<code
+                    >layout(prepared, {{ containerWidth }},
+                    {{ lineHeight }})</code
+                  >
                 </p>
               </div>
             </article>
@@ -248,7 +244,11 @@ onMounted(async () => {
   min-height: 100vh;
   padding: 32px;
   background:
-    radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 24%),
+    radial-gradient(
+      circle at top left,
+      rgba(96, 165, 250, 0.18),
+      transparent 24%
+    ),
     radial-gradient(circle at right, rgba(52, 211, 153, 0.16), transparent 26%),
     linear-gradient(160deg, #0b1220 0%, #101a2d 52%, #0f172a 100%);
 }
@@ -392,7 +392,10 @@ h1 {
   padding: 14px 16px;
   resize: vertical;
   color: #0f172a;
-  font: 500 15px/1.7 "Segoe UI", "PingFang SC", sans-serif;
+  font:
+    500 15px/1.7 "Segoe UI",
+    "PingFang SC",
+    sans-serif;
 }
 
 .select-input {

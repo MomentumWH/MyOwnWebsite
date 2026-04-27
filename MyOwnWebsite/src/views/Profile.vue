@@ -1,51 +1,51 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
-const isEditing = ref(false)
-const editField = ref('')
+const isEditing = ref(false);
+const editField = ref("");
 
 const user = computed(() => ({
-  username: authStore.user?.username || '用户',
-  teamName: authStore.user?.username || '用户',
-  phone: '18651032383',
-  email: '',
-  password: '********',
-  wechat: '未绑定',
-  feishu: '未绑定'
-}))
+  username: authStore.user?.username || "用户",
+  teamName: authStore.user?.username || "用户",
+  phone: "18651032383",
+  email: "",
+  password: "********",
+  wechat: "未绑定",
+  feishu: "未绑定",
+}));
 
 const handleEdit = (field: string) => {
-  editField.value = field
-  isEditing.value = true
-}
+  editField.value = field;
+  isEditing.value = true;
+};
 
 const handleSave = () => {
-  isEditing.value = false
-  editField.value = ''
-}
+  isEditing.value = false;
+  editField.value = "";
+};
 
 const handleCancel = () => {
-  isEditing.value = false
-  editField.value = ''
-}
+  isEditing.value = false;
+  editField.value = "";
+};
 
 const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
+  authStore.logout();
+  router.push("/login");
+};
 
 const handleLeaveTeam = () => {
   // 退出团队逻辑
-}
+};
 
 const handleDeleteAccount = () => {
   // 注销账号逻辑
-}
+};
 </script>
 
 <template>
@@ -63,9 +63,15 @@ const handleDeleteAccount = () => {
       <div class="profile-item">
         <label class="item-label">用户名</label>
         <div class="item-content">
-          <span v-if="!isEditing || editField !== 'username'">{{ user.username }}</span>
+          <span v-if="!isEditing || editField !== 'username'">{{
+            user.username
+          }}</span>
           <input v-else v-model="user.username" class="edit-input" />
-          <button v-if="!isEditing || editField !== 'username'" @click="handleEdit('username')" class="edit-btn">
+          <button
+            v-if="!isEditing || editField !== 'username'"
+            @click="handleEdit('username')"
+            class="edit-btn"
+          >
             编辑
           </button>
           <div v-else class="edit-actions">
@@ -78,9 +84,15 @@ const handleDeleteAccount = () => {
       <div class="profile-item">
         <label class="item-label">团队内备注名</label>
         <div class="item-content">
-          <span v-if="!isEditing || editField !== 'teamName'">{{ user.teamName }}</span>
+          <span v-if="!isEditing || editField !== 'teamName'">{{
+            user.teamName
+          }}</span>
           <input v-else v-model="user.teamName" class="edit-input" />
-          <button v-if="!isEditing || editField !== 'teamName'" @click="handleEdit('teamName')" class="edit-btn">
+          <button
+            v-if="!isEditing || editField !== 'teamName'"
+            @click="handleEdit('teamName')"
+            class="edit-btn"
+          >
             编辑
           </button>
           <div v-else class="edit-actions">
@@ -101,7 +113,7 @@ const handleDeleteAccount = () => {
       <div class="profile-item">
         <label class="item-label">邮箱</label>
         <div class="item-content">
-          <span>{{ user.email || '未绑定' }}</span>
+          <span>{{ user.email || "未绑定" }}</span>
           <button @click="handleEdit('email')" class="edit-btn">编辑</button>
         </div>
       </div>
@@ -131,9 +143,15 @@ const handleDeleteAccount = () => {
       </div>
 
       <div class="profile-actions">
-        <button @click="handleLogout" class="action-btn logout-btn">退出登录</button>
-        <button @click="handleLeaveTeam" class="action-btn leave-btn">退出团队</button>
-        <button @click="handleDeleteAccount" class="action-btn delete-btn">注销账号</button>
+        <button @click="handleLogout" class="action-btn logout-btn">
+          退出登录
+        </button>
+        <button @click="handleLeaveTeam" class="action-btn leave-btn">
+          退出团队
+        </button>
+        <button @click="handleDeleteAccount" class="action-btn delete-btn">
+          注销账号
+        </button>
       </div>
     </main>
   </div>
@@ -166,7 +184,9 @@ const handleDeleteAccount = () => {
   justify-content: center;
   margin-bottom: 1rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .avatar:hover {
