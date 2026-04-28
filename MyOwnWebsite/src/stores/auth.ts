@@ -12,6 +12,7 @@ const USER_KEY = "auth_user";
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const isAuthenticated = ref(false);
+  const initialized = ref(false);
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));
 
   const accounts = [
@@ -28,6 +29,10 @@ export const useAuthStore = defineStore("auth", () => {
   });
 
   const initAuth = () => {
+    if (initialized.value) {
+      return;
+    }
+
     const savedToken = localStorage.getItem(TOKEN_KEY);
     const savedUser = localStorage.getItem(USER_KEY);
 
@@ -36,6 +41,7 @@ export const useAuthStore = defineStore("auth", () => {
         user.value = JSON.parse(savedUser);
         token.value = savedToken;
         isAuthenticated.value = true;
+        initialized.value = true;
       } catch (e) {
         clearAuth();
       }
@@ -48,6 +54,7 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     user.value = null;
     isAuthenticated.value = false;
+    initialized.value = true;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
   };
@@ -61,6 +68,7 @@ export const useAuthStore = defineStore("auth", () => {
       const { password: _, ...userData } = account;
       user.value = userData;
       isAuthenticated.value = true;
+      initialized.value = true;
 
       const nextToken = btoa(`${username}:${Date.now()}`);
       token.value = nextToken;
@@ -80,6 +88,7 @@ export const useAuthStore = defineStore("auth", () => {
   return {
     user,
     isAuthenticated,
+    initialized,
     token,
     canAccessChatRoom,
     login,

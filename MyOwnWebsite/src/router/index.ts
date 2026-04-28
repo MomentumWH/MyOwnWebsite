@@ -11,13 +11,16 @@ const routes: RouteRecordRaw[] = [
     path: "/profile",
     name: "profile",
     component: () => import("@/views/account/Profile.vue"),
-    meta: { requiresAuth: true, title: "Profile" },
+    meta: { title: "Profile" },
   },
   {
     path: "/chat-room",
     name: "chat-room",
     component: () => import("@/views/account/ChatRoom.vue"),
-    meta: { title: "Chat Room" },
+    meta: {
+      requiresChatRoomAccess: true,
+      title: "Chat Room",
+    },
   },
   {
     path: "/",
@@ -30,7 +33,7 @@ const routes: RouteRecordRaw[] = [
     name: "about",
     component: () => import("@/views/base/About.vue"),
     props: true,
-    meta: { requiresAuth: true, title: "About" },
+    meta: { title: "About" },
   },
   {
     path: "/blog",

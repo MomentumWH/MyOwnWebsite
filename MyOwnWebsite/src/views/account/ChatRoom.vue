@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { NInput, NButton, NIcon, NAvatar, NScrollbar } from "naive-ui";
+import { NInput, NButton, NAvatar } from "naive-ui";
 import { useChatStore } from "@/stores/chat";
-import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const chatStore = useChatStore();
-const authStore = useAuthStore();
 
 const inputText = ref("");
 const messageListRef = ref<HTMLElement | null>(null);
@@ -133,11 +131,6 @@ const handleKeyPress = (event: KeyboardEvent) => {
 };
 
 onMounted(() => {
-  if (!authStore.canAccessChatRoom) {
-    router.push("/");
-    return;
-  }
-
   chatStore.loadFromStorage();
   if (chatStore.messages.length === 0) {
     initialMessages.forEach((msg) => {
