@@ -1,0 +1,169 @@
+MyOwnWebsite Skills 说明
+
+这个文件用于介绍当前项目 skills 目录下各个 skill 的主要用途，方便后续协同开发时快速选择合适的能力。
+
+一、当前项目最常用的 skills
+
+1. vue-best-practices
+主要用于 Vue 组件开发规范、组件拆分、script setup、TypeScript、组合式 API 等场景。
+这是本项目最核心的 Vue 开发 skill。
+
+2. vue-router-best-practices
+主要用于路由设计、路由守卫、参数处理、页面跳转、路由生命周期等场景。
+涉及 router 配置或权限控制时优先使用。
+
+3. pinia
+主要用于用户状态、聊天状态、全局业务状态管理。
+涉及 store、共享状态、登录态缓存时优先使用。
+
+4. vite
+主要用于 Vite 配置、构建、插件、开发环境调整。
+涉及 vite.config.ts、打包、构建异常时优先使用。
+
+5. vitest
+主要用于单元测试、组件测试、测试配置、mock。
+项目补测试或修测试时优先使用。
+
+6. frontend-design
+主要用于页面美化、组件视觉优化、落地页设计、后台界面设计。
+当前项目中凡是“页面太素”“想做得更好看”时适合调用。
+
+7. web-design-guidelines
+主要用于 UI 规范审查、交互体验审查、可访问性检查、设计一致性检查。
+适合在页面完成后做一轮设计和体验复核。
+
+8. vueuse-functions
+主要用于引入 VueUse 的常用组合函数，减少重复代码。
+适合处理计时器、事件监听、本地存储、滚动状态、响应式工具等。
+
+9. unocss
+主要用于原子化样式、快捷样式规则、UnoCSS 配置。
+如果项目后续引入 UnoCSS，这个 skill 会很有用。
+
+10. pnpm
+主要用于依赖安装、workspace 管理、包版本调整、命令执行习惯。
+项目日常依赖管理时常用。
+
+二、全部 skills 的用途说明
+
+1. antfu
+用于 JavaScript/TypeScript 工程化规范、ESLint 风格、项目结构、前端工具链配置优化。
+
+2. canvas-design
+用于生成海报、艺术图、PNG、PDF 等静态视觉产物。
+适合做宣传图、封面图、展示图。
+
+3. find-skills
+用于“我不知道该用哪个 skill”时进行技能发现和推荐。
+适合扩展工作流时使用。
+
+4. frontend-design
+用于构建高质量前端页面、组件、营销页、后台页和交互界面。
+
+5. nuxt
+用于 Nuxt 项目、SSR、文件路由、服务端接口、useFetch 等场景。
+当前项目不是 Nuxt，但如果以后迁移或新增 Nuxt 子应用会有帮助。
+
+6. pinia
+用于 Vue 项目的状态管理，包括 store 设计、状态拆分、getter、action 等。
+
+7. pnpm
+用于包管理、依赖安装、workspace 管理、版本控制和脚本执行。
+
+8. slidev
+用于制作技术分享幻灯片、产品展示页、培训课件。
+
+9. theme-factory
+用于给文档、幻灯片、展示页面应用统一视觉主题。
+
+10. tsdown
+用于 TypeScript/JavaScript 库打包与发布。
+适合做组件库、工具库时使用。
+
+11. turborepo
+用于 monorepo 结构管理、任务流水线、缓存、包之间依赖组织。
+如果后续把项目拆成多包仓库，这个 skill 会很重要。
+
+12. unocss
+用于 UnoCSS 原子化样式规则、快捷类、配置扩展。
+
+13. vercel-composition-patterns
+用于 React 组件组合模式、复合组件设计、可扩展组件 API 设计。
+主要适用于 React 项目。
+
+14. vercel-react-best-practices
+用于 React/Next.js 性能优化、渲染优化、数据获取模式。
+主要适用于 React 或 Next 项目。
+
+15. vercel-react-native-skills
+用于 React Native / Expo 移动端开发与性能优化。
+
+16. vite
+用于 Vite 工程配置、构建流程、插件开发和调试。
+
+17. vitepress
+用于构建文档站、组件文档、技术说明网站。
+适合给项目补文档站。
+
+18. vitest
+用于单元测试、组件测试、测试配置、测试覆盖率。
+
+19. vue
+用于 Vue 3 基础能力、Composition API、script setup、组件通信等。
+
+20. vue-best-practices
+用于 Vue 项目的最佳实践，是 Vue 开发的核心指导 skill。
+
+21. vue-router-best-practices
+用于 Vue Router 路由设计、导航守卫、动态参数、页面切换逻辑。
+
+22. vue-testing-best-practices
+用于 Vue 组件测试、Vitest、Vue Test Utils、测试策略设计。
+
+23. vueuse-functions
+用于 VueUse 组合函数的合理接入和使用。
+
+24. web-artifacts-builder
+用于构建复杂 Web 产物、交互式 HTML 页面、多组件组合型展示内容。
+适合做复杂 Demo 或交互展示页。
+
+25. web-design-guidelines
+用于审查页面是否符合视觉规范、可用性和可访问性要求。
+
+三、针对本项目的推荐使用顺序
+
+如果是页面开发：
+vue-best-practices -> frontend-design -> web-design-guidelines
+
+如果是路由和权限：
+vue-router-best-practices -> pinia -> vue-best-practices
+
+如果是状态管理：
+pinia -> vueuse-functions -> vue-best-practices
+
+如果是构建和依赖：
+pnpm -> vite
+
+如果是补测试：
+vitest -> vue-testing-best-practices
+
+四、协同开发建议
+
+1. 修改 Vue 页面前，优先参考 vue-best-practices。
+2. 改路由守卫、登录态、跳转逻辑时，优先参考 vue-router-best-practices 和 pinia。
+3. 做页面美化时，优先参考 frontend-design，再用 web-design-guidelines 做检查。
+4. 如果未来新增文档站、组件库、子应用或 monorepo，再引入 vitepress、tsdown、turborepo、nuxt 等 skills。
+
+五、备注
+
+当前项目是一个以 Vue + Vite + Pinia 为主的前端项目，因此最常用的 skills 仍然会集中在：
+vue-best-practices
+vue-router-best-practices
+pinia
+vite
+vitest
+frontend-design
+web-design-guidelines
+vueuse-functions
+
+其他 skills 可以理解为后续扩展能力储备。
