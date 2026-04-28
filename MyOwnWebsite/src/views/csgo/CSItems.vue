@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { debounce } from "lodash";
-import { useElementSize } from "@vueuse/core";
+import { useElementSize, useWindowSize } from "@vueuse/core";
 import { NButton, NLayout, NLayoutHeader, NLayoutContent } from "naive-ui";
 import {
   HomeOutline,
@@ -46,10 +46,18 @@ use([
 
 const DASHBOARD_DESIGN_WIDTH = 1600;
 const MIN_DASHBOARD_SCALE = 0.62;
+const PAGE_LOADING_MIN_DURATION = 1500;
+const SUB_DATA_DELAY = 1500;
+const KLINE_REQUEST_DELAY = 3000;
 
 const router = useRouter();
+const isPageLoading = ref(true);
 const currentTime = ref();
 let currentTimeTimer: ReturnType<typeof setInterval> | null = null;
+let pageLoadingTimer: ReturnType<typeof setTimeout> | null = null;
+let subDataTimer: ReturnType<typeof setTimeout> | null = null;
+let kLineRequestTimer: ReturnType<typeof setTimeout> | null = null;
+let isPageUnmounted = false;
 const activeNavItem = ref("home");
 const menuOptions = [
   { label: "首页", key: "home", icon: HomeOutline },
@@ -77,22 +85,23 @@ const activeIndexTab = ref(0);
 
 const tabsScrollWrapper = ref<HTMLElement | null>(null);
 const tabsContainer = ref<HTMLElement | null>(null);
-const scaleViewport = ref<HTMLElement | null>(null);
 const scaleStage = ref<HTMLElement | null>(null);
-const { width: scaleViewportWidth } = useElementSize(scaleViewport);
+const { width: viewportWidth } = useWindowSize();
 const { height: scaleStageHeight } = useElementSize(scaleStage);
 const dashboardScale = computed(() => {
-  if (!scaleViewportWidth.value) {
+  if (!viewportWidth.value) {
     return 1;
   }
 
-  const nextScale = scaleViewportWidth.value / DASHBOARD_DESIGN_WIDTH;
+  const nextScale = viewportWidth.value / DASHBOARD_DESIGN_WIDTH;
   return Number(
     Math.max(MIN_DASHBOARD_SCALE, Math.min(nextScale, 1)).toFixed(4),
   );
 });
 const scaleShellStyle = computed(() => ({
-  height: `${Math.max(scaleStageHeight.value * dashboardScale.value, 0)}px`,
+  height: `${Math.ceil(
+    Math.max(scaleStageHeight.value * dashboardScale.value, 0),
+  )}px`,
 }));
 const scaleStageStyle = computed(() => ({
   transform: `scale(${dashboardScale.value})`,
@@ -627,6 +636,27 @@ const getBarWidth = (type: string) => {
   }
 };
 
+const finishPageLoading = (startedAt: number) => {
+  if (isPageUnmounted) {
+    return;
+  }
+
+  const elapsed = Date.now() - startedAt;
+  const remaining = Math.max(PAGE_LOADING_MIN_DURATION - elapsed, 0);
+
+  if (pageLoadingTimer) {
+    clearTimeout(pageLoadingTimer);
+  }
+
+  pageLoadingTimer = setTimeout(() => {
+    if (isPageUnmounted) {
+      return;
+    }
+
+    isPageLoading.value = false;
+  }, remaining);
+};
+
 watch(activeRankingTab, (tab) => {
   if (tab === "price") {
     nextTick(() => {
@@ -637,12 +667,13 @@ watch(activeRankingTab, (tab) => {
 });
 
 onMounted(() => {
+  const loadingStartedAt = Date.now();
   const updateCurrentTime = () => {
     currentTime.value = dayjs(Date.now()).format("YYYY年MM月DD日 HH:mm:ss");
   };
   updateCurrentTime();
   currentTimeTimer = setInterval(updateCurrentTime, 1000);
-  getCurrentData("init")
+  const currentDataRequest = getCurrentData("init")
     .then((res) => {
       console.log({ res: res });
       indexTabs.value = res.data.sub_index_data;
@@ -657,7 +688,9 @@ onMounted(() => {
       heatObjectData.value = res.data.view_count;
       initOnlineChart();
     })
-    .catch((err) => {});
+    .catch((err) => {
+      console.error(err);
+    });
   //indexTabs.value=res。
 
   let data = {
@@ -668,19 +701,63 @@ onMounted(() => {
     id: 1,
     type: "1day",
   };
-  getSubData(data);
-  getKline(data2).then((res) => {
-    kLineData.value = formatKLineData(res.data);
-    initChart();
+  subDataTimer = setTimeout(() => {
+    subDataTimer = null;
+
+    if (isPageUnmounted) {
+      return;
+    }
+
+    void getSubData(data);
+  }, SUB_DATA_DELAY);
+  const kLineRequest = new Promise<void>((resolve) => {
+    kLineRequestTimer = setTimeout(() => {
+      kLineRequestTimer = null;
+
+      if (isPageUnmounted) {
+        resolve();
+        return;
+      }
+
+      getKline(data2)
+        .then((res) => {
+          if (isPageUnmounted) {
+            return;
+          }
+
+          kLineData.value = formatKLineData(res.data);
+          initChart();
+        })
+        .catch((err) => {
+          console.error(err);
+        })
+        .finally(() => {
+          resolve();
+        });
+    }, KLINE_REQUEST_DELAY);
+  });
+
+  void Promise.allSettled([currentDataRequest, kLineRequest]).finally(() => {
+    finishPageLoading(loadingStartedAt);
   });
 
   //getCurrentData()
   window.addEventListener("resize", resizeChart);
 });
 onUnmounted(() => {
+  isPageUnmounted = true;
   window.removeEventListener("resize", resizeChart);
   if (currentTimeTimer) {
     clearInterval(currentTimeTimer);
+  }
+  if (pageLoadingTimer) {
+    clearTimeout(pageLoadingTimer);
+  }
+  if (subDataTimer) {
+    clearTimeout(subDataTimer);
+  }
+  if (kLineRequestTimer) {
+    clearTimeout(kLineRequestTimer);
   }
   if (chartInstance) {
     chartInstance.dispose();
@@ -698,7 +775,38 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <n-layout class="cs-items-page">
+  <n-layout class="cs-items-page" :class="{ 'page-loading': isPageLoading }">
+    <transition name="page-loader-fade">
+      <div
+        v-if="isPageLoading"
+        class="page-loading-overlay"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="page-loading-panel">
+          <div class="page-loading-brand">
+            <span class="loading-brand-main">CS</span>
+            <span class="loading-brand-accent">饰品</span>
+          </div>
+          <div class="page-loading-orbit">
+            <span class="page-loading-ring page-loading-ring-primary"></span>
+            <span class="page-loading-ring page-loading-ring-secondary"></span>
+            <div class="page-loading-core">
+              <span class="page-loading-core-text">GO</span>
+            </div>
+          </div>
+          <div class="page-loading-copy">
+            <strong class="page-loading-title">市场加载中</strong>
+            <span class="page-loading-subtitle">
+              正在同步热度、在线人数与饰品指数
+            </span>
+          </div>
+          <div class="page-loading-progress">
+            <span class="page-loading-progress-bar"></span>
+          </div>
+        </div>
+      </div>
+    </transition>
     <n-layout-header bordered class="header">
       <div class="header-content">
         <div class="logo" @click="goHome">
@@ -784,12 +892,11 @@ onUnmounted(() => {
       </div>
     </n-layout-header>
 
-    <n-layout-content class="main-content">
-      <div
-        ref="scaleViewport"
-        class="content-scale-shell"
-        :style="scaleShellStyle"
-      >
+    <n-layout-content
+      class="main-content"
+      :class="{ 'main-content-loading': isPageLoading }"
+    >
+      <div class="content-scale-shell" :style="scaleShellStyle">
         <div
           ref="scaleStage"
           class="content-scale-stage"
@@ -1339,10 +1446,6 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-            <BoneyardSkeleton
-              name="blog-card"
-              :loading="isLoading"
-            ></BoneyardSkeleton>
             <div
               class="hot-items-section fade-in-section"
               style="animation-delay: 1.2s"
@@ -1398,6 +1501,166 @@ onUnmounted(() => {
   width: 100%;
   background: #0d0d1a;
   color: #fff;
+}
+
+.page-loading {
+  overflow: hidden;
+}
+
+.page-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(102, 126, 234, 0.26), transparent 42%),
+    radial-gradient(
+      circle at right bottom,
+      rgba(245, 158, 11, 0.16),
+      transparent 28%
+    ),
+    rgba(7, 10, 22, 0.92);
+  backdrop-filter: blur(20px);
+}
+
+.page-loading-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: min(100%, 360px);
+  padding: 36px 32px 30px;
+  border: 1px solid rgba(102, 126, 234, 0.22);
+  border-radius: 28px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 25, 46, 0.94) 0%,
+    rgba(12, 16, 32, 0.9) 100%
+  );
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.page-loading-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.08em;
+}
+
+.loading-brand-main {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f59e0b;
+}
+
+.loading-brand-accent {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.page-loading-orbit {
+  position: relative;
+  width: 124px;
+  height: 124px;
+}
+
+.page-loading-ring {
+  position: absolute;
+  border: 1px solid transparent;
+  border-radius: 50%;
+}
+
+.page-loading-ring-primary {
+  inset: 0;
+  border-top-color: #667eea;
+  border-right-color: rgba(102, 126, 234, 0.35);
+  border-bottom-color: rgba(102, 126, 234, 0.12);
+  animation: pageLoaderSpin 1.1s linear infinite;
+}
+
+.page-loading-ring-secondary {
+  inset: 14px;
+  border-top-color: rgba(245, 158, 11, 0.18);
+  border-bottom-color: rgba(245, 158, 11, 0.4);
+  border-left-color: #f59e0b;
+  animation: pageLoaderSpinReverse 1.6s linear infinite;
+}
+
+.page-loading-core {
+  position: absolute;
+  inset: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.28), transparent 55%),
+    linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(245, 158, 11, 0.85));
+  box-shadow:
+    0 0 40px rgba(102, 126, 234, 0.3),
+    inset 0 1px 10px rgba(255, 255, 255, 0.25);
+  animation: pageLoaderPulse 1.4s ease-in-out infinite;
+}
+
+.page-loading-core-text {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #fff;
+  transform: translateX(2px);
+}
+
+.page-loading-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.page-loading-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.page-loading-subtitle {
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.page-loading-progress {
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.page-loading-progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #667eea 0%, #8ea6ff 45%, #f59e0b 100%);
+  box-shadow: 0 0 18px rgba(102, 126, 234, 0.45);
+  animation: pageLoaderProgress 1.5s ease-in-out infinite;
+}
+
+.page-loader-fade-enter-active,
+.page-loader-fade-leave-active {
+  transition: opacity 0.45s ease;
+}
+
+.page-loader-fade-enter-from,
+.page-loader-fade-leave-to {
+  opacity: 0;
 }
 
 .header {
@@ -1655,6 +1918,52 @@ onUnmounted(() => {
   }
 }
 
+@keyframes pageLoaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pageLoaderSpinReverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes pageLoaderPulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+    box-shadow:
+      0 0 26px rgba(102, 126, 234, 0.24),
+      inset 0 1px 10px rgba(255, 255, 255, 0.18);
+  }
+
+  50% {
+    transform: scale(1);
+    box-shadow:
+      0 0 40px rgba(245, 158, 11, 0.3),
+      inset 0 1px 14px rgba(255, 255, 255, 0.28);
+  }
+}
+
+@keyframes pageLoaderProgress {
+  0% {
+    width: 0%;
+    transform: translateX(-18%);
+  }
+
+  65% {
+    width: 88%;
+    transform: translateX(0);
+  }
+
+  100% {
+    width: 100%;
+    transform: translateX(0);
+  }
+}
+
 .loading-text {
   color: #888;
   font-size: 0.9rem;
@@ -1682,16 +1991,34 @@ onUnmounted(() => {
 .main-content {
   background: #0d0d1a;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   padding-top: 60px;
+  box-sizing: border-box;
   overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+  transition:
+    opacity 0.45s ease,
+    filter 0.45s ease,
+    transform 0.45s ease;
+}
+
+.main-content-loading {
+  overflow-y: hidden;
+  opacity: 0.58;
+  filter: blur(12px);
+  transform: scale(1.01);
+  pointer-events: none;
 }
 
 .content-scale-shell {
   width: 100%;
+  min-height: calc(100vh - 60px);
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  overflow-anchor: none;
 }
 
 .content-scale-stage {

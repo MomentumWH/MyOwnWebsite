@@ -669,7 +669,9 @@ onMounted(() => {
       activeWearTab.value = res.data.goods_info.id;
       wearTabs.value = res.data.button_list;
       console.log(wearTabs.value);
-      getIdObjectKline(currentId.value);
+      setTimeout(()=>{
+        getIdObjectKline(currentId.value);
+      },1500)
     })
     .catch((err) => {})
     .finally(() => {
