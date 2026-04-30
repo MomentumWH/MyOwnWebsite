@@ -20,3 +20,13 @@ This directory vendors project-usable skills for local collaboration.
 ## Sync Note
 
 If local skills are updated later, re-sync this directory from `C:\Users\Administrator\.agents\skills`.
+
+## Last Sync
+
+- Synced on `2026-04-30`
+- Added missing project copies for:
+  - `create-adaptable-composable`
+  - `vue-debug-guides`
+  - `vue-jsx-best-practices`
+  - `vue-options-api-best-practices`
+  - `vue-pinia-best-practices`
