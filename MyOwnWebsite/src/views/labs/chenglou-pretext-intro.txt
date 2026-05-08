@@ -1,0 +1,138 @@
+chenglou/pretext 组件库简介与使用方法
+
+一、它大致是什么
+
+chenglou/pretext 严格来说更像一个“文本测量和排版引擎”，而不是传统意义上的 UI 组件库。
+它的核心能力是：在不依赖 DOM 实际渲染结果的前提下，提前计算一段文字在指定宽度下会如何换行、会占多少高度、会分成多少行。
+
+它的设计目标是避免频繁使用 getBoundingClientRect、offsetHeight 这类会触发浏览器回流的测量方式。
+因此它更适合做高性能文本布局，而不是直接提供按钮、表单、弹窗这类现成组件。
+
+二、适合什么场景
+
+这个库比较适合下面这些场景：
+
+1. 聊天消息、评论内容、卡片正文的高度预估
+2. 虚拟列表中提前计算每条文本内容的高度
+3. Canvas、SVG、WebGL 里的自定义文本排版
+4. 富文本 inline 内容布局，比如 mention、chip、code span 混排
+5. 更复杂的文本布局场景，比如文字绕图、逐行控制渲染
+
+如果你的需求只是普通网页排版，直接用 HTML + CSS 往往更简单。
+如果你的需求是“在渲染前就知道文本最终会占多少空间”，pretext 才会更有价值。
+
+三、最核心的使用思路
+
+它的使用通常分成两步：
+
+1. prepare()
+   先对文本做一次预处理和测量缓存
+
+2. layout()
+   在给定宽度和行高的情况下，计算最终的布局结果
+
+基础示例：
+
+import { prepare, layout } from '@chenglou/pretext'
+
+const prepared = prepare('Hello 世界', '16px Inter')
+const result = layout(prepared, 320, 24)
+
+其中：
+
+- prepare 的作用是为文本建立可复用的测量结果
+- layout 的作用是根据不同宽度重新计算排版
+- 返回结果通常会包含高度、行数等信息
+
+这意味着：
+
+- 文本不变时，不要重复 prepare
+- 只是容器宽度变化时，重新调用 layout 即可
+
+这是它性能表现比较好的关键之一。
+
+四、如果你想拿到逐行内容
+
+如果你不只是想知道总高度，而是想知道“每一行具体是什么”，可以使用更细粒度的接口：
+
+import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+
+const prepared = prepareWithSegments(text, '16px Inter')
+const result = layoutWithLines(prepared, 320, 24)
+
+这种方式适合：
+
+1. 逐行绘制 Canvas 文本
+2. 自己做截断、折行和逐行动画
+3. 更精细的富文本或图文混排控制
+
+五、在 Vue 3 + Vite 项目中的基本接入方式
+
+如果你在 Vue 项目中使用，推荐把它放在 script setup 里，通过计算属性或响应式逻辑来更新布局结果。
+
+示例：
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { prepare, layout } from '@chenglou/pretext'
+
+const text = '这是一段需要提前测量高度的文本'
+const font = '16px Inter'
+const lineHeight = 24
+const maxWidth = 320
+
+const prepared = prepare(text, font)
+
+const metrics = computed(() => {
+  return layout(prepared, maxWidth, lineHeight)
+})
+</script>
+
+<template>
+  <div>
+    <p>行数：{{ metrics.lineCount }}</p>
+    <p>高度：{{ metrics.height }}px</p>
+  </div>
+</template>
+
+在 Vue 中使用时要注意两点：
+
+1. 传给 pretext 的 font 必须尽量和真实界面中的字体设置一致，否则测量结果会偏差
+2. 如果文本内容变化了，需要重新 prepare；如果只是容器宽度变化，通常只需要重新 layout
+
+六、rich-inline 是做什么的
+
+这个库还有一个额外入口：@chenglou/pretext/rich-inline
+
+它主要用来处理“富 inline 内容”的布局，也就是一行文本中混合了不同片段的情况，例如：
+
+- mention
+- code span
+- 标签 chip
+- 带样式差异的局部文本
+
+但要注意，它不是完整的浏览器 CSS inline layout 引擎。
+它更像是一个面向特定高级排版需求的工具。
+
+七、使用时的限制和注意事项
+
+在使用 pretext 时，需要提前知道这些限制：
+
+1. 它不是完整浏览器布局系统，不能替代所有 CSS 文本排版
+2. 它更偏底层能力，需要你自己组织渲染层
+3. 字体设置不一致时，测量结果会不准确
+4. 某些能力依赖 Intl.Segmenter 和 Canvas 2D 文本测量能力
+5. 更适合“提前计算文本布局”的场景，不适合所有普通页面
+
+八、总结
+
+chenglou/pretext 的价值不在于提供现成 UI，而在于提供高性能、可预测的文本布局计算能力。
+
+你可以把它理解为：
+
+- 不是按钮/表单类组件库
+- 而是文本测量和多行排版工具
+- 特别适合聊天、虚拟列表、Canvas 文本、复杂 inline 富文本场景
+
+如果只是普通网页排版，优先使用 HTML 和 CSS。
+如果你需要“在真正渲染前就知道文本如何换行以及最终高度”，那么 pretext 是很值得了解的工具。
