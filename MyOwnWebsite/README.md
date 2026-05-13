@@ -300,6 +300,50 @@ pnpm lint
 - 第三方接口联调
 - 文本排版与交互实验
 
+## 页面预览
+
+当前仓库还没有提交页面截图，这里先预留展示位置。后续你只需要把截图放到 `docs/screenshots/` 目录，并保持下面的文件名一致，README 就可以直接展示。
+
+### 首页
+
+![首页截图](./docs/screenshots/home.png)
+
+### 登录页
+
+![登录页截图](./docs/screenshots/login.png)
+
+### 聊天室
+
+![聊天室截图](./docs/screenshots/chat-room.png)
+
+### Blog 展示页
+
+![Blog 展示页截图](./docs/screenshots/blog.png)
+
+### Ecommerce 页面
+
+![Ecommerce 页面截图](./docs/screenshots/ecommerce.png)
+
+### Data Visualization 页面
+
+![Data Visualization 页面截图](./docs/screenshots/data-visualization.png)
+
+### Drag Box 页面
+
+![Drag Box 页面截图](./docs/screenshots/drag-box.png)
+
+### Pretext Demo 页面
+
+![Pretext Demo 页面截图](./docs/screenshots/pretext-demo.png)
+
+### CS 饰品行情页
+
+![CS 饰品行情页截图](./docs/screenshots/cs-items.png)
+
+### CS 饰品详情页
+
+![CS 饰品详情页截图](./docs/screenshots/item-detail.png)
+
 ## 页面截图建议
 
 当前 README 还没有配图。结合现有页面结构，建议后续至少补下面这几类截图，这样仓库首页会更容易让别人快速理解项目内容：
@@ -427,3 +471,7 @@ docs/
 - 增加接口来源和环境说明
 - 为 `pretext demo`、`csgo` 模块分别写独立说明文档
 - 增加“已完成 / 进行中 / 待完成”开发记录
+
+## 补充文档
+
+- 项目迭代路线图：[docs/ROADMAP.md](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/docs/ROADMAP.md)
