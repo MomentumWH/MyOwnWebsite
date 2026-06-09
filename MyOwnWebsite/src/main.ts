@@ -10,6 +10,7 @@ import "vfonts/Lato.css";
 import "vfonts/FiraCode.css";
 import naive from "naive-ui";
 import dayjs from "dayjs";
+import '@soybeanjs/ui/styles.css';
 //import "./bones/registry";
 
 const app = createApp(App);

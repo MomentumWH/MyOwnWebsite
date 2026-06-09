@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { PieChart } from "echarts/charts";
 import { TooltipComponent, LegendComponent } from "echarts/components";
+import { animate, createTimeline, stagger } from "animejs";
 import VChart from "vue-echarts";
 import { fetchProducts, login } from "@/services/apiCalls";
 
@@ -107,6 +108,13 @@ const loginData = ref({
   password: "",
 });
 const loginLoading = ref(false);
+const pageRef = useTemplateRef<HTMLElement>("pageRef");
+const drawerContentRef = useTemplateRef<HTMLElement>("drawerContentRef");
+
+let introTimeline: ReturnType<typeof createTimeline> | null = null;
+let drawerAnimation: ReturnType<typeof animate> | null = null;
+let drawerImageAnimation: ReturnType<typeof animate> | null = null;
+let productAnimation: ReturnType<typeof animate> | null = null;
 
 const goBack = () => {
   router.back();
@@ -159,11 +167,145 @@ const handleLogin = async () => {
     loginLoading.value = false;
   }
 };
+
+const animatePageIntro = () => {
+  if (!pageRef.value) {
+    return;
+  }
+
+  introTimeline?.revert();
+
+  const sectionTargets = pageRef.value.querySelectorAll(".fade-in-section");
+  const featureTargets = pageRef.value.querySelectorAll(".feature-card");
+  const techTargets = pageRef.value.querySelectorAll(".tech-card");
+  const demoCardTargets = pageRef.value.querySelectorAll(".demo-card");
+
+  introTimeline = createTimeline({
+    defaults: {
+      duration: 820,
+      ease: "outExpo",
+    },
+  })
+    .add(sectionTargets, {
+      opacity: { from: 0 },
+      y: { from: 32 },
+    })
+    .add(
+      featureTargets,
+      {
+        opacity: { from: 0 },
+        y: { from: 48 },
+        scale: { from: 0.92 },
+        delay: stagger(140),
+        duration: 720,
+        ease: "outBack",
+      },
+      "-=480",
+    )
+    .add(
+      techTargets,
+      {
+        opacity: { from: 0 },
+        y: { from: 40 },
+        scale: { from: 0.94 },
+        delay: stagger(120),
+        duration: 680,
+      },
+      "-=520",
+    )
+    .add(
+      demoCardTargets,
+      {
+        opacity: { from: 0 },
+        y: { from: 28 },
+        delay: stagger(120),
+        duration: 620,
+        ease: "outCubic",
+      },
+      "-=360",
+    );
+};
+
+const animateDrawerContent = async () => {
+  if (!showDrawer.value) {
+    return;
+  }
+
+  await nextTick();
+
+  if (!drawerContentRef.value) {
+    return;
+  }
+
+  drawerAnimation?.revert();
+  drawerImageAnimation?.revert();
+
+  drawerAnimation = animate(drawerContentRef.value, {
+    opacity: { from: 0 },
+    y: { from: 52 },
+    duration: 520,
+    ease: "outCubic",
+  });
+
+  const carouselImages = drawerContentRef.value.querySelectorAll(".carousel-img");
+
+  drawerImageAnimation = animate(carouselImages, {
+    opacity: { from: 0 },
+    scale: { from: 0.9 },
+    delay: stagger(110),
+    duration: 560,
+    ease: "outExpo",
+  });
+};
+
+const animateProducts = async () => {
+  await nextTick();
+
+  if (!pageRef.value || products.value.length === 0) {
+    return;
+  }
+
+  productAnimation?.revert();
+
+  productAnimation = animate(pageRef.value.querySelectorAll(".product-item"), {
+    opacity: { from: 0 },
+    y: { from: 24 },
+    delay: stagger(90),
+    duration: 520,
+    ease: "outCubic",
+  });
+};
+
+onMounted(() => {
+  animatePageIntro();
+});
+
+watch(showDrawer, (isOpen) => {
+  if (isOpen) {
+    void animateDrawerContent();
+  }
+});
+
+watch(
+  () => products.value.length,
+  (length, previousLength) => {
+    if (length > 0 && length !== previousLength) {
+      void animateProducts();
+    }
+  },
+);
+
+onBeforeUnmount(() => {
+  introTimeline?.revert();
+  drawerAnimation?.revert();
+  drawerImageAnimation?.revert();
+  productAnimation?.revert();
+});
 </script>
 
 <template>
-  <div class="project-page">
-    <header class="fade-in-section" style="animation-delay: 0s">
+  <div ref="pageRef" class="project-page">
+    <header class="fade-in-section">
       <div class="header-line">
         <div class="header-line-backButton">
           <button @click="goBack" class="back-button">Back</button>
@@ -177,10 +319,7 @@ const handleLogin = async () => {
       </div>
     </header>
 
-    <section
-      class="project-details fade-in-section"
-      style="animation-delay: 0.2s"
-    >
+    <section class="project-details fade-in-section">
       <h2>Overview</h2>
       <p>
         This page demonstrates product browsing, auth flow, charts, and basic
@@ -188,17 +327,13 @@ const handleLogin = async () => {
       </p>
     </section>
 
-    <section
-      class="project-features fade-in-section"
-      style="animation-delay: 0.4s"
-    >
+    <section class="project-features fade-in-section">
       <h2>Key Features</h2>
       <div class="features-grid">
         <div
-          v-for="(feature, index) in features"
+          v-for="feature in features"
           :key="feature.name"
           class="feature-card"
-          :style="{ animationDelay: `${0.4 + index * 0.2}s` }"
           @click="handleFeatureClick(feature.name)"
         >
           <span class="feature-icon">{{ feature.icon }}</span>
@@ -207,14 +342,13 @@ const handleLogin = async () => {
       </div>
     </section>
 
-    <section class="project-tech fade-in-section" style="animation-delay: 1s">
+    <section class="project-tech fade-in-section">
       <h2>Tech Stack</h2>
       <div class="tech-grid">
         <div
-          v-for="(tech, index) in techStack"
+          v-for="tech in techStack"
           :key="tech.name"
           class="tech-card"
-          :style="{ animationDelay: `${1 + index * 0.2}s` }"
         >
           <span class="tech-icon">{{ tech.icon }}</span>
           <h3>{{ tech.name }}</h3>
@@ -222,10 +356,7 @@ const handleLogin = async () => {
       </div>
     </section>
 
-    <section
-      class="project-details fade-in-section"
-      style="animation-delay: 1.6s"
-    >
+    <section class="project-details fade-in-section">
       <n-list clickable hoverable class="nListBoxBackgroundColor">
         <n-list-item>
           <template #prefix>
@@ -256,10 +387,7 @@ const handleLogin = async () => {
       </n-list>
     </section>
 
-    <footer
-      class="project-footer fade-in-section"
-      style="animation-delay: 2s"
-    ></footer>
+    <footer class="project-footer fade-in-section"></footer>
 
     <n-drawer
       v-model:show="showDrawer"
@@ -274,29 +402,25 @@ const handleLogin = async () => {
       style="border-radius: 24px 24px 0 0"
     >
       <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
-        <n-carousel show-arrow>
-          <img
-            v-for="item in imgList"
-            :key="item"
-            class="carousel-img"
-            :src="item"
-          />
-        </n-carousel>
+        <div ref="drawerContentRef" class="drawer-content">
+          <n-carousel show-arrow>
+            <img
+              v-for="item in imgList"
+              :key="item"
+              class="carousel-img"
+              :src="item"
+            />
+          </n-carousel>
+        </div>
       </n-drawer-content>
     </n-drawer>
 
-    <section
-      class="chart-section fade-in-section"
-      style="animation-delay: 2.2s"
-    >
+    <section class="chart-section fade-in-section">
       <h2>Category Share</h2>
       <VChart :option="ringChartOption" autoresize class="ring-chart" />
     </section>
 
-    <section
-      class="api-demo-section fade-in-section"
-      style="animation-delay: 2.4s"
-    >
+    <section class="api-demo-section fade-in-section">
       <h2>API Demo</h2>
 
       <n-card title="User Login" class="demo-card">
@@ -510,10 +634,9 @@ const handleLogin = async () => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   text-align: center;
   transition: all 0.3s ease;
-  animation: fadeInUp 1s ease forwards;
-  opacity: 0;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  will-change: transform, opacity;
 }
 
 .feature-card:hover {
@@ -557,10 +680,9 @@ const handleLogin = async () => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   text-align: center;
   transition: all 0.3s ease;
-  animation: fadeInUp 1s ease forwards;
-  opacity: 0;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  will-change: transform, opacity;
 }
 
 .tech-card:hover {
@@ -579,29 +701,17 @@ const handleLogin = async () => {
   color: white;
 }
 
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .fade-in-section {
-  opacity: 0;
-  animation: fadeInUp 0.8s ease forwards;
+  will-change: transform, opacity;
 }
 
 .drawer-content {
   padding: 2rem;
   text-align: center;
-  animation: drawerFadeIn 0.5s ease-out;
   height: 100%;
   display: flex;
   flex-direction: column;
+  will-change: transform, opacity;
 }
 
 .drawer-content h3 {
@@ -626,6 +736,10 @@ const handleLogin = async () => {
   object-fit: contain;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-img {
+  will-change: transform, opacity;
 }
 
 :deep(.n-carousel) {
@@ -661,17 +775,6 @@ const handleLogin = async () => {
 
 .feature-card {
   cursor: pointer;
-}
-
-@keyframes drawerFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 .nListBoxBackgroundColor {
   background: linear-gradient(
@@ -716,6 +819,7 @@ const handleLogin = async () => {
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   //border: none;
+  will-change: transform, opacity;
 }
 
 .login-form {
@@ -784,6 +888,7 @@ const handleLogin = async () => {
   background: #f7fafc;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  will-change: transform, opacity;
 }
 
 .product-info h4 {

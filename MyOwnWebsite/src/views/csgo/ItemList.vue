@@ -1,5 +1,12 @@
 <template>
-  <n-layout class="item-list-page" content-style="min-height: 100vh">
+  <div ref="pageRef" class="item-list-shell">
+    <CsgoLightParticles
+      class="page-particles"
+      :particle-count="24"
+      :orb-count="4"
+      intensity="medium"
+    />
+    <n-layout class="item-list-page" content-style="min-height: 100vh">
     <n-layout-header class="header">
       <div class="header-content">
         <div class="logo" @click="goHome">
@@ -59,7 +66,7 @@
 
     <n-layout-content class="content">
       <div class="main-container">
-        <div class="tools-bar fade-in-section" style="animation-delay: 0.2s">
+        <div class="tools-bar">
           <div class="tools-left">
             <div class="search-input-bar">
               <n-icon class="input-search-icon">
@@ -90,10 +97,7 @@
           </div>
         </div>
 
-        <div
-          class="category-tabs fade-in-section"
-          style="animation-delay: 0.4s"
-        >
+        <div class="category-tabs">
           <div
             v-for="(tab, index) in categoryTabs"
             :key="tab.key"
@@ -105,13 +109,11 @@
           </div>
         </div>
 
-        <div class="items-grid fade-in-section" style="animation-delay: 0.6s">
+        <div class="items-grid">
           <div
-            v-for="(item, index) in filteredItems"
+            v-for="item in filteredItems"
             :key="item.id"
             class="item-card"
-            :class="`fade-in-section`"
-            :style="{ animationDelay: `${0.8 + index * 0.1}s` }"
             @click="goToDetail(item)"
           >
             <div class="item-tag" :class="item.tagType">
@@ -135,7 +137,7 @@
           </div>
         </div>
 
-        <div class="load-more fade-in-section" style="animation-delay: 1.5s">
+        <div class="load-more">
           <n-button type="primary" ghost> 加载更多 </n-button>
         </div>
       </div>
@@ -147,7 +149,7 @@
         :native-scrollbar="false"
       >
         <n-drawer-content :bordered="false" closable>
-          <div class="filter-drawer-wrapper">
+          <div ref="filterDrawerRef" class="filter-drawer-wrapper">
             <div class="filter-nav">
               <div
                 v-for="(group, index) in filterGroups"
@@ -199,11 +201,12 @@
         </n-drawer-content>
       </n-drawer>
     </n-layout-content>
-  </n-layout>
+    </n-layout>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   NButton,
@@ -227,8 +230,14 @@ import {
   FilterOutline,
   ArrowBackOutline,
 } from "@vicons/ionicons5";
+import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
+import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 
 const router = useRouter();
+const pageRef = useTemplateRef<HTMLElement>("pageRef");
+const filterDrawerRef = useTemplateRef<HTMLElement>("filterDrawerRef");
+const { clearMotions, playStaggerIn, playTimeline, pulse } =
+  useCsgoPageMotion(pageRef);
 
 const activeNavItem = ref("items");
 const searchQuery = ref("");
@@ -584,25 +593,138 @@ const goToDetail = (item: any) => {
   router.push(`/CsItemDetail?id=${item.id}`);
 };
 
+const animatePageIntro = async () => {
+  clearMotions();
+
+  await playTimeline([
+    {
+      targets: ".header",
+      params: {
+        opacity: { from: 0 },
+        y: { from: -18 },
+      },
+    },
+    {
+      targets: ".tools-bar",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 26 },
+      },
+      position: "-=480",
+    },
+    {
+      targets: ".category-tabs",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 20 },
+      },
+      position: "-=520",
+    },
+    {
+      targets: ".load-more",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 16 },
+        duration: 520,
+      },
+      position: "-=340",
+    },
+  ]);
+
+  await playStaggerIn({
+    targets: ".item-card",
+    fromY: 34,
+    fromScale: 0.95,
+    delay: 75,
+    duration: 520,
+    ease: "outExpo",
+  });
+};
+
+const animateFilteredItems = async () => {
+  await playStaggerIn({
+    targets: ".item-card",
+    fromY: 18,
+    fromScale: 0.98,
+    delay: 45,
+    duration: 380,
+    ease: "outCubic",
+  });
+};
+
+const animateFilterDrawer = async () => {
+  if (!filterDrawerRef.value) {
+    return;
+  }
+
+  await pulse(filterDrawerRef.value, { scale: 1.01, duration: 220 });
+  await playStaggerIn({
+    targets: filterDrawerRef.value.querySelectorAll(".filter-group"),
+    fromX: 18,
+    fromY: 0,
+    fromScale: 1,
+    delay: 60,
+    duration: 340,
+    ease: "outCubic",
+  });
+};
+
 onMounted(() => {
   hotItems.value.forEach((item, index) => {
     if (!item.id) {
       item.id = index + 1;
     }
   });
+
+  void animatePageIntro();
+});
+
+watch(showFilterDrawer, (isOpen) => {
+  if (isOpen) {
+    void animateFilterDrawer();
+  }
+});
+
+watch(
+  () => filteredItems.value.map((item) => item.id).join(","),
+  (value, previousValue) => {
+    if (value && value !== previousValue) {
+      void animateFilteredItems();
+    }
+  },
+);
+
+watch(activeCategoryTab, () => {
+  void pulse(".category-tab.active", { scale: 1.05, duration: 240 });
 });
 </script>
 
 <style scoped lang="scss">
+.item-list-shell {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at top, rgba(54, 122, 255, 0.12), transparent 34%),
+    radial-gradient(circle at 82% 14%, rgba(136, 101, 255, 0.14), transparent 26%),
+    linear-gradient(180deg, #060814 0%, #0b1020 52%, #090d18 100%);
+}
+
+.page-particles {
+  opacity: 0.9;
+}
+
 .item-list-page {
   min-height: 100vh;
   width: 100%;
-  background: #0d0d1a;
+  background: transparent;
   color: #fff;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-bottom: 1px solid #2a2a4e;
   height: 60px;
   padding: 0;
@@ -611,24 +733,6 @@ onMounted(() => {
   left: 0;
   right: 0;
   z-index: 1000;
-  animation: fadeInUp 0.8s ease forwards;
-  opacity: 0;
-}
-
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in-section {
-  opacity: 0;
-  animation: fadeInUp 0.8s ease forwards;
 }
 
 .header-content {
@@ -728,7 +832,7 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background: #2a2a4e;
+  background: rgba(42, 42, 78, 0.9);
   border: 1px solid #3a3a5e;
   border-radius: 12px;
   padding: 8px 16px;
@@ -825,7 +929,7 @@ onMounted(() => {
   width: 400px;
   display: flex;
   align-items: center;
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border: 1px solid #2a2a4e;
   border-radius: 12px;
   padding: 10px 16px;
@@ -860,7 +964,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border: 1px solid #2a2a4e;
   border-radius: 12px;
   padding: 10px 20px;
@@ -903,7 +1007,7 @@ onMounted(() => {
 
 .category-tab {
   padding: 8px 24px;
-  background: #2a2a4e;
+  background: rgba(42, 42, 78, 0.9);
   border-radius: 8px;
   font-size: 0.9rem;
   color: #aaa;
@@ -929,7 +1033,7 @@ onMounted(() => {
 }
 
 .item-card {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #2a2a4e;
@@ -938,6 +1042,7 @@ onMounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
+  will-change: transform, opacity;
 
   &:hover {
     transform: translateY(-4px);
@@ -1061,6 +1166,7 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   margin-top: 48px;
+  will-change: transform, opacity;
 }
 
 :deep(.n-drawer) {
@@ -1102,7 +1208,7 @@ onMounted(() => {
 
 .filter-nav {
   width: 100px;
-  background: #15152a;
+  background: rgba(21, 21, 42, 0.9);
   border-right: 1px solid #2a2a4e;
   display: flex;
   flex-direction: column;
@@ -1145,7 +1251,7 @@ onMounted(() => {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -1199,7 +1305,7 @@ onMounted(() => {
 
 .filter-option {
   padding: 10px 16px;
-  background: #2a2a4e;
+  background: rgba(42, 42, 78, 0.9);
   border: 1px solid #3a3a5e;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -1226,7 +1332,7 @@ onMounted(() => {
   gap: 12px;
   padding: 20px 24px;
   border-top: 1px solid #2a2a4e;
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
 }
 
 .footer-btn {

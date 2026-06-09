@@ -1,16 +1,16 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import {
+  AuthStorageKeys,
+  canAccessChatRoom as checkCanAccessChatRoom,
+  type AuthUser,
+} from "@/permissions";
 
-interface User {
-  username: string;
-  role: string;
-}
-
-const TOKEN_KEY = "auth_token";
-const USER_KEY = "auth_user";
+const TOKEN_KEY = AuthStorageKeys.TOKEN;
+const USER_KEY = AuthStorageKeys.USER;
 
 export const useAuthStore = defineStore("auth", () => {
-  const user = ref<User | null>(null);
+  const user = ref<AuthUser | null>(null);
   const isAuthenticated = ref(false);
   const initialized = ref(false);
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));
@@ -23,10 +23,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const CSQAQKey = "ESNLB1A7B4K6V5H4P0J6P3U4";
 
-  const canAccessChatRoom = computed(() => {
-    if (!user.value) return false;
-    return user.value.username === "Chonny" || user.value.username === "admin";
-  });
+  const canAccessChatRoom = computed(() => checkCanAccessChatRoom(user.value));
 
   const initAuth = () => {
     if (initialized.value) {

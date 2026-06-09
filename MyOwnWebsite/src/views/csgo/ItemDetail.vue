@@ -1,5 +1,12 @@
 <template>
-  <n-layout class="item-detail-page" content-style="min-height: 100vh">
+  <div ref="pageRef" class="item-detail-shell">
+    <CsgoLightParticles
+      class="page-particles"
+      :particle-count="20"
+      :orb-count="5"
+      intensity="vivid"
+    />
+    <n-layout class="item-detail-page" content-style="min-height: 100vh">
     <n-layout-header class="header">
       <div class="header-content">
         <div class="logo">
@@ -40,7 +47,7 @@
             <span class="loading-text">加载中...</span>
           </div>
         </div>
-        <div v-if="item" class="detail-wrapper fade-in-section">
+        <div v-if="item" class="detail-wrapper">
           <div class="detail-header">
             <div class="item-image-section">
               <img
@@ -296,11 +303,12 @@
         </div>
       </div>
     </n-layout-content>
-  </n-layout>
+    </n-layout>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, useTemplateRef, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
   GameController,
@@ -310,11 +318,16 @@ import {
   ExpandOutline,
   Repeat,
 } from "@vicons/ionicons5";
+import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
+import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 import { useItemDetail } from "@/composables/csgo/useItemDetail";
 import { useItemDetailChart } from "@/composables/csgo/useItemDetailChart";
 
 const router = useRouter();
 const route = useRoute();
+const pageRef = useTemplateRef<HTMLElement>("pageRef");
+const { clearMotions, playStaggerIn, playTimeline, pulse } =
+  useCsgoPageMotion(pageRef);
 
 const goBack = () => {
   router.back();
@@ -332,16 +345,105 @@ const {
 
 const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
   useItemDetail(route, fetchChart, currentId);
+
+const animateDetailEntry = async () => {
+  clearMotions();
+
+  await playTimeline([
+    {
+      targets: ".header",
+      params: {
+        opacity: { from: 0 },
+        y: { from: -16 },
+      },
+    },
+    {
+      targets: ".detail-header",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 28 },
+      },
+      position: "-=460",
+    },
+    {
+      targets: ".chart-section",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 24 },
+      },
+      position: "-=420",
+    },
+  ]);
+
+  await playStaggerIn({
+    targets: ".price-card",
+    fromY: 22,
+    fromScale: 0.97,
+    delay: 80,
+    duration: 420,
+  });
+
+  await playStaggerIn({
+    targets: ".platform-item",
+    fromX: 18,
+    fromY: 0,
+    fromScale: 1,
+    delay: 70,
+    duration: 380,
+  });
+};
+
+watch(
+  () => item.value?.goods_info?.id,
+  (id) => {
+    if (id) {
+      void animateDetailEntry();
+    }
+  },
+  { immediate: true },
+);
+
+watch(activeWearTab, () => {
+  void pulse(".wear-tab.active", { scale: 1.04, duration: 220 });
+  void playStaggerIn({
+    targets: ".price-card, .platform-item",
+    fromY: 14,
+    fromScale: 0.985,
+    delay: 40,
+    duration: 280,
+    ease: "outQuad",
+  });
+});
+
+watch(activeTimeTab, () => {
+  void pulse(".chart-section", { scale: 1.008, duration: 260 });
+});
 </script>
 
 <style scoped>
-.item-detail-page {
-  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+.item-detail-shell {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(88, 160, 255, 0.14), transparent 28%),
+    radial-gradient(circle at 82% 22%, rgba(91, 232, 204, 0.12), transparent 24%),
+    linear-gradient(135deg, #0b0f19 0%, #11172a 48%, #0b1020 100%);
+}
+
+.page-particles {
+  opacity: 0.95;
+}
+
+.item-detail-page {
+  background: transparent;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
-  background: rgba(26, 26, 46, 0.8);
+  background: rgba(26, 26, 46, 0.72);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #2a2a4e;
   position: sticky;
@@ -403,15 +505,6 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
   animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .loading-content {
   display: flex;
   flex-direction: column;
@@ -450,7 +543,7 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
   display: grid;
   grid-template-columns: 1fr 1.5fr;
   gap: 32px;
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 16px;
   padding: 32px;
   border: 1px solid #2a2a4e;
@@ -461,7 +554,11 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(42, 42, 78, 0.9) 0%,
+    rgba(26, 26, 46, 0.9) 100%
+  );
   border-radius: 12px;
   padding: 32px;
   min-height: 300px;
@@ -616,7 +713,11 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
 
 .price-card {
   flex: 1;
-  background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(42, 42, 78, 0.9) 0%,
+    rgba(26, 26, 46, 0.9) 100%
+  );
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -672,7 +773,7 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
   grid-template-columns: auto auto 1fr 1fr;
   gap: 16px;
   align-items: center;
-  background: #2a2a4e;
+  background: rgba(42, 42, 78, 0.9);
   border-radius: 8px;
   padding: 12px 16px;
 }
@@ -731,7 +832,7 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
 }
 
 .chart-section {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 16px;
   padding: 24px;
   border: 1px solid #2a2a4e;
@@ -753,20 +854,5 @@ const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
 .detail-chart {
   width: 100%;
   height: 500px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in-section {
-  animation: fadeIn 0.6s ease-out forwards;
 }
 </style>

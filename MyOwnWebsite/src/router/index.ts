@@ -66,6 +66,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Pretext Demo" },
   },
   {
+    path: "/soybean-ui-demo",
+    name: "soybean-ui-demo",
+    component: () => import("@/views/labs/SoybeanUIDemo.vue"),
+    meta: { title: "SoybeanUI Demo" },
+  },
+  {
     path: "/cs-items",
     name: "cs-items",
     component: () => import("@/views/csgo/CSItems.vue"),

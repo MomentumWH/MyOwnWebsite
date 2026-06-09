@@ -164,6 +164,10 @@ const goToPretextDemo = () => {
   router.push("/pretext-demo");
 };
 
+const goToSoybeanDemo = () => {
+  router.push("/soybean-ui-demo");
+};
+
 onMounted(() => {
   const animate = () => {
     updateSnowflakes();
@@ -202,6 +206,10 @@ const options = ref([
     label: "pretextDemo",
     key: "pretextDemo",
   },
+  {
+    label: "SoybeanUI Demo",
+    key: "soybean-ui-demo",
+  },
 ]);
 const handleSelectOptions = (key: string | number) => {
   switch (key) {
@@ -213,6 +221,9 @@ const handleSelectOptions = (key: string | number) => {
       break;
     case "pretextDemo":
       goToPretextDemo();
+      break;
+    case "soybean-ui-demo":
+      goToSoybeanDemo();
       break;
     default:
       break;

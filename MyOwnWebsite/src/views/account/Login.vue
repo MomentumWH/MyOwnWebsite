@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
+import { resolvePostLoginRedirect } from "@/permissions";
 import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
@@ -135,8 +136,7 @@ const handleLogin = async () => {
       message.success("登录成功");
       // 获取重定向路径
       const redirect = router.currentRoute.value.query.redirect;
-      const target =
-        typeof redirect === "string" && redirect !== "/login" ? redirect : "/";
+      const target = resolvePostLoginRedirect(redirect);
 
       await router.replace(target);
     } else {

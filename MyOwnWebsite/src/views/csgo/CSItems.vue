@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
 import { debounce } from "lodash";
 import { useElementSize, useWindowSize } from "@vueuse/core";
@@ -32,6 +32,8 @@ import {
   getKline,
   suggest,
 } from "@/services/CSQaQ";
+import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
+import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 import dayjs from "dayjs";
 use([
   CanvasRenderer,
@@ -51,6 +53,9 @@ const SUB_DATA_DELAY = 1500;
 const KLINE_REQUEST_DELAY = 3000;
 
 const router = useRouter();
+const pageRef = useTemplateRef<HTMLElement>("pageRef");
+const { clearMotions, playStaggerIn, playTimeline, pulse } =
+  useCsgoPageMotion(pageRef);
 const isPageLoading = ref(true);
 const currentTime = ref();
 let currentTimeTimer: ReturnType<typeof setInterval> | null = null;
@@ -657,12 +662,138 @@ const finishPageLoading = (startedAt: number) => {
   }, remaining);
 };
 
+const animateDashboardIntro = async () => {
+  clearMotions();
+
+  await playTimeline([
+    {
+      targets: ".header",
+      params: {
+        opacity: { from: 0 },
+        y: { from: -22 },
+      },
+    },
+    {
+      targets: ".top-section",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 28 },
+      },
+      position: "-=480",
+    },
+    {
+      targets: ".hot-items-section",
+      params: {
+        opacity: { from: 0 },
+        y: { from: 32 },
+      },
+      position: "-=420",
+    },
+  ]);
+
+  await playStaggerIn({
+    targets: ".tab-item",
+    fromY: 18,
+    fromScale: 0.98,
+    delay: 50,
+    duration: 360,
+    ease: "outCubic",
+  });
+
+  await playStaggerIn({
+    targets: ".chart-tab",
+    fromY: 14,
+    fromScale: 0.98,
+    delay: 45,
+    duration: 320,
+    ease: "outCubic",
+  });
+
+  await playStaggerIn({
+    targets: ".ranking-item",
+    fromX: 20,
+    fromY: 0,
+    fromScale: 1,
+    delay: 70,
+    duration: 400,
+    ease: "outCubic",
+  });
+
+  await playStaggerIn({
+    targets: ".hot-items-section .item-card",
+    fromY: 34,
+    fromScale: 0.95,
+    delay: 85,
+    duration: 520,
+    ease: "outExpo",
+  });
+};
+
+const animateRankingContent = async () => {
+  await playStaggerIn({
+    targets:
+      activeRankingTab.value === "type"
+        ? ".ranking-item"
+        : ".price-label-item, .rise-fall-summary .summary-item",
+    fromY: 16,
+    fromScale: 0.98,
+    delay: 55,
+    duration: 320,
+    ease: "outCubic",
+  });
+};
+
+const animateHotItems = async () => {
+  await playStaggerIn({
+    targets: ".hot-items-section .item-card",
+    fromY: 22,
+    fromScale: 0.97,
+    delay: 55,
+    duration: 380,
+    ease: "outCubic",
+  });
+};
+
 watch(activeRankingTab, (tab) => {
   if (tab === "price") {
     nextTick(() => {
       initPriceChart();
       priceChartInstance?.resize();
     });
+  }
+
+  void pulse(".ranking-tab.active", { scale: 1.05, duration: 240 });
+  void animateRankingContent();
+});
+
+watch(showAllRanking, () => {
+  void animateRankingContent();
+});
+
+watch(showHistoryChart, () => {
+  void pulse(".market-card", { scale: 1.008, duration: 260 });
+});
+
+watch(activeIndexTab, () => {
+  void pulse(".tab-item.active", { scale: 1.04, duration: 220 });
+});
+
+watch(activeChartTab, () => {
+  void pulse(".chart-tab.active", { scale: 1.04, duration: 220 });
+});
+
+watch(
+  () => heatObjectData.value.length,
+  (length, previousLength) => {
+    if (length > 0 && length !== previousLength) {
+      void animateHotItems();
+    }
+  },
+);
+
+watch(isPageLoading, (loading) => {
+  if (!loading) {
+    void animateDashboardIntro();
   }
 });
 
@@ -775,7 +906,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <n-layout class="cs-items-page" :class="{ 'page-loading': isPageLoading }">
+  <div ref="pageRef" class="cs-items-shell">
+    <CsgoLightParticles
+      class="page-particles"
+      :particle-count="30"
+      :orb-count="5"
+      intensity="vivid"
+    />
+    <n-layout class="cs-items-page" :class="{ 'page-loading': isPageLoading }">
     <transition name="page-loader-fade">
       <div
         v-if="isPageLoading"
@@ -1492,15 +1630,33 @@ onUnmounted(() => {
         </div>
       </div>
     </n-layout-content>
-  </n-layout>
+    </n-layout>
+  </div>
 </template>
 
 <style scoped lang="scss">
+.cs-items-shell {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(94, 143, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 86% 18%, rgba(142, 108, 255, 0.16), transparent 24%),
+    radial-gradient(circle at 78% 72%, rgba(76, 225, 195, 0.1), transparent 28%),
+    linear-gradient(180deg, #060813 0%, #0a0f1c 48%, #070b16 100%);
+}
+
+.page-particles {
+  opacity: 1;
+}
+
 .cs-items-page {
   min-height: 100vh;
   width: 100%;
-  background: #0d0d1a;
+  background: transparent;
   color: #fff;
+  position: relative;
+  z-index: 1;
 }
 
 .page-loading {
@@ -1664,7 +1820,7 @@ onUnmounted(() => {
 }
 
 .header {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-bottom: 1px solid #2a2a4e;
   height: 60px;
   padding: 0;
@@ -1673,24 +1829,10 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 1000;
-  animation: fadeInUp 0.8s ease forwards;
-  opacity: 0;
-}
-
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .fade-in-section {
-  opacity: 0;
-  animation: fadeInUp 0.8s ease forwards;
+  will-change: transform, opacity;
 }
 
 .header-content {
@@ -1790,7 +1932,7 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background: #2a2a4e;
+  background: rgba(42, 42, 78, 0.9);
   border: 1px solid #3a3a5e;
   border-radius: 12px;
   padding: 8px 16px;
@@ -1989,7 +2131,7 @@ onUnmounted(() => {
 }
 
 .main-content {
-  background: #0d0d1a;
+  background: transparent;
   width: 100%;
   height: 100vh;
   padding-top: 60px;
@@ -2057,7 +2199,7 @@ onUnmounted(() => {
 }
 
 .index-card {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 12px;
   padding: 20px;
   border: 1px solid #2a2a4e;
@@ -2281,7 +2423,7 @@ onUnmounted(() => {
 }
 
 .chart-card {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 12px;
   border: 1px solid #2a2a4e;
   overflow: hidden;
@@ -2363,7 +2505,7 @@ onUnmounted(() => {
 }
 
 .market-card {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 12px;
   padding: 20px;
   border: 1px solid #2a2a4e;
@@ -2506,7 +2648,7 @@ onUnmounted(() => {
 .summary-item {
   flex: 1;
   padding: 12px;
-  background: #2a2a4e;
+  background: rgba(42, 42, 78, 0.9);
   border-radius: 8px;
   text-align: center;
 
@@ -2597,7 +2739,7 @@ onUnmounted(() => {
 
 .ranking-section {
   padding: 20px;
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 12px;
   border: 1px solid #2a2a4e;
 }
@@ -2688,7 +2830,7 @@ onUnmounted(() => {
     transition: background 0.2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.09);
     }
 
     .rank-number {
@@ -2889,7 +3031,7 @@ onUnmounted(() => {
 }
 
 .item-card {
-  background: #1a1a2e;
+  background: rgba(26, 26, 46, 0.9);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #2a2a4e;
