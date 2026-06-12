@@ -78,6 +78,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "CS Items" },
   },
   {
+    path: "/inventory-monitor",
+    name: "inventory-monitor",
+    component: () => import("@/views/csgo/InventoryMonitor.vue"),
+    meta: { title: "库存监控" },
+  },
+  {
     path: "/CsItemDetail",
     name: "CsItemDetail",
     component: () => import("@/views/csgo/ItemDetail.vue"),

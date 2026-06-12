@@ -406,6 +406,8 @@ const handleNavClick = (item: any) => {
     router.push("/cs-items");
   } else if (item.key === "items") {
     router.push("/item-list");
+  } else if (item.key === "inventory") {
+    router.push("/inventory-monitor");
   }
 };
 

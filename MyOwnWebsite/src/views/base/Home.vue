@@ -34,6 +34,7 @@ let typeItInstance: TypeIt | null = null;
 
 // 技能栈渲染完成后显示项目经验
 onMounted(() => {
+
   skillsTimer = setTimeout(() => {
     skillsRendered.value = true;
   }, SKILLS_RENDER_DELAY); // 2秒后显示项目经验
@@ -168,6 +169,20 @@ const goToSoybeanDemo = () => {
   router.push("/soybean-ui-demo");
 };
 
+const handleLogout = () => {
+  dialog.warning({
+    title: "退出登录",
+    content: "确定要退出当前账号吗？",
+    positiveText: "确定退出",
+    negativeText: "取消",
+    draggable: true,
+    onPositiveClick: () => {
+      authStore.logout();
+      message.success("已退出登录");
+      router.push("/login");
+    },
+  });
+};
 onMounted(() => {
   const animate = () => {
     updateSnowflakes();
@@ -210,6 +225,10 @@ const options = ref([
     label: "SoybeanUI Demo",
     key: "soybean-ui-demo",
   },
+  {
+    label: "退出登录",
+    key: "logout",
+  },
 ]);
 const handleSelectOptions = (key: string | number) => {
   switch (key) {
@@ -224,6 +243,9 @@ const handleSelectOptions = (key: string | number) => {
       break;
     case "soybean-ui-demo":
       goToSoybeanDemo();
+      break;
+    case "logout":
+      handleLogout();
       break;
     default:
       break;
