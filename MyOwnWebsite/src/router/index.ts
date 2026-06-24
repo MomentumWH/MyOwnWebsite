@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+﻿import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -6,6 +6,12 @@ const routes: RouteRecordRaw[] = [
     name: "login",
     component: () => import("@/views/account/Login.vue"),
     meta: { title: "Login" },
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: () => import("@/views/account/Register.vue"),
+    meta: { title: "Register" },
   },
   {
     path: "/profile",
@@ -81,7 +87,7 @@ const routes: RouteRecordRaw[] = [
     path: "/inventory-monitor",
     name: "inventory-monitor",
     component: () => import("@/views/csgo/InventoryMonitor.vue"),
-    meta: { title: "库存监控" },
+    meta: { title: "搴撳瓨鐩戞帶" },
   },
   {
     path: "/CsItemDetail",
@@ -101,3 +107,5 @@ export const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
+

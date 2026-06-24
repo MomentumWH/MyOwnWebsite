@@ -1,7 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+import ProjectNav from "@/components/projectNav/index.vue";
 import UploadBox from "@/components/uploadByNaviUI/index.vue";
 import { useDialog, useMessage } from "naive-ui";
-import { ref, onMounted, onUnmounted } from "vue";
+import { markRaw, ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { CashOutline as CashIcon } from "@vicons/ionicons5";
 import { useAuthStore } from "@/stores/auth";
@@ -11,7 +12,7 @@ const message = useMessage();
 const dialog = useDialog();
 const authStore = useAuthStore();
 const typePrinterMaker = ref<HTMLElement | null>(null);
-const profile = ref({
+const profile = markRaw({
   name: "张三",
   title: "前端开发工程师",
   avatar:
@@ -66,48 +67,24 @@ const goToCheckProjectRoute = (name: string) => {
 interface Snowflake {
   id: number;
   x: number;
-  y: number;
   size: number;
-  speed: number;
   opacity: number;
+  drift: number;
+  duration: number;
+  delay: number;
 }
 
-const snowflakes = ref<Snowflake[]>([]);
+const createSnowflake = (index: number): Snowflake => ({
+  id: index,
+  x: Math.random() * 100,
+  size: Math.random() * 8 + 4,
+  opacity: Math.random() * 0.45 + 0.35,
+  drift: Math.random() * 80 - 40,
+  duration: Math.random() * 10 + 12,
+  delay: Math.random() * -18,
+});
 
-const createSnowflake = () => {
-  return {
-    id: Math.random(),
-    x: Math.random() * window.innerWidth,
-    y: -50,
-    size: Math.random() * 10 + 5,
-    speed: Math.random() * 3 + 1,
-    opacity: Math.random() * 0.5 + 0.5,
-  };
-};
-
-const updateSnowflakes = () => {
-  for (let index = snowflakes.value.length - 1; index >= 0; index -= 1) {
-    const snowflake = snowflakes.value[index];
-    snowflake.y += snowflake.speed;
-    snowflake.x += Math.sin(snowflake.y / 100) * 2;
-
-    if (snowflake.y >= window.innerHeight) {
-      snowflakes.value.splice(index, 1);
-    }
-  }
-
-  // 移除超出屏幕的雪花
-  snowflakes.value = snowflakes.value.filter(
-    (snowflake) => snowflake.y < window.innerHeight,
-  );
-
-  // 添加新雪花
-  if (snowflakes.value.length < MAX_SNOWFLAKES) {
-    snowflakes.value.push(createSnowflake());
-  }
-};
-
-let animationFrameId = 0;
+const snowflakes = markRaw(Array.from({ length: MAX_SNOWFLAKES }, (_, index) => createSnowflake(index)));
 const handleConfirm = (value: string) => {
   dialog.warning({
     title: "Tips",
@@ -184,11 +161,6 @@ const handleLogout = () => {
   });
 };
 onMounted(() => {
-  const animate = () => {
-    updateSnowflakes();
-    animationFrameId = requestAnimationFrame(animate);
-  };
-  animate();
   if (typePrinterMaker.value) {
     typeItInstance = new TypeIt(typePrinterMaker.value, {
       strings: [
@@ -252,292 +224,645 @@ const handleSelectOptions = (key: string | number) => {
   }
 };
 onUnmounted(() => {
-  cancelAnimationFrame(animationFrameId);
   if (skillsTimer) {
     clearTimeout(skillsTimer);
   }
   typeItInstance?.destroy();
 });
 </script>
-
 <template>
   <div class="profile-page">
-    <!-- 雪花特效 -->
-    <!-- <n-message-provider> -->
     <div class="snow-container">
       <div
         v-for="snowflake in snowflakes"
         :key="snowflake.id"
         class="snowflake"
         :style="{
-          left: `${snowflake.x}px`,
-          top: `${snowflake.y}px`,
+          left: `${snowflake.x}%`,
           width: `${snowflake.size}px`,
           height: `${snowflake.size}px`,
           opacity: snowflake.opacity,
+          '--snow-drift': `${snowflake.drift}px`,
+          '--snow-duration': `${snowflake.duration}s`,
+          '--snow-delay': `${snowflake.delay}s`,
         }"
       ></div>
     </div>
 
-    <header class="profile-header">
-      <!-- <div  class="headerSimplification"> -->
-      <!-- <div> -->
-      <img :src="profile.avatar" alt="Avatar" class="avatar" />
-      <div class="profile-info">
-        <h1 class="name">{{ profile.name }}</h1>
-        <p class="title">{{ profile.title }}</p>
-      </div>
-      <!-- </div>   -->
-      <div class="titleTypePrintBox">
-        <span
-          ref="typePrinterMaker"
-          class="typePrinterTitleLike"
-          :style="{ color: '#FFF' }"
-        ></span>
-      </div>
-      <div class="header-buttons">
-        <n-dropdown
-          placement="bottom-start"
-          trigger="click"
-          size="medium"
-          :options="options"
-          @select="handleSelectOptions"
-        >
-          <!-- <n-button>中号</n-button> -->
-          <!-- @click="goToProfile"  -->
-          <button class="profile-btn">个人中心</button>
-        </n-dropdown>
-        <!-- <button @click="goToProfile" class="profile-btn">个人中心</button> -->
-        <!-- <button
-          v-if="authStore.canAccessChatRoom"
-          
-          class="chat-btn"
-        >
-          聊天室
-        </button> -->
-      </div>
-      <!-- </div> -->
-    </header>
-
-    <section class="bio-section">
-      <h2>个人简介</h2>
-      <p class="bio">{{ profile.bio }}</p>
-    </section>
-
-    <section class="skills-section">
-      <h2>技能栈</h2>
-      <div class="skills-grid">
-        <TransitionGroup
-          name="skill-fade"
-          tag="div"
-          class="skills-transition-group"
-        >
-          <div
-            v-for="(skill, index) in profile.skills"
-            :key="skill"
-            @click="handleConfirm(skill)"
-            class="skill-tag"
-            :style="{ animationDelay: `${index * 0.1}s` }"
+    <div class="page-shell">
+      <ProjectNav :show-default-action="false">
+        <template #action>
+          <n-dropdown
+            placement="bottom-start"
+            trigger="click"
+            size="medium"
+            :options="options"
+            @select="handleSelectOptions"
           >
-            {{ skill }}
+            <button class="profile-btn">个人中心</button>
+          </n-dropdown>
+        </template>
+      </ProjectNav>
+
+      <header class="profile-header">
+        <div class="hero-profile-card">
+          <img :src="profile.avatar" alt="Avatar" class="avatar" />
+          <div class="profile-info">
+            <span class="section-kicker">Personal Portal</span>
+            <h1 class="name">{{ profile.name }}</h1>
+            <p class="title">{{ profile.title }}</p>
           </div>
-        </TransitionGroup>
-      </div>
-    </section>
+        </div>
 
-    <section v-if="skillsRendered" class="projects-section">
-      <h2>项目经验</h2>
-      <div class="projects-list">
-        <TransitionGroup
-          name="project-fade"
-          tag="div"
-          class="projects-transition-group"
-        >
-          <div
-            v-for="(project, index) in profile.projects"
-            :key="project.name"
-            class="project-card"
-            :style="{ animationDelay: `${index * 0.2}s` }"
-          >
-            <h3>{{ project.name }}</h3>
-            <p>{{ project.description }}</p>
-            <button
-              @click="goToCheckProjectRoute(project.name)"
-              class="project-link"
+        <div class="hero-intro-card">
+          <span class="section-kicker">Live Intro</span>
+          <div class="titleTypePrintBox">
+            <span
+              ref="typePrinterMaker"
+              class="typePrinterTitleLike"
+              :style="{ color: '#FFF' }"
+            ></span>
+          </div>
+          <p class="hero-support-text">
+            聚合个人简介、技能栈、项目入口与建议上传，让访问路径更清晰。
+          </p>
+        </div>
+      </header>
+
+      <main class="content-layout">
+        <section class="bio-section content-card">
+          <span class="section-kicker">About Me</span>
+          <h2>个人简介</h2>
+          <p class="bio">{{ profile.bio }}</p>
+        </section>
+
+        <section class="skills-section content-card">
+          <div class="section-heading-row">
+            <div>
+              <span class="section-kicker">Tech Stack</span>
+              <h2>技能栈</h2>
+            </div>
+            <span class="section-count">{{ profile.skills.length }} 项能力</span>
+          </div>
+          <div class="skills-grid">
+            <TransitionGroup
+              name="skill-fade"
+              tag="div"
+              class="skills-transition-group"
             >
-              查看详情
-            </button>
+              <div
+                v-for="(skill, index) in profile.skills"
+                :key="skill"
+                class="skill-tag"
+                :style="{ animationDelay: `${index * 0.1}s` }"
+                @click="handleConfirm(skill)"
+              >
+                {{ skill }}
+              </div>
+            </TransitionGroup>
           </div>
-        </TransitionGroup>
-      </div>
-    </section>
+        </section>
+      </main>
 
-    <section v-if="skillsRendered">
-      <div class="dragBox">
-        <!-- <n-button @click="goToDrag" dashed  type="info">This is drag button demo</n-button> -->
-        <div class="dragButtonBox">
-          <n-button color="#ff69b4" @click="goToDrag">
-            <template #icon>
-              <n-icon>
-                <CashIcon />
-              </n-icon>
-            </template>
-            This is drag button demo
-          </n-button>
+      <section v-if="skillsRendered" class="projects-section content-card">
+        <div class="section-heading-row">
+          <div>
+            <span class="section-kicker">Selected Work</span>
+            <h2>项目经验</h2>
+          </div>
+          <span class="section-count">{{ profile.projects.length }} 个项目</span>
         </div>
-        <div
-          style="
-            text-align: center;
-            flex: 1;
-            font-family:
-              &quot;Lucida Sans&quot;, &quot;Lucida Sans Regular&quot;,
-              &quot;Lucida Grande&quot;, &quot;Lucida Sans Unicode&quot;,
-              Geneva, Verdana, sans-serif;
-            font-size: 18px;
-            margin-top: 24px;
-            color: aliceblue;
-            margin-bottom: 24px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
-          "
-          @click="showUploadBox"
-          :style="{
-            background: isShowUploadBox
-              ? 'linear-gradient(135deg, #667eea 0%, #8a5ab9 100%)'
-              : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            boxShadow: isShowUploadBox
-              ? '0 6px 20px rgba(102, 126, 234, 0.4)'
-              : '0 4px 12px rgba(240, 147, 251, 0.3)',
-          }"
-        >
-          <n-gradient-text
-            gradient="linear-gradient(90deg, red 0%, green 50%, blue 100%)"
+        <div class="projects-list">
+          <TransitionGroup
+            name="project-fade"
+            tag="div"
+            class="projects-transition-group"
           >
-            如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！{{
-              isShowUploadBox ? "(再次点击收起上传)" : ""
-            }}
-          </n-gradient-text>
+            <div
+              v-for="(project, index) in profile.projects"
+              :key="project.name"
+              class="project-card"
+              :style="{ animationDelay: `${index * 0.2}s` }"
+            >
+              <h3>{{ project.name }}</h3>
+              <p>{{ project.description }}</p>
+              <button
+                class="project-link"
+                @click="goToCheckProjectRoute(project.name)"
+              >
+                查看详情
+              </button>
+            </div>
+          </TransitionGroup>
         </div>
-        <transition name="upload-box-fade">
-          <UploadBox v-if="isShowUploadBox"></UploadBox>
-        </transition>
-      </div>
-    </section>
+      </section>
 
-    <!-- </n-message-provider> -->
+      <section v-if="skillsRendered" class="action-section content-card">
+        <div class="action-copy">
+          <span class="section-kicker">Playground & Feedback</span>
+          <h2>互动体验</h2>
+          <p>尝试拖拽 Demo，或上传建议帮助网站持续优化。</p>
+        </div>
+        <div class="dragBox">
+          <div class="dragButtonBox">
+            <n-button class="tech-action-button" @click="goToDrag">
+              <template #icon>
+                <n-icon>
+                  <CashIcon />
+                </n-icon>
+              </template>
+              This is drag button demo
+            </n-button>
+          </div>
+          <div
+            class="upload-suggestion-banner"
+            :class="{ 'upload-suggestion-banner--open': isShowUploadBox }"
+            @click="showUploadBox"
+          >
+            <n-gradient-text
+              gradient="linear-gradient(90deg, #c7f6ff 0%, #5fe7ff 38%, #b994ff 76%, #f3f7ff 100%)"
+            >
+              如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！{{
+                isShowUploadBox ? "(再次点击收起上传)" : ""
+              }}
+            </n-gradient-text>
+          </div>
+          <transition name="upload-box-fade">
+            <UploadBox v-if="isShowUploadBox"></UploadBox>
+          </transition>
+        </div>
+      </section>
+    </div>
+
     <n-back-top :right="100" />
   </div>
 </template>
-
 <style scoped lang="scss">
 .profile-page {
+  position: relative;
   min-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 4rem;
-  font-family: "Arial", sans-serif;
-  background: linear-gradient(135deg, #8aa064 0%, #c55d8d 100%);
   min-height: 100vh;
+  padding: 2rem 4rem 4rem;
+  overflow-x: hidden;
+  font-family: "Arial", sans-serif;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(0, 224, 255, 0.34), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(165, 92, 255, 0.42), transparent 30%),
+    radial-gradient(circle at 50% 88%, rgba(73, 108, 255, 0.34), transparent 36%),
+    linear-gradient(135deg, #050816 0%, #0b1741 42%, #31105f 72%, #14091f 100%);
+  background-attachment: fixed;
+}
+
+.profile-page::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(102, 220, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(102, 220, 255, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 88%);
+}
+
+.profile-page::after {
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    conic-gradient(from 120deg at 30% 50%, transparent, rgba(0, 238, 255, 0.18), transparent 28%),
+    conic-gradient(from 280deg at 72% 48%, transparent, rgba(177, 91, 255, 0.2), transparent 30%);
+  filter: blur(18px);
+  animation: auroraFloat 16s ease-in-out infinite alternate;
+}
+
+.page-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.5rem;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+}
+
+
+.profile-header,
+.content-card {
+  contain: layout paint;
+  border: 1px solid rgba(136, 220, 255, 0.24);
+  box-shadow:
+    0 24px 80px rgba(3, 9, 34, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 36px rgba(94, 178, 255, 0.14);
+  backdrop-filter: blur(18px);
 }
 
 .profile-header {
+  display: grid;
+  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+  height: 330px;
+  padding: 1.5rem;
+  color: white;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(22, 42, 92, 0.72) 0%, rgba(74, 32, 128, 0.7) 100%),
+    linear-gradient(90deg, rgba(0, 238, 255, 0.2), rgba(174, 94, 255, 0.22));
+}
+
+.hero-profile-card,
+.hero-intro-card,
+.content-card {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+  background: linear-gradient(135deg, rgba(9, 24, 58, 0.58), rgba(44, 25, 88, 0.5));
+  border-radius: 22px;
+}
+
+.hero-profile-card,
+.hero-intro-card {
   display: flex;
   align-items: center;
-  gap: 2rem;
-  margin-top: 5rem;
-  margin-bottom: 3rem;
+  height: 100%;
+  min-height: 0;
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 12px;
+  border: 1px solid rgba(138, 220, 255, 0.18);
 }
-.headerSimplification {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  align-items: space-between;
+
+.hero-profile-card {
+  gap: 2.5rem;
+  padding: 2.4rem;
 }
-.avatar {
-  width: 150px;
+
+.hero-intro-card {
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hero-intro-card::after,
+.content-card::after {
+  position: absolute;
+  inset: auto -18% -45% 32%;
   height: 150px;
-  border-radius: 50%;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(circle, rgba(0, 217, 255, 0.16), transparent 66%);
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 178px;
+  height: 178px;
   object-fit: cover;
-  border: 4px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 4px solid rgba(196, 244, 255, 0.85);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 8px rgba(82, 211, 255, 0.1),
+    0 0 30px rgba(0, 238, 255, 0.48),
+    0 18px 45px rgba(0, 0, 0, 0.28);
 }
 
 .profile-info {
-  flex: 1;
+  min-width: 0;
+}
+
+.section-kicker {
+  display: inline-flex;
+  margin-bottom: 0.65rem;
+  color: #6ff0ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(0, 238, 255, 0.46);
 }
 
 .name {
-  font-size: 2.5rem;
   margin: 0;
-  font-weight: 700;
+  color: #f7fbff;
+  font-size: clamp(3rem, 4.8vw, 5.4rem);
+  font-weight: 800;
+  line-height: 1;
 }
 
 .title {
-  font-size: 1.25rem;
-  margin: 0.5rem 0 0 0;
-  opacity: 0.9;
+  margin: 0.9rem 0 0;
+  color: rgba(237, 247, 255, 0.78);
+  font-size: 1.38rem;
+  font-weight: 700;
 }
 
-.bio-section {
-  margin-bottom: 3rem;
+.titleTypePrintBox {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 82px;
+}
+
+.typePrinterTitleLike {
+  font-family: "Times New Roman", Times, serif;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.75rem, 2.8vw, 3rem);
+  font-weight: bold;
+  line-height: 1.12;
+  text-shadow: 0 0 24px rgba(172, 128, 255, 0.36);
+}
+
+.hero-support-text {
+  max-width: 620px;
+  margin: 0.75rem 0 0;
+  color: rgba(237, 247, 255, 0.7);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.content-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.85fr) minmax(560px, 1.15fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.content-card {
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, rgba(9, 24, 58, 0.68), rgba(44, 25, 88, 0.58));
 }
 
-.bio-section h2 {
+.bio-section,
+.skills-section,
+.projects-section,
+.action-section {
+  min-height: 100%;
+}
+
+.bio-section h2,
+.skills-section h2,
+.projects-section h2,
+.action-copy h2 {
+  margin: 0;
+  color: #c7f6ff;
   font-size: 1.75rem;
-  margin: 0 0 1rem 0;
-  color: #333;
+  text-shadow: 0 0 18px rgba(0, 238, 255, 0.42);
 }
 
 .bio {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: #666;
+  margin: 1.25rem 0 0;
+  color: rgba(237, 247, 255, 0.86);
+  font-size: 1.08rem;
+  line-height: 1.9;
 }
 
-.skills-section {
-  margin-bottom: 3rem;
-}
-
-.skills-section h2 {
-  font-size: 1.75rem;
-  margin: 0 0 1.5rem 0;
-  color: #333;
-}
-
-.skills-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+.section-heading-row {
+  display: flex;
   gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
 }
 
+.section-count {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.8rem;
+  color: #dffaff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: 1px solid rgba(138, 220, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(0, 217, 255, 0.08);
+}
+
+.skills-grid,
 .skills-transition-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 0.9rem;
 }
 
 .skill-tag {
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #8a5ab9 100%);
+  padding: 1.05rem 1.25rem;
   color: white;
-  border-radius: 24px;
+  font-weight: 700;
   text-align: center;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  animation: skillFlyIn 2s ease forwards;
+  cursor: pointer;
+  border: 1px solid rgba(203, 246, 255, 0.36);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(0, 194, 255, 0.78) 0%, rgba(132, 78, 255, 0.86) 100%);
+  box-shadow:
+    0 10px 26px rgba(38, 109, 255, 0.24),
+    0 0 22px rgba(0, 238, 255, 0.16);
   opacity: 0;
+  animation: skillFlyIn 2s ease forwards;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.skill-tag:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 16px 34px rgba(38, 109, 255, 0.3),
+    0 0 28px rgba(0, 238, 255, 0.22);
+}
+
+.projects-list {
+  width: 100%;
+}
+
+.projects-transition-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.15rem;
+  width: 100%;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 210px;
+  padding: 1.5rem;
+  border: 1px solid rgba(138, 220, 255, 0.22);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(12, 31, 72, 0.78) 0%, rgba(53, 27, 101, 0.72) 100%);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  opacity: 0;
+  backdrop-filter: blur(16px);
+  animation: projectFadeIn 1.5s ease forwards;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.project-card:hover {
+  border-color: rgba(122, 232, 255, 0.48);
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.34),
+    0 0 38px rgba(0, 238, 255, 0.24);
+  transform: translateY(-8px);
+}
+
+.project-card h3 {
+  margin: 0 0 0.65rem;
+  color: #f4fbff;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.project-card p {
+  flex: 1;
+  margin: 0 0 1.25rem;
+  color: rgba(229, 241, 255, 0.78);
+  font-size: 0.94rem;
+  line-height: 1.7;
+  word-break: normal;
+}
+
+.project-link {
+  align-self: flex-start;
+  display: inline-flex;
+  padding: 0.55rem 1rem;
+  color: white;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid rgba(214, 250, 255, 0.36);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #00d9ff 0%, #8f5cff 100%);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.project-link:hover {
+  box-shadow: 0 8px 24px rgba(0, 217, 255, 0.34);
+  transform: translateY(-2px);
+}
+
+.action-section {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(560px, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.action-copy p {
+  margin: 1rem 0 0;
+  color: rgba(237, 247, 255, 0.74);
+  line-height: 1.8;
+}
+
+.dragBox {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+.dragButtonBox {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.tech-action-button {
+  --n-color: linear-gradient(135deg, rgba(0, 217, 255, 0.82), rgba(126, 92, 255, 0.88)) !important;
+  --n-color-hover: linear-gradient(135deg, rgba(47, 233, 255, 0.94), rgba(165, 119, 255, 0.96)) !important;
+  --n-color-pressed: linear-gradient(135deg, rgba(0, 171, 224, 0.94), rgba(95, 65, 224, 0.96)) !important;
+  --n-border: 1px solid rgba(202, 247, 255, 0.42) !important;
+  --n-border-hover: 1px solid rgba(202, 247, 255, 0.72) !important;
+  --n-border-pressed: 1px solid rgba(171, 224, 255, 0.58) !important;
+  --n-text-color: #f4fbff !important;
+  --n-text-color-hover: #ffffff !important;
+  --n-text-color-pressed: #ffffff !important;
+  --n-ripple-color: rgba(95, 231, 255, 0.38) !important;
+  box-shadow:
+    0 12px 32px rgba(0, 217, 255, 0.22),
+    0 0 22px rgba(143, 92, 255, 0.22);
+  backdrop-filter: blur(14px);
+}
+
+.upload-suggestion-banner {
+  padding: 0.95rem 1.35rem;
+  color: aliceblue;
+  font-family:
+    "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+    "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+  font-size: 17px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(176, 232, 255, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0, 194, 255, 0.22) 0%, rgba(91, 100, 255, 0.34) 48%, rgba(143, 92, 255, 0.4) 100%);
+  box-shadow:
+    0 14px 38px rgba(28, 94, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(16px);
+  transition: transform 0.3s ease, border-color 0.3s ease, filter 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-suggestion-banner--open {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.28) 0%, rgba(143, 92, 255, 0.48) 100%);
+  box-shadow:
+    0 18px 48px rgba(0, 217, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.upload-suggestion-banner:hover {
+  border-color: rgba(202, 247, 255, 0.52);
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+.profile-btn,
+.chat-btn {
+  padding: 0.75rem 1.5rem;
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(215, 250, 255, 0.38);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.9) 0%, rgba(143, 92, 255, 0.92) 100%);
+  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-btn:hover,
+.chat-btn:hover {
+  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.34);
+  transform: translateY(-2px);
+}
+
+.snow-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.snowflake {
+  position: absolute;
+  top: -24px;
+  background: #e8fbff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.8),
+    0 0 18px rgba(0, 238, 255, 0.55);
+  will-change: transform;
+  animation: snowfall var(--snow-duration) linear var(--snow-delay) infinite;
+}
+
+.upload-box-fade-enter-active,
+.upload-box-fade-leave-active {
+  transition: all 0.5s ease;
+}
+
+.upload-box-fade-enter-from,
+.upload-box-fade-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
 }
 
 @keyframes skillFlyIn {
@@ -554,53 +879,6 @@ onUnmounted(() => {
   }
 }
 
-.projects-section h2 {
-  font-size: 1.75rem;
-  margin: 0 0 1.5rem 0;
-  color: #333;
-}
-
-.projects-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.projects-transition-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.project-card {
-  padding: 2rem;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(245, 247, 250, 0.95) 100%
-  );
-  border-radius: 16px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  animation: projectFadeIn 1.5s ease forwards;
-  opacity: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  &:hover {
-    transform: translateY(-8px) scale(1.5) rotate(30deg);
-    box-shadow: 60px 30px 60px rgba(189, 37, 37, 0.2);
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(245, 247, 250, 0.98) 100%
-    );
-    border-color: rgba(102, 126, 234, 0.3);
-  }
-}
-
-/* .project-card:hover {
-
-} */
-
 @keyframes projectFadeIn {
   0% {
     opacity: 0;
@@ -612,152 +890,99 @@ onUnmounted(() => {
   }
 }
 
-.project-card h3 {
-  font-size: 1.25rem;
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.project-card p {
-  font-size: 0.9rem;
-  margin: 0 0 1rem 0;
-  color: #666;
-}
-
-.project-link {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #8a5ab9 100%);
-  color: white;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.project-link:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-/* 雪花特效样式 */
-.snow-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.snowflake {
-  position: absolute;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-  animation: snowfall linear infinite;
+@keyframes auroraFloat {
+  0% {
+    transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    transform: translate3d(2%, 1%, 0) rotate(8deg) scale(1.08);
+  }
 }
 
 @keyframes snowfall {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
   }
   100% {
-    transform: translateY(100vh) rotate(360deg);
+    transform: translate3d(var(--snow-drift), 110vh, 0) rotate(360deg);
   }
 }
-.dragBox {
-  margin-top: 100px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-bottom: 60px;
-}
-.titleTypePrintBox {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 100px;
-}
-/* 上传框过渡动画 */
-.upload-box-fade-enter-active,
-.upload-box-fade-leave-active {
-  transition: all 0.5s ease;
+
+@media (max-width: 1280px) {
+  .profile-page {
+    min-width: 0;
+    padding: 1.5rem;
+  }
+
+  .profile-header,
+  .content-layout,
+  .action-section {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-header {
+    height: auto;
+  }
+
+  .hero-profile-card,
+  .hero-intro-card {
+    min-height: 260px;
+  }
+
+  .projects-transition-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.upload-box-fade-enter-from,
-.upload-box-fade-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
-}
+@media (max-width: 760px) {
+  .profile-page {
+    padding: 1rem;
+  }
 
-.typePrinterTitleLike {
-  font-weight: bold;
-  font-size: 42px;
-  font-family: "Times New Roman", Times, serif;
-}
 
-.header-buttons {
-  display: flex;
-  gap: 1rem;
-  position: absolute;
-  top: 2rem;
-  right: 4rem;
-}
+  .hero-profile-card {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-.profile-btn {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #8a5ab9 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+  .hero-profile-card,
+  .hero-intro-card,
+  .content-card {
+    padding: 1.25rem;
+  }
 
-.profile-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
+  .avatar {
+    width: 140px;
+    height: 140px;
+  }
 
-.chat-btn {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+  .name {
+    font-size: 3rem;
+  }
 
-.chat-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
-}
-.advertisementBox {
-  //text-align: center;
-  // flex: 1;
-  //font-family:
-  //  "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
-  //  "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
-  //font-size: 20px;
-  //margin-top: 24px;
-  //color: aliceblue;
-  //margin-bottom: 24px;
-  //width: 100%;
-  //background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  //padding: 0.75rem 1.5rem;
-  //border: none;
-  //border-radius: 8px;
-}
-.dragButtonBox {
-  flex: 1;
-  justify-content: center;
-  text-align: center;
+  .title {
+    font-size: 1.15rem;
+  }
+
+  .projects-transition-group,
+  .skills-grid,
+  .skills-transition-group {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading-row {
+    flex-direction: column;
+  }
+
+  .typePrinterTitleLike {
+    font-size: 1.65rem;
+  }
 }
 </style>
+
+
+
+
+
+

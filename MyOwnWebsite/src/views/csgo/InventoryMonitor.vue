@@ -7,21 +7,26 @@ import {
   HomeOutline,
   ListOutline,
   PauseOutline,
+  CloseOutline,
   SearchOutline,
   TrashOutline,
   TrophyOutline,
 } from "@vicons/ionicons5";
-import { computed, shallowRef, watch } from "vue";
-import { getTaskAll, getTaskBusiness, getTaskList } from "@/services/CSQaQ";
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+import { useRouter } from "vue-router";
+import { getTaskAll, getTaskBusiness, getTaskList, suggest } from "@/services/CSQaQ";
 
 interface NavItem {
   label: string;
   key: string;
   icon: unknown;
+  path?: string;
+  query?: Record<string, string>;
 }
 
 interface InventoryItem {
   id: string;
+  detailId: number | string;
   name: string;
   category: string;
   count: number;
@@ -32,6 +37,16 @@ interface InventoryItem {
   wear: string;
   price: number;
   rarityTone: "blue" | "green" | "orange" | "purple" | "gray";
+}
+
+interface SearchSuggestionItem {
+  id?: number | string;
+  name: string;
+  value?: string;
+  market_hash_name?: string;
+  icon_url?: string;
+  image?: string;
+  price?: number | string;
 }
 
 interface MonitorTask {
@@ -124,15 +139,22 @@ type TaskAllResponsePayload = TaskAllResponse | TaskAllItem[] | {
 };
 
 const navItems: NavItem[] = [
-  { label: "首页", key: "home", icon: HomeOutline },
-  { label: "饰品列表", key: "items", icon: ListOutline },
-  { label: "排行榜单", key: "ranking", icon: TrophyOutline },
+  { label: "首页", key: "home", icon: HomeOutline, path: "/cs-items" },
+  { label: "饰品列表", key: "items", icon: ListOutline, path: "/item-list" },
+  { label: "排行榜单", key: "ranking", icon: TrophyOutline, path: "/cs-items", query: { section: "ranking" } },
   { label: "库存监控", key: "inventory", icon: AlbumsOutline },
-  { label: "挂刀行情", key: "knife", icon: CalendarOutline },
-  { label: "热门系列", key: "series", icon: BarChartOutline },
+  { label: "挂刀行情", key: "knife", icon: CalendarOutline, path: "/cs-items", query: { section: "knife" } },
+  { label: "热门系列", key: "series", icon: BarChartOutline, path: "/cs-items", query: { section: "series" } },
 ];
 
 const activeNav = shallowRef("inventory");
+const router = useRouter();
+const globalSearchKeyword = ref("");
+const globalSearchInput = ref<HTMLInputElement | null>(null);
+const showGlobalSearchDropdown = ref(false);
+const globalSearchResults = shallowRef<SearchSuggestionItem[]>([]);
+const globalSearchLoading = shallowRef(false);
+const globalSearchTimer = shallowRef<ReturnType<typeof setTimeout> | null>(null);
 const activeTab = shallowRef<"dynamic" | "all">("dynamic");
 const selectedType = shallowRef("全部类型");
 const searchKeyword = shallowRef("");
@@ -223,6 +245,7 @@ const mapTaskAllItemToInventoryItem = (item: TaskAllItem, index: number): Invent
 
   return {
     id: createInventoryItemId(item, index),
+    detailId: item.good_id || createInventoryItemId(item, index),
     name,
     category,
     count,
@@ -247,6 +270,7 @@ const inventoryItems = computed<InventoryItem[]>(() => {
 
   return taskBusinessItems.value.map((item, index) => ({
     id: `business-${item.good_id}-${item.created_at}-${index}`,
+    detailId: item.good_id,
     name: item.market_name,
     category: resolveInventoryCategory(item.market_name),
     count: 1,
@@ -355,6 +379,138 @@ const taskBusinessPageRange = computed(() => {
   const end = Math.min(taskBusinessPageIndex.value * taskBusinessPageSize, taskBusinessTotal.value);
   return `${start}-${end}`;
 });
+
+const handleNavClick = (item: NavItem) => {
+  activeNav.value = item.key;
+  const targetPath = item.path ?? "/inventory-monitor";
+  const currentRoute = router.currentRoute.value;
+
+  if (targetPath !== currentRoute.path || JSON.stringify(item.query ?? {}) !== JSON.stringify(currentRoute.query)) {
+    router.push({ path: targetPath, query: item.query });
+  }
+};
+
+const handleGlobalSearchFocus = () => {
+  showGlobalSearchDropdown.value = true;
+};
+
+const handleGlobalSearchBlur = () => {
+  setTimeout(() => {
+    showGlobalSearchDropdown.value = false;
+  }, 200);
+};
+
+const clearGlobalSearch = () => {
+  globalSearchKeyword.value = "";
+  globalSearchResults.value = [];
+  showGlobalSearchDropdown.value = false;
+};
+
+const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
+  const target = event.target as HTMLElement | null;
+  const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+
+  if (event.key === "/" && !isTyping) {
+    event.preventDefault();
+    globalSearchInput.value?.focus();
+    return;
+  }
+
+  if (event.key === "Escape" && document.activeElement === globalSearchInput.value) {
+    showGlobalSearchDropdown.value = false;
+    globalSearchInput.value?.blur();
+  }
+};
+
+const getSuggestionName = (item: SearchSuggestionItem) => {
+  return item.name || item.value || item.market_hash_name || "未知饰品";
+};
+
+const normalizeSuggestionList = (payload: unknown): SearchSuggestionItem[] => {
+  if (Array.isArray(payload)) {
+    return payload as SearchSuggestionItem[];
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const data = payload as {
+    data?: unknown;
+    list?: unknown;
+    res?: unknown;
+    records?: unknown;
+  };
+
+  return normalizeSuggestionList(data.data)
+    .concat(normalizeSuggestionList(data.list))
+    .concat(normalizeSuggestionList(data.res))
+    .concat(normalizeSuggestionList(data.records));
+};
+
+const searchGlobalItems = () => {
+  if (globalSearchTimer.value) {
+    clearTimeout(globalSearchTimer.value);
+  }
+
+  const keyword = globalSearchKeyword.value.trim();
+
+  if (!keyword) {
+    globalSearchResults.value = [];
+    globalSearchLoading.value = false;
+    return;
+  }
+
+  globalSearchLoading.value = true;
+  showGlobalSearchDropdown.value = true;
+
+  globalSearchTimer.value = setTimeout(async () => {
+    try {
+      const response = await suggest({ text: keyword });
+      globalSearchResults.value = normalizeSuggestionList(response.data).slice(0, 8);
+    } catch (error) {
+      globalSearchResults.value = [];
+      console.error("饰品联想搜索失败:", error);
+    } finally {
+      globalSearchLoading.value = false;
+    }
+  }, 400);
+};
+
+const selectGlobalSearchItem = (item: SearchSuggestionItem, index: number) => {
+  globalSearchKeyword.value = getSuggestionName(item);
+  showGlobalSearchDropdown.value = false;
+  router.push({
+    name: "CsItemDetail",
+    query: {
+      id: item.id || index + 1,
+    },
+  });
+};
+
+const submitGlobalSearch = () => {
+  const firstItem = globalSearchResults.value[0];
+
+  if (firstItem) {
+    selectGlobalSearchItem(firstItem, 0);
+    return;
+  }
+
+  if (globalSearchKeyword.value.trim()) {
+    router.push({
+      path: "/item-list",
+      query: { search: globalSearchKeyword.value.trim() },
+    });
+  }
+};
+const goToInventoryItemDetail = (item: InventoryItem) => {
+  router.push({
+    name: "CsItemDetail",
+    query: {
+      id: item.detailId,
+    },
+  });
+};
 
 const formatPrice = (price: number) => toNumber(price).toFixed(2);
 
@@ -610,6 +766,18 @@ const searchMonitorTasks = async () => {
     taskSearchLoading.value = false;
   }
 };
+
+onMounted(() => {
+  window.addEventListener("keydown", handleGlobalSearchShortcut);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleGlobalSearchShortcut);
+
+  if (globalSearchTimer.value) {
+    clearTimeout(globalSearchTimer.value);
+  }
+});
 </script>
 
 <template>
@@ -620,18 +788,58 @@ const searchMonitorTasks = async () => {
         :key="item.key"
         class="nav-item"
         :class="{ 'nav-item--active': activeNav === item.key }"
-        @click="activeNav = item.key"
+        type="button"
+        @click="handleNavClick(item)"
       >
         <component :is="item.icon" class="nav-icon" />
         <span>{{ item.label }}</span>
       </button>
-      <button class="nav-item nav-item--more" aria-label="更多">
+      <button class="nav-item nav-item--more" aria-label="更多" type="button">
         <EllipsisHorizontal class="nav-icon" />
       </button>
-      <label class="global-search">
-        <SearchOutline class="search-icon" />
-        <input placeholder="搜索饰品名称，用 / 键快捷搜索~" />
-      </label>
+      <form class="global-search-wrap" @submit.prevent="submitGlobalSearch">
+        <label class="global-search">
+          <SearchOutline class="search-icon" />
+          <input
+            ref="globalSearchInput"
+            v-model="globalSearchKeyword"
+            placeholder="搜索饰品名称，用 / 键快捷搜索~"
+            @focus="handleGlobalSearchFocus"
+            @blur="handleGlobalSearchBlur"
+            @input="searchGlobalItems"
+          />
+          <button
+            v-if="globalSearchKeyword"
+            class="global-search-clear"
+            type="button"
+            aria-label="清空搜索"
+            @click.stop="clearGlobalSearch"
+          >
+            <CloseOutline class="search-icon" />
+          </button>
+        </label>
+        <div
+          v-if="showGlobalSearchDropdown && (globalSearchResults.length || globalSearchLoading)"
+          class="global-search-dropdown"
+        >
+          <div v-if="globalSearchLoading" class="global-search-loading">搜索中...</div>
+          <button
+            v-for="(item, index) in globalSearchResults"
+            v-else
+            :key="`${item.id || getSuggestionName(item)}-${index}`"
+            class="global-search-option"
+            type="button"
+            @mousedown.prevent="selectGlobalSearchItem(item, index)"
+          >
+            <img
+              v-if="item.icon_url || item.image"
+              :src="normalizeSteamImageUrl(item.icon_url || item.image)"
+              :alt="getSuggestionName(item)"
+            />
+            <span>{{ getSuggestionName(item) }}</span>
+          </button>
+        </div>
+      </form>
     </nav>
 
     <section class="task-search-card panel-card">
@@ -756,7 +964,16 @@ const searchMonitorTasks = async () => {
 
         <div v-if="activeTab === 'dynamic' && !taskBusinessLoading && !taskBusinessError && taskBusinessItems.length" class="inventory-dynamic-section">
           <div class="inventory-list inventory-list--paged">
-            <article v-for="item in filteredItems" :key="item.id" class="inventory-row">
+            <article
+              v-for="item in filteredItems"
+              :key="item.id"
+              class="inventory-row"
+              role="button"
+              tabindex="0"
+              @click="goToInventoryItemDetail(item)"
+              @keydown.enter.prevent="goToInventoryItemDetail(item)"
+              @keydown.space.prevent="goToInventoryItemDetail(item)"
+            >
               <img class="item-thumb" :src="item.image" :alt="item.name" />
               <div class="item-info">
                 <h3>{{ item.name }}</h3>
@@ -803,6 +1020,11 @@ const searchMonitorTasks = async () => {
               v-for="item in pagedTaskAllItems"
               :key="item.id"
               class="inventory-card"
+              role="button"
+              tabindex="0"
+              @click="goToInventoryItemDetail(item)"
+              @keydown.enter.prevent="goToInventoryItemDetail(item)"
+              @keydown.space.prevent="goToInventoryItemDetail(item)"
             >
               <div class="card-image-wrap">
                 <span class="wear-ribbon" :class="`wear-ribbon--${item.rarityTone}`">{{ item.wear }}</span>
@@ -978,6 +1200,95 @@ const searchMonitorTasks = async () => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.02);
+}
+
+.global-search-wrap {
+  position: relative;
+  justify-self: end;
+  width: min(480px, 100%);
+}
+
+.global-search-wrap .global-search {
+  width: 100%;
+}
+
+.global-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8d9598;
+  cursor: pointer;
+}
+
+.global-search-clear:hover {
+  color: #d7dde0;
+}
+
+.global-search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(480px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid rgba(88, 169, 238, 0.18);
+  border-radius: 10px;
+  background: rgba(20, 23, 23, 0.98);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.global-search-loading,
+.global-search-option {
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.global-search-loading {
+  color: #9fa6a8;
+  font-size: 13px;
+}
+
+.global-search-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: transparent;
+  color: #d7dde0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.global-search-option:last-child {
+  border-bottom: 0;
+}
+
+.global-search-option:hover {
+  background: rgba(88, 169, 238, 0.1);
+  color: #f3f7f8;
+}
+
+.global-search-option img {
+  width: 42px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  object-fit: contain;
+  background: radial-gradient(circle at 50% 20%, rgba(100, 113, 118, 0.32), transparent 58%), #2d3030;
+}
+
+.global-search-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .global-search input,
@@ -1570,6 +1881,15 @@ const searchMonitorTasks = async () => {
   align-items: center;
   min-height: 72px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.inventory-row:hover,
+.inventory-row:focus-visible {
+  background: rgba(88, 169, 238, 0.06);
+  transform: translateX(2px);
+  outline: none;
 }
 
 .item-thumb {
@@ -1658,13 +1978,16 @@ const searchMonitorTasks = async () => {
   border-radius: 4px;
   background: linear-gradient(180deg, #2d3030 0%, #252828 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.inventory-card:hover {
+.inventory-card:hover,
+.inventory-card:focus-visible {
   border-color: rgba(88, 169, 238, 0.28);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
   transform: translateY(-3px);
+  outline: none;
 }
 
 .card-image-wrap {

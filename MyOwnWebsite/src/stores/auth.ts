@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+﻿import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import {
   AuthStorageKeys,
@@ -8,14 +8,42 @@ import {
 
 const TOKEN_KEY = AuthStorageKeys.TOKEN;
 const USER_KEY = AuthStorageKeys.USER;
+export const RegisteredAccountStorageKey = "registered_accounts";
 
+export interface RegisteredAccount {
+  username: string;
+  password: string;
+  email: string;
+  role: "user";
+  createdAt: string;
+}
+
+export const readRegisteredAccounts = (): RegisteredAccount[] => {
+  const savedAccounts = localStorage.getItem(RegisteredAccountStorageKey);
+
+  if (!savedAccounts) {
+    return [];
+  }
+
+  try {
+    const accounts = JSON.parse(savedAccounts);
+    return Array.isArray(accounts) ? accounts : [];
+  } catch (error) {
+    localStorage.removeItem(RegisteredAccountStorageKey);
+    return [];
+  }
+};
+
+export const writeRegisteredAccounts = (accounts: RegisteredAccount[]) => {
+  localStorage.setItem(RegisteredAccountStorageKey, JSON.stringify(accounts));
+};
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<AuthUser | null>(null);
   const isAuthenticated = ref(false);
   const initialized = ref(false);
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));
 
-  const accounts = [
+  const presetAccounts = [
     { username: "admin", password: "admin", role: "admin" },
     { username: "test", password: "test", role: "user" },
     { username: "Chonny", password: "obj96OBJ", role: "user" },
@@ -57,8 +85,9 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const login = (username: string, password: string) => {
-    const account = accounts.find(
-      (acc) => acc.username === username && acc.password === password,
+    const registeredAccounts = readRegisteredAccounts();
+    const account = [...presetAccounts, ...registeredAccounts].find(
+      (acc) => (acc.username === username || "email" in acc && acc.email === username) && acc.password === password,
     );
 
     if (account) {
@@ -94,3 +123,4 @@ export const useAuthStore = defineStore("auth", () => {
     CSQAQKey,
   };
 });
+

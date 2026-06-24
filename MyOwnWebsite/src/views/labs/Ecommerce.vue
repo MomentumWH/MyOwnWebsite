@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
-import { useRouter } from "vue-router";
+import ProjectNav from "@/components/projectNav/index.vue";
 import { useMessage } from "naive-ui";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
@@ -13,8 +13,6 @@ import { fetchProducts, login } from "@/services/apiCalls";
 use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent]);
 
 const message = useMessage();
-const router = useRouter();
-
 const features = ref([
   { name: "Product display and search", icon: "P" },
   { name: "Cart and checkout", icon: "C" },
@@ -115,10 +113,6 @@ let introTimeline: ReturnType<typeof createTimeline> | null = null;
 let drawerAnimation: ReturnType<typeof animate> | null = null;
 let drawerImageAnimation: ReturnType<typeof animate> | null = null;
 let productAnimation: ReturnType<typeof animate> | null = null;
-
-const goBack = () => {
-  router.back();
-};
 
 const handleFeatureClick = (featureName: string) => {
   currentFeature.value = featureName;
@@ -302,92 +296,158 @@ onBeforeUnmount(() => {
   productAnimation?.revert();
 });
 </script>
-
 <template>
   <div ref="pageRef" class="project-page">
-    <header class="fade-in-section">
-      <div class="header-line">
-        <div class="header-line-backButton">
-          <button @click="goBack" class="back-button">Back</button>
-        </div>
-        <div class="header-line-title">
+    <div class="project-shell">
+      <ProjectNav class="fade-in-section" />
+
+      <header class="project-hero fade-in-section">
+        <div class="hero-copy">
+          <span class="section-kicker">Commerce Lab</span>
           <h1>Ecommerce Platform</h1>
+          <p class="project-subtitle">
+            Built with Nuxt 3 and vue-echarts. 展示商品浏览、用户认证、图表统计与接口请求能力。
+          </p>
         </div>
-        <div class="header-line-content">
-          <p class="project-subtitle">Built with Nuxt 3 and vue-echarts.</p>
+        <aside class="hero-panel">
+          <div class="hero-stat">
+            <strong>{{ features.length }}</strong>
+            <span>核心业务能力</span>
+          </div>
+          <div class="hero-stat">
+            <strong>{{ techStack.length }}</strong>
+            <span>关键技术栈</span>
+          </div>
+          <div class="hero-stat">
+            <strong>{{ products.length }}</strong>
+            <span>已加载商品数据</span>
+          </div>
+        </aside>
+      </header>
+
+      <main class="content-grid">
+        <section class="content-card fade-in-section">
+          <span class="section-kicker">Overview</span>
+          <h2>项目介绍</h2>
+          <p>
+            This page demonstrates product browsing, auth flow, charts, and basic
+            API requests while keeping the original data access pattern intact.
+            页面结构已统一为首页同款蓝紫科技玻璃风格。
+          </p>
+        </section>
+
+        <section class="content-card fade-in-section">
+          <div class="section-heading-row">
+            <div>
+              <span class="section-kicker">Key Features</span>
+              <h2>核心功能</h2>
+            </div>
+            <span class="section-count">{{ features.length }} 项能力</span>
+          </div>
+          <div class="features-grid">
+            <article
+              v-for="feature in features"
+              :key="feature.name"
+              class="feature-card"
+              @click="handleFeatureClick(feature.name)"
+            >
+              <span class="feature-icon">{{ feature.icon }}</span>
+              <h3>{{ feature.name }}</h3>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <section class="content-card fade-in-section">
+        <div class="section-heading-row">
+          <div>
+            <span class="section-kicker">Tech Stack</span>
+            <h2>技术栈</h2>
+          </div>
+          <span class="section-count">{{ techStack.length }} 项技术</span>
         </div>
-      </div>
-    </header>
-
-    <section class="project-details fade-in-section">
-      <h2>Overview</h2>
-      <p>
-        This page demonstrates product browsing, auth flow, charts, and basic
-        API requests while keeping the original data access pattern intact.
-      </p>
-    </section>
-
-    <section class="project-features fade-in-section">
-      <h2>Key Features</h2>
-      <div class="features-grid">
-        <div
-          v-for="feature in features"
-          :key="feature.name"
-          class="feature-card"
-          @click="handleFeatureClick(feature.name)"
-        >
-          <span class="feature-icon">{{ feature.icon }}</span>
-          <h3>{{ feature.name }}</h3>
+        <div class="tech-grid">
+          <article v-for="tech in techStack" :key="tech.name" class="tech-card">
+            <span class="tech-icon">{{ tech.icon }}</span>
+            <h3>{{ tech.name }}</h3>
+          </article>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="project-tech fade-in-section">
-      <h2>Tech Stack</h2>
-      <div class="tech-grid">
-        <div
-          v-for="tech in techStack"
-          :key="tech.name"
-          class="tech-card"
-        >
-          <span class="tech-icon">{{ tech.icon }}</span>
-          <h3>{{ tech.name }}</h3>
+      <section class="content-card chart-section fade-in-section">
+        <div class="section-heading-row">
+          <div>
+            <span class="section-kicker">Analytics</span>
+            <h2>Category Share</h2>
+          </div>
+          <span class="section-count">Rose Chart</span>
         </div>
-      </div>
-    </section>
+        <VChart :option="ringChartOption" autoresize class="ring-chart" />
+      </section>
 
-    <section class="project-details fade-in-section">
-      <n-list clickable hoverable class="nListBoxBackgroundColor">
-        <n-list-item>
-          <template #prefix>
-            <n-button>Prefix</n-button>
-          </template>
-          <template #suffix>
-            <n-button>Suffix</n-button>
-          </template>
-          <n-thing
-            title="Thing"
-            title-extra="extra"
-            description="description"
-          />
-        </n-list-item>
-        <n-list-item>
-          <template #prefix>
-            <n-button>Prefix</n-button>
-          </template>
-          <template #suffix>
-            <n-button>Suffix</n-button>
-          </template>
-          <n-thing title="Thing" title-extra="extra" description="description">
-            Biu<br />
-            Biu<br />
-            Biu<br />
-          </n-thing>
-        </n-list-item>
-      </n-list>
-    </section>
+      <section class="content-card api-demo-section fade-in-section">
+        <div class="section-heading-row">
+          <div>
+            <span class="section-kicker">API Demo</span>
+            <h2>接口演示</h2>
+          </div>
+          <span class="section-count">Login / Products</span>
+        </div>
 
-    <footer class="project-footer fade-in-section"></footer>
+        <div class="demo-grid">
+          <n-card title="User Login" class="demo-card">
+            <form class="login-form" @submit.prevent="handleLogin">
+              <div class="form-group">
+                <label>Username</label>
+                <input
+                  v-model="loginData.username"
+                  class="form-input"
+                  type="text"
+                  placeholder="Enter username"
+                />
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input
+                  v-model="loginData.password"
+                  class="form-input"
+                  type="password"
+                  placeholder="Enter password"
+                />
+              </div>
+              <button class="demo-action submit-btn" :disabled="loginLoading">
+                {{ loginLoading ? "Logging in..." : "Login" }}
+              </button>
+            </form>
+          </n-card>
+
+          <n-card title="Product Data" class="demo-card">
+            <div class="product-demo">
+              <button class="demo-action fetch-btn" :disabled="loading" @click="handleFetchProducts">
+                {{ loading ? "Loading..." : "Fetch Products" }}
+              </button>
+
+              <div v-if="apiError" class="error-message">
+                {{ apiError }}
+              </div>
+
+              <div v-if="loading" class="loading-container">
+                <p>Loading products...</p>
+              </div>
+
+              <div v-if="products.length" class="products-list">
+                <article v-for="product in products" :key="product.id || product.name" class="product-item">
+                  <div class="product-info">
+                    <h4>{{ product.name || product.title || 'Product Item' }}</h4>
+                    <p>{{ product.description || JSON.stringify(product, null, 2) }}</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </n-card>
+        </div>
+      </section>
+    </div>
 
     <n-drawer
       v-model:show="showDrawer"
@@ -395,8 +455,7 @@ onBeforeUnmount(() => {
       placement="bottom"
       :content-style="{
         borderRadius: '24px 24px 0 0',
-        background:
-          'linear-gradient(135deg, rgba(153, 215, 239, 0.95) 0%, rgba(174, 183, 132, 0.95) 100%)',
+        background: 'linear-gradient(135deg, rgba(9, 24, 58, 0.96), rgba(49, 16, 95, 0.96))',
         backdropFilter: 'blur(20px)',
       }"
       style="border-radius: 24px 24px 0 0"
@@ -415,510 +474,412 @@ onBeforeUnmount(() => {
       </n-drawer-content>
     </n-drawer>
 
-    <section class="chart-section fade-in-section">
-      <h2>Category Share</h2>
-      <VChart :option="ringChartOption" autoresize class="ring-chart" />
-    </section>
-
-    <section class="api-demo-section fade-in-section">
-      <h2>API Demo</h2>
-
-      <n-card title="User Login" class="demo-card">
-        <div class="login-form">
-          <div class="form-group">
-            <label>Username</label>
-            <input
-              v-model="loginData.username"
-              type="text"
-              placeholder="Enter username"
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input
-              v-model="loginData.password"
-              type="password"
-              placeholder="Enter password"
-              class="form-input"
-            />
-          </div>
-          <n-button
-            type="primary"
-            @click="handleLogin"
-            :loading="loginLoading"
-            class="submit-btn"
-          >
-            Login
-          </n-button>
-        </div>
-      </n-card>
-
-      <n-card title="Fetch Products" class="demo-card">
-        <div class="product-demo">
-          <n-button
-            type="info"
-            @click="handleFetchProducts"
-            :loading="loading"
-            class="fetch-btn"
-          >
-            Fetch Products
-          </n-button>
-
-          <div v-if="apiError" class="error-message">
-            {{ apiError }}
-          </div>
-
-          <div v-if="products.length > 0" class="products-list">
-            <div
-              v-for="(product, index) in products"
-              :key="product.id ?? product.name ?? index"
-              class="product-item"
-            >
-              <div class="product-info">
-                <h4>Product {{ index + 1 }}</h4>
-                <p>{{ JSON.stringify(product, null, 2) }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="loading" class="loading-container">
-            <n-spin size="large" />
-            <p>Loading...</p>
-          </div>
-        </div>
-      </n-card>
-    </section>
-
     <n-back-top :right="100" />
   </div>
 </template>
 <style lang="scss" scoped>
 .project-page {
+  position: relative;
   min-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 4rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, #919776 0%, #72cbee 100%);
+  padding: 2rem 4rem 4rem;
+  overflow-x: hidden;
+  color: #f4fbff;
+  font-family: "Arial", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(0, 224, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(165, 92, 255, 0.38), transparent 30%),
+    radial-gradient(circle at 50% 88%, rgba(73, 108, 255, 0.28), transparent 36%),
+    linear-gradient(135deg, #050816 0%, #0b1741 42%, #31105f 72%, #14091f 100%);
+  background-attachment: fixed;
+}
+
+.project-page::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(102, 220, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(102, 220, 255, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 88%);
+}
+
+.project-page::after {
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    conic-gradient(from 120deg at 30% 50%, transparent, rgba(0, 238, 255, 0.14), transparent 28%),
+    conic-gradient(from 280deg at 72% 48%, transparent, rgba(177, 91, 255, 0.18), transparent 30%);
+  filter: blur(18px);
+  animation: auroraFloat 16s ease-in-out infinite alternate;
+}
+
+.project-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.5rem;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+}
+
+
+.back-button,
+.demo-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.75rem 1.25rem;
   color: white;
-}
-
-.project-header {
-  margin-bottom: 3rem;
-  text-align: center;
-}
-
-.project-footer {
-  margin-top: 4rem;
-  text-align: center;
-}
-
-.back-button {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #8a97d3 0%, #36e4a1 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.3s ease;
+  border: 1px solid rgba(215, 250, 255, 0.38);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.9), rgba(143, 92, 255, 0.92));
+  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.back-button:hover {
+.back-button:hover,
+.demo-action:hover {
+  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.34);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-.header-line {
+
+.project-hero,
+.content-card,
+.feature-card,
+.tech-card,
+.demo-card {
+  contain: layout paint;
+  border: 1px solid rgba(136, 220, 255, 0.24);
+  box-shadow:
+    0 24px 80px rgba(3, 9, 34, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 36px rgba(94, 178, 255, 0.14);
+  backdrop-filter: blur(18px);
+}
+
+.project-hero {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.72fr);
+  gap: 1.5rem;
+  min-height: 320px;
+  padding: 1.5rem;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(22, 42, 92, 0.72), rgba(74, 32, 128, 0.7)),
+    linear-gradient(90deg, rgba(0, 238, 255, 0.2), rgba(174, 94, 255, 0.22));
+}
+
+.hero-copy,
+.hero-panel,
+.content-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(9, 24, 58, 0.68), rgba(44, 25, 88, 0.58));
+}
+
+.hero-copy,
+.hero-panel {
   display: flex;
-  //justify-content: center;
-  //align-items: center;
   flex-direction: column;
-}
-.header-line-title {
-  text-align: center;
-  flex: 1;
-}
-.header-line-content {
-  text-align: center;
-  flex: 1;
-}
-.header-line-backButton {
-  margin-bottom: 2rem;
-  text-align: left;
-  flex: 1;
-}
-.project-header h1 {
-  font-size: 3rem;
-  color: white;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  justify-content: center;
+  padding: 2.2rem;
+  border: 1px solid rgba(138, 220, 255, 0.18);
 }
 
-/* 闂傚倷鑳剁划顖滃垝閻樿鍨傚ù鐓庣摠閸ゅ霉閸忓吋缍戦柣鎰躬閺岋綁骞囬棃娑橆潾婵犮垻鎳撻ˇ閬嶅焵?*/
-.chart-section {
-  margin-top: 4rem;
-  margin-bottom: 4rem;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
+.section-kicker {
+  display: inline-flex;
+  margin-bottom: 0.7rem;
+  color: #6ff0ff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(0, 238, 255, 0.46);
+}
+
+.project-hero h1 {
+  margin: 0;
+  color: #f7fbff;
+  font-family: "Times New Roman", Times, serif;
+  font-size: clamp(3rem, 5vw, 5rem);
+  line-height: 1.02;
+  text-shadow: 0 0 24px rgba(172, 128, 255, 0.36);
+}
+
+.project-subtitle,
+.content-card p,
+.action-copy p {
+  color: rgba(237, 247, 255, 0.78);
+  line-height: 1.85;
+}
+
+.project-subtitle {
+  max-width: 760px;
+  margin: 1rem 0 0;
+  font-size: 1.15rem;
+}
+
+.hero-panel {
+  gap: 1rem;
+}
+
+.hero-stat {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(138, 220, 255, 0.18);
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 217, 255, 0.08);
 }
 
-.chart-section h2 {
+.hero-stat strong {
+  color: #f4fbff;
+  font-size: 1.35rem;
+}
+
+.hero-stat span {
+  color: rgba(237, 247, 255, 0.68);
+  font-size: 0.9rem;
+}
+
+.content-grid,
+.demo-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.85fr) minmax(560px, 1.15fr);
+  gap: 1.5rem;
+}
+
+.content-card {
+  padding: 2rem;
+}
+
+.section-heading-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.content-card h2,
+.section-heading-row h2 {
+  margin: 0;
+  color: #c7f6ff;
   font-size: 1.75rem;
-  color: white;
-  margin-bottom: 2rem;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 0 18px rgba(0, 238, 255, 0.42);
+}
+
+.section-count {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.8rem;
+  color: #dffaff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border: 1px solid rgba(138, 220, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(0, 217, 255, 0.08);
+}
+
+.features-grid,
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+}
+
+.feature-card,
+.tech-card {
+  display: grid;
+  gap: 0.8rem;
+  min-height: 150px;
+  padding: 1.35rem;
+  color: #f4fbff;
+  cursor: pointer;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(12, 31, 72, 0.78), rgba(53, 27, 101, 0.72));
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tech-card {
+  cursor: default;
+}
+
+.feature-card:hover,
+.tech-card:hover {
+  border-color: rgba(122, 232, 255, 0.48);
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.32), 0 0 32px rgba(0, 238, 255, 0.2);
+  transform: translateY(-6px);
+}
+
+.feature-icon,
+.tech-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  font-size: 1.7rem;
+  border: 1px solid rgba(203, 246, 255, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0, 194, 255, 0.22), rgba(143, 92, 255, 0.3));
+}
+
+.feature-card h3,
+.tech-card h3 {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.45;
+}
+
+.chart-section,
+.api-demo-section {
+  display: grid;
+  gap: 1.25rem;
 }
 
 .ring-chart {
   width: 100%;
-  height: 500px;
-}
-
-.project-subtitle {
-  font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 2rem;
-}
-
-.project-details {
-  margin-bottom: 3rem;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.project-details h2 {
-  font-size: 1.75rem;
-  color: white;
-  margin-bottom: 1rem;
-}
-
-.project-details p {
-  font-size: 1.125rem;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.8;
-}
-
-.project-features {
-  margin-bottom: 3rem;
-}
-
-.project-features h2 {
-  font-size: 1.75rem;
-  color: white;
-  margin-bottom: 2rem;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.feature-card {
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  will-change: transform, opacity;
-}
-
-.feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2);
-  border-color: rgba(102, 126, 234, 0.3);
-}
-
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.feature-card h3 {
-  font-size: 1.25rem;
-  color: white;
-}
-
-.project-tech {
-  margin-bottom: 3rem;
-}
-
-.project-tech h2 {
-  font-size: 1.75rem;
-  color: white;
-  margin-bottom: 2rem;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.tech-card {
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  will-change: transform, opacity;
-}
-
-.tech-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2);
-  border-color: rgba(102, 126, 234, 0.3);
-}
-
-.tech-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.tech-card h3 {
-  font-size: 1.25rem;
-  color: white;
-}
-
-.fade-in-section {
-  will-change: transform, opacity;
-}
-
-.drawer-content {
-  padding: 2rem;
-  text-align: center;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  will-change: transform, opacity;
-}
-
-.drawer-content h3 {
-  font-size: 1.5rem;
-  color: white;
-  margin-bottom: 2rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  flex-shrink: 0;
-}
-
-.carousel-item {
-  width: 100%;
-  height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.carousel-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-.carousel-img {
-  will-change: transform, opacity;
-}
-
-:deep(.n-carousel) {
-  flex: 1;
-  min-height: 0;
-}
-
-:deep(.n-carousel__slides) {
-  height: 100%;
-}
-
-:deep(.n-carousel__slide) {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.n-carousel__dots) {
-  bottom: 20px;
-}
-
-:deep(.n-carousel__dot) {
-  background-color: rgba(255, 255, 255, 0.4);
-  width: 24px;
-  height: 4px;
-}
-
-:deep(.n-carousel__dot--active) {
-  background-color: white;
-  width: 32px;
-}
-
-.feature-card {
-  cursor: pointer;
-}
-.nListBoxBackgroundColor {
-  background: linear-gradient(
-    135deg,
-    rgba(153, 215, 239, 0.95) 0%,
-    rgba(174, 183, 132, 0.95) 100%
-  );
-  border-radius: 20px;
-}
-:deep(.n-list.n-list--hoverable .n-list-item:hover) {
-  background: linear-gradient(
-    135deg,
-    rgba(174, 183, 132, 0.95) 0%,
-    rgba(153, 215, 239, 0.95) 100%
-  );
-  border-radius: 20px;
-}
-
-/* API Demo闂傚倷绀侀幖顐ょ矓閹绢喖搴婇柤纰卞墯椤?*/
-.api-demo-section {
-  margin-top: 4rem;
-  margin-bottom: 4rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.api-demo-section h2 {
-  font-size: 1.75rem;
-  color: white;
-  margin-bottom: 2rem;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  height: 440px;
 }
 
 .demo-card {
-  margin: 2rem;
-  //flex: 1;
-  background: transparent;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  //border: none;
-  will-change: transform, opacity;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(12, 31, 72, 0.72), rgba(53, 27, 101, 0.68));
 }
 
-.login-form {
-  padding: 1rem;
+:deep(.n-card) {
+  color: #f4fbff;
+  border: 1px solid rgba(138, 220, 255, 0.18);
+  background: transparent;
+}
+
+:deep(.n-card-header) {
+  color: #c7f6ff;
+  font-weight: 900;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: 600;
+  color: rgba(237, 247, 255, 0.78);
+  font-weight: 800;
 }
 
 .form-input {
-  //flex: 1;
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
+  padding: 0.8rem 0.9rem;
+  color: #f4fbff;
+  border: 1px solid rgba(138, 220, 255, 0.22);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(5, 8, 22, 0.46);
 }
 
 .form-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: rgba(111, 240, 255, 0.62);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.12);
 }
 
-.submit-btn {
-  width: 100%;
-  padding: 0.75rem;
-  font-size: 1rem;
-}
-
-.product-demo {
+.error-message,
+.product-item,
+.loading-container {
   padding: 1rem;
-}
-
-.fetch-btn {
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(138, 220, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(5, 8, 22, 0.36);
 }
 
 .error-message {
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background: #fee;
-  border-left: 4px solid #f56565;
-  border-radius: 4px;
-  color: #c53030;
+  color: #ffb4ad;
+  border-color: rgba(255, 124, 124, 0.28);
 }
 
 .products-list {
+  display: grid;
+  gap: 1rem;
+  max-height: 420px;
   margin-top: 1rem;
-}
-
-.product-item {
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background: #f7fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  will-change: transform, opacity;
+  overflow: auto;
 }
 
 .product-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #2d3748;
-  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+  color: #f4fbff;
 }
 
 .product-info p {
   margin: 0;
-  color: #4a5568;
-  font-size: 0.9rem;
+  color: rgba(237, 247, 255, 0.72);
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
 }
 
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: #666;
+.carousel-img {
+  width: 100%;
+  height: 440px;
+  object-fit: cover;
+  border-radius: 18px;
 }
 
-.loading-container p {
-  margin-top: 1rem;
-  font-size: 1rem;
+.drawer-content {
+  height: 100%;
 }
-:deep(.n-card) {
-  width: auto;
+
+@keyframes auroraFloat {
+  0% { transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1); }
+  100% { transform: translate3d(2%, 1%, 0) rotate(8deg) scale(1.08); }
+}
+
+@media (max-width: 1280px) {
+  .project-page {
+    min-width: 0;
+    padding: 1.5rem;
+  }
+
+  .project-hero,
+  .content-grid,
+  .demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .project-page {
+    padding: 1rem;
+  }
+
+  .hero-copy,
+  .hero-panel,
+  .content-card {
+    padding: 1.25rem;
+  }
+
+  .project-hero h1 {
+    font-size: 3rem;
+  }
+
+  .section-heading-row {
+    flex-direction: column;
+  }
 }
 </style>
+
+

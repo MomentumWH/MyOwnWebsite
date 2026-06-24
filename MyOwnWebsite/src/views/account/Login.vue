@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
@@ -14,7 +14,7 @@ const password = ref("");
 const rememberMe = ref(false);
 const isLoading = ref(false);
 
-// 星星动画
+// 鏄熸槦鍔ㄧ敾
 interface Star {
   id: number;
   x: number;
@@ -69,36 +69,25 @@ const updateStars = () => {
     }
   }
 
-  // 移除超出屏幕的星星
-
-  // 添加新星星
   if (stars.value.length < 100) {
     stars.value.push(createStar());
   }
 };
 
 const updateLines = () => {
+  const cos45 = Math.cos(Math.PI / 4);
+
   for (let index = lines.value.length - 1; index >= 0; index -= 1) {
     const line = lines.value[index];
     line.x -= line.speed;
     line.y += line.speed;
 
-    const endX = line.x + line.length * Math.cos(Math.PI / 4);
+    const endX = line.x + line.length * cos45;
     if (!(endX > 0 && line.y < window.innerHeight)) {
       lines.value.splice(index, 1);
     }
   }
 
-  // 移除完全超出屏幕的线条（考虑45度旋转后的实际位置）
-  const cos45 = Math.cos(Math.PI / 4);
-  lines.value = lines.value.filter((line) => {
-    // 计算线条右端点的x坐标
-    const endX = line.x + line.length * cos45;
-    // 保留仍有部分在屏幕内的线条
-    return endX > 0 && line.y < window.innerHeight;
-  });
-
-  // 添加新线条
   if (lines.value.length < 20) {
     lines.value.push(createLine());
   }
@@ -121,30 +110,33 @@ onUnmounted(() => {
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    message.error("用户名或密码不能为空");
+    message.error("鐢ㄦ埛鍚嶆垨瀵嗙爜涓嶈兘涓虹┖");
     return;
   }
 
   isLoading.value = true;
 
-  // 模拟登录延迟
+  // 妯℃嫙鐧诲綍寤惰繜
   setTimeout(async () => {
-    // 使用 Pinia 进行登录校验
+    // 浣跨敤 Pinia 杩涜鐧诲綍鏍￠獙
     const success = authStore.login(username.value, password.value);
 
     if (success) {
-      message.success("登录成功");
-      // 获取重定向路径
-      const redirect = router.currentRoute.value.query.redirect;
+      message.success("鐧诲綍鎴愬姛");
+      // 鑾峰彇閲嶅畾鍚戣矾寰?      const redirect = router.currentRoute.value.query.redirect;
       const target = resolvePostLoginRedirect(redirect);
 
       await router.replace(target);
     } else {
-      message.error("用户名或密码错误");
+      message.error("鐢ㄦ埛鍚嶆垨瀵嗙爜閿欒");
     }
 
     isLoading.value = false;
   }, 1000);
+};
+
+const goToRegister = () => {
+  router.push("/register");
 };
 
 const useTestAccount = (type: "admin" | "user" | "Chonny") => {
@@ -208,19 +200,12 @@ const useTestAccount = (type: "admin" | "user" | "Chonny") => {
         <div class="account-item">
           <span class="account-label">管理员:</span>
           <span class="account-info">admin / admin</span>
-          <button @click="useTestAccount('admin')" class="use-btn">使用</button>
+          <button class="use-btn" @click="useTestAccount('admin')">使用</button>
         </div>
-        <!-- <div class="account-item">
-          <span class="account-label">测试用户:</span>
-          <span class="account-info">test / test</span>
-          <button @click="useTestAccount('user')" class="use-btn">使用</button>
-        </div> -->
         <div class="account-item">
           <span class="account-label">Producer:</span>
           <span class="account-info">Chonny / obj96OBJ</span>
-          <button @click="useTestAccount('Chonny')" class="use-btn">
-            使用
-          </button>
+          <button class="use-btn" @click="useTestAccount('Chonny')">使用</button>
         </div>
       </div>
 
@@ -255,14 +240,14 @@ const useTestAccount = (type: "admin" | "user" | "Chonny") => {
           <a href="#" class="forgot-password">忘记密码?</a>
         </div>
 
-        <button @click="handleLogin" class="login-btn" :disabled="isLoading">
+        <button class="login-btn" :disabled="isLoading" @click="handleLogin">
           <span v-if="!isLoading">登录</span>
           <span v-else>登录中...</span>
         </button>
 
         <div class="register-link">
           <span>还没有账户?</span>
-          <a href="#" class="register-btn">立即注册</a>
+          <button class="register-btn" type="button" @click="goToRegister">立即注册</button>
         </div>
       </div>
     </div>
@@ -543,13 +528,20 @@ const useTestAccount = (type: "admin" | "user" | "Chonny") => {
 }
 
 .register-btn {
-  color: #667eea;
-  text-decoration: none;
   margin-left: 0.5rem;
+  color: #667eea;
   font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }
 
 .register-btn:hover {
   text-decoration: underline;
 }
 </style>
+
+
+
+
+

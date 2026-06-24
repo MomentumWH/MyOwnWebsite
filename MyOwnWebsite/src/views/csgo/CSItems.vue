@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { debounce } from "lodash";
 import { useElementSize, useWindowSize } from "@vueuse/core";
 import { NButton, NLayout, NLayoutHeader, NLayoutContent } from "naive-ui";
@@ -53,6 +53,7 @@ const SUB_DATA_DELAY = 1500;
 const KLINE_REQUEST_DELAY = 3000;
 
 const router = useRouter();
+const route = useRoute();
 const pageRef = useTemplateRef<HTMLElement>("pageRef");
 const { clearMotions, playStaggerIn, playTimeline, pulse } =
   useCsgoPageMotion(pageRef);
@@ -64,6 +65,11 @@ let subDataTimer: ReturnType<typeof setTimeout> | null = null;
 let kLineRequestTimer: ReturnType<typeof setTimeout> | null = null;
 let isPageUnmounted = false;
 const activeNavItem = ref("home");
+const sectionSelectorMap: Record<string, string> = {
+  ranking: ".ranking-section",
+  knife: ".market-card",
+  series: ".hot-items-section",
+};
 const menuOptions = [
   { label: "首页", key: "home", icon: HomeOutline },
   { label: "饰品列表", key: "items", icon: ListOutline },
@@ -796,8 +802,37 @@ watch(
 watch(isPageLoading, (loading) => {
   if (!loading) {
     void animateDashboardIntro();
+    scrollToRouteSection();
   }
 });
+
+watch(
+  () => route.query.section,
+  () => {
+    scrollToRouteSection();
+  },
+);
+
+const scrollToRouteSection = () => {
+  const section = route.query.section;
+
+  if (typeof section !== "string") {
+    return;
+  }
+
+  const selector = sectionSelectorMap[section];
+
+  if (!selector) {
+    return;
+  }
+
+  activeNavItem.value = section;
+  nextTick(() => {
+    window.setTimeout(() => {
+      document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  });
+};
 
 onMounted(() => {
   const loadingStartedAt = Date.now();
@@ -876,6 +911,7 @@ onMounted(() => {
 
   //getCurrentData()
   window.addEventListener("resize", resizeChart);
+  scrollToRouteSection();
 });
 onUnmounted(() => {
   isPageUnmounted = true;
