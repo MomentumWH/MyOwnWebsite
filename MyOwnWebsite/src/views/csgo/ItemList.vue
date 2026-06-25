@@ -50,9 +50,9 @@
           </div>
           <n-space>
             <n-button quaternary class="header-btn">登录</n-button>
-            <n-button type="primary" class="header-btn register-btn"
-              >注册</n-button
-            >
+            <n-button type="primary" class="header-btn register-btn">
+              注册
+            </n-button>
             <n-button class="back-btn" @click="goHome">
               <template #icon>
                 <n-icon><ArrowBackOutline /></n-icon>
@@ -142,64 +142,13 @@
         </div>
       </div>
 
-      <n-drawer
+      <CsgoFilterDrawer
         v-model:show="showFilterDrawer"
-        placement="right"
-        size="600"
-        :native-scrollbar="false"
-      >
-        <n-drawer-content :bordered="false" closable>
-          <div ref="filterDrawerRef" class="filter-drawer-wrapper">
-            <div class="filter-nav">
-              <div
-                v-for="(group, index) in filterGroups"
-                :key="group.name"
-                class="nav-item"
-                :class="{ active: activeFilterNav === index }"
-                @click="scrollToGroup(index)"
-              >
-                {{ group.name }}
-              </div>
-            </div>
-            <div class="filter-content">
-              <div
-                v-for="(group, groupIndex) in filterGroups"
-                :key="group.name"
-                class="filter-group"
-                :ref="(el) => setGroupRef(el, groupIndex)"
-              >
-                <h4 class="group-title">{{ group.name }}</h4>
-                <div class="filter-options">
-                  <div
-                    v-for="option in group.options"
-                    :key="option.value"
-                    class="filter-option"
-                    :class="{
-                      active: isOptionSelected(group.name, option.value),
-                    }"
-                    @click="toggleFilter(group.name, option.value)"
-                  >
-                    {{ option.label }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="filter-drawer-footer">
-            <n-button class="footer-btn reset-btn" @click="resetFilters">
-              重置
-            </n-button>
-            <n-button
-              type="primary"
-              class="footer-btn apply-btn"
-              @click="applyFilters"
-            >
-              完成
-            </n-button>
-          </div>
-        </n-drawer-content>
-      </n-drawer>
+        v-model:selected-values="selectedFilters"
+        :groups="filterGroups"
+        @opened="animateFilterDrawer"
+        @apply="applyFilters"
+      />
     </n-layout-content>
     </n-layout>
   </div>
@@ -215,8 +164,6 @@ import {
   NLayoutContent,
   NSpace,
   NSelect,
-  NDrawer,
-  NDrawerContent,
 } from "naive-ui";
 import {
   HomeOutline,
@@ -231,11 +178,15 @@ import {
   ArrowBackOutline,
 } from "@vicons/ionicons5";
 import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
+import CsgoFilterDrawer from "@/components/csgo/CsgoFilterDrawer.vue";
+import type {
+  CsgoFilterGroup,
+  CsgoFilterValues,
+} from "@/components/csgo/filterDrawerTypes";
 import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 
 const router = useRouter();
 const pageRef = useTemplateRef<HTMLElement>("pageRef");
-const filterDrawerRef = useTemplateRef<HTMLElement>("filterDrawerRef");
 const { clearMotions, playStaggerIn, playTimeline, pulse } =
   useCsgoPageMotion(pageRef);
 
@@ -245,113 +196,212 @@ const showSearchDropdown = ref(false);
 const activeCategoryTab = ref("all");
 const sortOrder = ref("price-asc");
 const showFilterDrawer = ref(false);
-const activeFilterNav = ref(0);
-const groupRefs = ref<(HTMLElement | null)[]>([]);
 
-const setGroupRef = (el: HTMLElement | null, index: number) => {
-  if (el) {
-    groupRefs.value[index] = el;
-  }
-};
-
-const scrollToGroup = (index: number) => {
-  activeFilterNav.value = index;
-  const groupEl = groupRefs.value[index];
-  if (groupEl) {
-    const contentEl = groupEl.parentElement;
-    if (contentEl) {
-      contentEl.scrollTo({
-        top: groupEl.offsetTop - 20,
-        behavior: "smooth",
-      });
-    }
-  }
-};
-
-const selectedFilters = ref<Record<string, Set<string>>>({
-  匕首: new Set(),
-  手套: new Set(),
-  步枪: new Set(),
+const selectedFilters = ref<CsgoFilterValues>({
+  类型: [],
+  品质: [],
+  类别: [],
+  磨损: [],
 });
 
-const filterGroups = ref([
+const filterGroups = ref<CsgoFilterGroup[]>([
   {
-    name: "匕首",
-    options: [
-      { label: "不限", value: "all" },
-      { label: "蝴蝶刀", value: "butterfly" },
-      { label: "M9 刺刀", value: "m9" },
-      { label: "爪子刀", value: "karambit" },
-      { label: "廓尔喀刀", value: "gurkha" },
-      { label: "骷髅匕首", value: "skeleton" },
-      { label: "刺刀", value: "bayonet" },
-      { label: "锯齿爪刀", value: "talon" },
-      { label: "流浪者匕首", value: "nomad" },
-      { label: "折叠刀", value: "flip" },
-      { label: "短剑", value: "stiletto" },
-      { label: "海豹短刀", value: "seal" },
-      { label: "熊刀", value: "bear" },
-      { label: "猎杀者匕首", value: "huntsman" },
-      { label: "系绳匕首", value: "tether" },
-      { label: "求生匕首", value: "survival" },
-      { label: "暗影双刃", value: "shadow" },
-      { label: "鲍伊猎刀", value: "bowie" },
-      { label: "弯刀", value: "scimitar" },
-      { label: "穿肠刀", value: "gut" },
-      { label: "折刀", value: "claw" },
+    name: "类型",
+    sections: [
+      {
+        title: "匕首",
+        options: [
+          { label: "不限", value: "knife-all" },
+          { label: "蝴蝶刀", value: "butterfly" },
+          { label: "M9 刺刀", value: "m9" },
+          { label: "爪子刀", value: "karambit" },
+          { label: "廓尔喀刀", value: "kukri" },
+          { label: "骷髅匕首", value: "skeleton" },
+          { label: "刺刀", value: "bayonet" },
+          { label: "锯齿爪刀", value: "talon" },
+          { label: "流浪者匕首", value: "nomad" },
+          { label: "折叠刀", value: "flip" },
+          { label: "短剑", value: "stiletto" },
+          { label: "海豹短刀", value: "navaja" },
+          { label: "熊刀", value: "ursus" },
+          { label: "猎杀者匕首", value: "huntsman" },
+          { label: "系绳匕首", value: "paracord" },
+          { label: "求生匕首", value: "survival" },
+          { label: "弯刀", value: "falchion" },
+          { label: "暗影双匕", value: "shadow" },
+          { label: "鲍伊猎刀", value: "bowie" },
+          { label: "穿肠刀", value: "gut" },
+          { label: "折刀", value: "classic" },
+        ],
+      },
+      {
+        title: "手套",
+        options: [
+          { label: "不限", value: "glove-all" },
+          { label: "运动手套", value: "sport" },
+          { label: "专业手套", value: "specialist" },
+          { label: "摩托手套", value: "moto" },
+          { label: "驾驶手套", value: "driver" },
+          { label: "手部束带", value: "handwrap" },
+          { label: "狂牙手套", value: "fang" },
+          { label: "九头蛇手套", value: "hydra" },
+          { label: "血猎手套", value: "bloodhound" },
+        ],
+      },
+      {
+        title: "步枪",
+        options: [
+          { label: "不限", value: "rifle-all" },
+          { label: "AK-47", value: "ak47" },
+          { label: "AWP", value: "awp" },
+          { label: "M4A1消音版", value: "m4a1s" },
+          { label: "M4A4", value: "m4a4" },
+          { label: "AUG", value: "aug" },
+          { label: "SG 553", value: "sg553" },
+          { label: "法玛斯", value: "famas" },
+          { label: "加利尔AR", value: "galil-ar" },
+          { label: "SSG 08", value: "ssg08" },
+          { label: "SCAR-20", value: "scar20" },
+          { label: "G3SG1", value: "g3sg1" },
+        ],
+      },
+      {
+        title: "手枪",
+        options: [
+          { label: "不限", value: "pistol-all" },
+          { label: "沙漠之鹰", value: "deagle" },
+          { label: "USP消音版", value: "usp-s" },
+          { label: "格洛克18型", value: "glock18" },
+          { label: "P2000", value: "p2000" },
+          { label: "P250", value: "p250" },
+          { label: "FN57", value: "five-seven" },
+          { label: "R8左轮手枪", value: "r8-revolver" },
+          { label: "Tec-9", value: "tec9" },
+          { label: "双持贝瑞塔", value: "dual-berettas" },
+          { label: "CZ75自动手枪", value: "cz75-auto" },
+          { label: "电击枪", value: "zeus" },
+        ],
+      },
+      {
+        title: "微型冲锋枪",
+        options: [
+          { label: "不限", value: "smg-all" },
+          { label: "MP9", value: "mp9" },
+          { label: "MAC-10", value: "mac10" },
+          { label: "UMP-45", value: "ump45" },
+          { label: "P90", value: "p90" },
+          { label: "MP7", value: "mp7" },
+          { label: "PP-野牛", value: "pp-bizon" },
+          { label: "MP5-SD", value: "mp5-sd" },
+        ],
+      },
+      {
+        title: "霰弹枪",
+        options: [
+          { label: "XM1014", value: "xm1014" },
+          { label: "MAG-7", value: "mag7" },
+          { label: "截短霰弹枪", value: "sawed-off" },
+          { label: "新星", value: "nova" },
+        ],
+      },
+      {
+        title: "机枪",
+        options: [
+          { label: "M249", value: "m249" },
+          { label: "内格夫", value: "negev" },
+        ],
+      },
+      {
+        title: "其他",
+        options: [
+          { label: "武器箱", value: "weapon-case" },
+          { label: "音乐盒", value: "music-kit" },
+          { label: "印花", value: "sticker" },
+          { label: "工具", value: "tool" },
+          { label: "收藏品", value: "collectible" },
+          { label: "布章", value: "patch" },
+          { label: "通行证", value: "pass" },
+          { label: "挂件", value: "charm" },
+        ],
+      },
+      {
+        title: "探员",
+        options: [
+          { label: "不限", value: "agent-all" },
+          { label: "反恐精英", value: "ct-agent" },
+          { label: "恐怖分子", value: "t-agent" },
+        ],
+      },
     ],
   },
   {
-    name: "手套",
-    options: [
-      { label: "不限", value: "all" },
-      { label: "运动手套", value: "sport" },
-      { label: "摩托手套", value: "moto" },
-      { label: "驾驶手套", value: "driver" },
-      { label: "手部束带", value: "handwrap" },
-      { label: "狂牙手套", value: "fang" },
-      { label: "九头蛇手套", value: "hydra" },
-      { label: "血猎手套", value: "bloodhound" },
+    name: "品质",
+    sections: [
+      {
+        title: "品质",
+        options: [
+          { label: "违禁", value: "contraband" },
+          { label: "隐秘", value: "covert" },
+          { label: "保密", value: "classified" },
+          { label: "受限", value: "restricted" },
+          { label: "军规级", value: "mil-spec" },
+          { label: "工业级", value: "industrial" },
+          { label: "消费级", value: "consumer" },
+          { label: "普通级", value: "base" },
+        ],
+      },
+      {
+        title: "贴纸品质",
+        options: [
+          { label: "非凡", value: "remarkable" },
+          { label: "卓越", value: "exotic" },
+          { label: "奇异", value: "extraordinary" },
+          { label: "高级", value: "high-grade" },
+        ],
+      },
+      {
+        title: "探员品质",
+        options: [
+          { label: "高级", value: "agent-superior" },
+          { label: "卓越", value: "agent-exceptional" },
+          { label: "非凡", value: "agent-remarkable" },
+          { label: "大师", value: "agent-master" },
+        ],
+      },
     ],
   },
   {
-    name: "步枪",
-    options: [
-      { label: "不限", value: "all" },
-      { label: "AK-47", value: "ak47" },
-      { label: "AWP", value: "awp" },
-      { label: "M4A1 消音版", value: "m4a1s" },
-      { label: "M4A4", value: "m4a4" },
-      { label: "SG 553", value: "sg553" },
-      { label: "AUG", value: "aug" },
-      { label: "法玛斯", value: "famas" },
-      { label: "加利尔 AR", value: "galil" },
+    name: "类别",
+    sections: [
+      {
+        title: "类别",
+        options: [
+          { label: "普通", value: "normal" },
+          { label: "纪念品", value: "souvenir" },
+          { label: "StatTrak™", value: "stattrak" },
+          { label: "★", value: "star" },
+          { label: "★ StatTrak™", value: "star-stattrak" },
+        ],
+      },
+    ],
+  },
+  {
+    name: "磨损",
+    sections: [
+      {
+        title: "磨损",
+        options: [
+          { label: "崭新出厂", value: "factory-new" },
+          { label: "略有磨损", value: "minimal-wear" },
+          { label: "久经沙场", value: "field-tested" },
+          { label: "破损不堪", value: "well-worn" },
+          { label: "战痕累累", value: "battle-scarred" },
+          { label: "无涂装", value: "not-painted" },
+        ],
+      },
     ],
   },
 ]);
-
-const toggleFilter = (groupName: string, optionValue: string) => {
-  const groupFilters = selectedFilters.value[groupName];
-
-  if (optionValue === "all") {
-    groupFilters.clear();
-  } else {
-    if (groupFilters.has(optionValue)) {
-      groupFilters.delete(optionValue);
-    } else {
-      groupFilters.add(optionValue);
-    }
-  }
-};
-
-const isOptionSelected = (groupName: string, optionValue: string) => {
-  const groupFilters = selectedFilters.value[groupName];
-  if (optionValue === "all") {
-    return groupFilters.size === 0;
-  }
-  return groupFilters.has(optionValue);
-};
-
 const qualityOptions = [
   { label: "不限", value: "" },
   { label: "普通", value: "normal" },
@@ -373,8 +423,8 @@ const categoryOptions = [
 const wearOptions = [
   { label: "不限", value: "" },
   { label: "崭新出厂", value: "factory-new" },
-  { label: "略有磨损", value: "field-tested" },
-  { label: "久经沙场", value: "battle-scarred" },
+  { label: "久经沙场", value: "field-tested" },
+  { label: "战痕累累", value: "battle-scarred" },
   { label: "破损不堪", value: "well-worn" },
   { label: "战痕累累", value: "scarred" },
 ];
@@ -392,8 +442,8 @@ const menuOptions = [
 const categoryTabs = [
   { label: "全部", key: "all" },
   { label: "崭新出厂", key: "factory-new" },
-  { label: "略有磨损", key: "field-tested" },
-  { label: "久经沙场", key: "battle-scarred" },
+  { label: "久经沙场", key: "field-tested" },
+  { label: "战痕累累", key: "battle-scarred" },
   { label: "破损不堪", key: "well-worn" },
   { label: "战痕累累", key: "scarred" },
 ];
@@ -517,7 +567,7 @@ const hotItems = ref([
   },
   {
     id: 12,
-    name: "海军上尉迷彩服 | 海军军官",
+    name: "海军上尉迈克尔 | 海军军官",
     price: 237,
     stock: 3145,
     image:
@@ -548,15 +598,8 @@ const filteredItems = computed(() => {
   return result;
 });
 
-const resetFilters = () => {
-  filterGroups.value.forEach((group) => {
-    selectedFilters.value[group.name].clear();
-  });
-};
-
-const applyFilters = () => {
-  console.log("应用筛选条件:", selectedFilters.value);
-  showFilterDrawer.value = false;
+const applyFilters = (filters: CsgoFilterValues) => {
+  console.log("应用筛选条件", filters);
 };
 
 const toggleFilterDrawer = () => {
@@ -575,6 +618,12 @@ const handleNavClick = (item: any) => {
     router.push("/item-list");
   } else if (item.key === "cs-items") {
     router.push("/cs-items");
+  } else if (item.key === "ranking") {
+    router.push("/item-ranking");
+  } else if (item.key === "inventory") {
+    router.push("/inventory-monitor");
+  } else if (item.key === "knife") {
+    router.push("/knife-market");
   }
 };
 
@@ -652,14 +701,10 @@ const animateFilteredItems = async () => {
   });
 };
 
-const animateFilterDrawer = async () => {
-  if (!filterDrawerRef.value) {
-    return;
-  }
-
-  await pulse(filterDrawerRef.value, { scale: 1.01, duration: 220 });
+const animateFilterDrawer = async (drawerElement: HTMLElement) => {
+  await pulse(drawerElement, { scale: 1.01, duration: 220 });
   await playStaggerIn({
-    targets: filterDrawerRef.value.querySelectorAll(".filter-group"),
+    targets: drawerElement.querySelectorAll(".filter-group"),
     fromX: 18,
     fromY: 0,
     fromScale: 1,
@@ -677,12 +722,6 @@ onMounted(() => {
   });
 
   void animatePageIntro();
-});
-
-watch(showFilterDrawer, (isOpen) => {
-  if (isOpen) {
-    void animateFilterDrawer();
-  }
 });
 
 watch(
@@ -1169,199 +1208,10 @@ watch(activeCategoryTab, () => {
   will-change: transform, opacity;
 }
 
-:deep(.n-drawer) {
-  .n-drawer-content-wrapper {
-    background: #1a1a2e;
-  }
-}
-
-:deep(.n-drawer-header) {
-  background: #1a1a2e;
-  border-bottom: 1px solid #2a2a4e;
-  padding: 20px 24px;
-
-  .n-drawer-header__title {
-    color: #fff;
-    font-size: 1.2rem;
-    font-weight: 600;
-  }
-
-  .n-drawer-header__close {
-    color: #888;
-
-    &:hover {
-      color: #fff;
-    }
-  }
-}
-
-:deep(.n-drawer-body) {
-  background: #1a1a2e;
-  padding: 0;
-}
-
-.filter-drawer-wrapper {
-  display: flex;
-  height: calc(100vh - 140px);
-  max-height: calc(100vh - 140px);
-}
-
-.filter-nav {
-  width: 100px;
-  background: rgba(21, 21, 42, 0.9);
-  border-right: 1px solid #2a2a4e;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 0;
-  flex-shrink: 0;
-
-  .nav-item {
-    padding: 12px 16px;
-    color: #667eea;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: right;
-    transition: all 0.2s ease;
-    position: relative;
-
-    &:hover {
-      color: #8b9eff;
-    }
-
-    &.active {
-      color: #fff;
-
-      &::after {
-        content: "";
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: #667eea;
-        border-radius: 2px 0 0 2px;
-      }
-    }
-  }
-}
-
-.filter-content {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  background: rgba(26, 26, 46, 0.9);
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #2a2a4e;
-    border-radius: 3px;
-  }
-}
-
-.filter-group {
-  margin-bottom: 32px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.group-title {
-  margin: 0 0 16px 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #aaa;
-}
-
-.filter-section {
-  margin-bottom: 32px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.filter-title {
-  margin: 0 0 16px 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-}
-
-.filter-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.filter-option {
-  padding: 10px 16px;
-  background: rgba(42, 42, 78, 0.9);
-  border: 1px solid #3a3a5e;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #aaa;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #3a3a5e;
-    border-color: #4a4a6e;
-    color: #fff;
-  }
-
-  &.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: transparent;
-    color: #fff;
-  }
-}
-
-.filter-drawer-footer {
-  display: flex;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #2a2a4e;
-  background: rgba(26, 26, 46, 0.9);
-}
-
-.footer-btn {
-  flex: 1;
-  height: 44px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border-radius: 8px;
-}
-
-.reset-btn {
-  background: #2a2a4e;
-  border: 1px solid #3a3a5e;
-  color: #aaa;
-
-  &:hover {
-    background: #3a3a5e;
-    color: #fff;
-    border-color: #4a4a6e;
-  }
-}
-
-.apply-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: #fff;
-}
-
 :deep(.n-layout) {
   background: transparent !important;
 }
 </style>
+
+
+

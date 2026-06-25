@@ -87,7 +87,19 @@ const routes: RouteRecordRaw[] = [
     path: "/inventory-monitor",
     name: "inventory-monitor",
     component: () => import("@/views/csgo/InventoryMonitor.vue"),
-    meta: { title: "搴撳瓨鐩戞帶" },
+    meta: { title: "库存监控" },
+  },
+  {
+    path: "/knife-market",
+    name: "knife-market",
+    component: () => import("@/views/csgo/KnifeMarket.vue"),
+    meta: { title: "挂刀行情" },
+  },
+  {
+    path: "/item-ranking",
+    name: "item-ranking",
+    component: () => import("@/views/csgo/ItemRanking.vue"),
+    meta: { title: "饰品排行榜" },
   },
   {
     path: "/CsItemDetail",
@@ -107,5 +119,3 @@ export const router = createRouter({
   history: createWebHistory(),
   routes,
 });
-
-

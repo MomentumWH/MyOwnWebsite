@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
@@ -14,7 +14,7 @@ const password = ref("");
 const rememberMe = ref(false);
 const isLoading = ref(false);
 
-// 鏄熸槦鍔ㄧ敾
+// 星星动画
 interface Star {
   id: number;
   x: number;
@@ -110,25 +110,26 @@ onUnmounted(() => {
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    message.error("鐢ㄦ埛鍚嶆垨瀵嗙爜涓嶈兘涓虹┖");
+    message.error("用户名或密码不能为空");
     return;
   }
 
   isLoading.value = true;
 
-  // 妯℃嫙鐧诲綍寤惰繜
+  // 模拟登录延迟
   setTimeout(async () => {
-    // 浣跨敤 Pinia 杩涜鐧诲綍鏍￠獙
+    // 使用 Pinia 进行登录校验
     const success = authStore.login(username.value, password.value);
 
     if (success) {
-      message.success("鐧诲綍鎴愬姛");
-      // 鑾峰彇閲嶅畾鍚戣矾寰?      const redirect = router.currentRoute.value.query.redirect;
+      message.success("登录成功");
+      // 获取重定向路由路径
+      const redirect = router.currentRoute.value.query.redirect;
       const target = resolvePostLoginRedirect(redirect);
 
       await router.replace(target);
     } else {
-      message.error("鐢ㄦ埛鍚嶆垨瀵嗙爜閿欒");
+      message.error("用户名或密码错误");
     }
 
     isLoading.value = false;

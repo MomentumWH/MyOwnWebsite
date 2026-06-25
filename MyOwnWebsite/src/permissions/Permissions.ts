@@ -1,6 +1,6 @@
-﻿import type { RouteLocationNormalized, RouteLocationRaw } from "vue-router";
+import type { RouteLocationNormalized, RouteLocationRaw } from "vue-router";
 
-/** 搴旂敤绾ц矾鐢辫矾寰?*/
+/** 应用级路由路径 */
 export const PermissionPaths = {
   HOME: "/",
   LOGIN: "/login",
@@ -9,13 +9,13 @@ export const PermissionPaths = {
   CHAT_ROOM: "/chat-room",
 } as const;
 
-/** localStorage 涓璇佺浉鍏抽敭鍚?*/
+/** localStorage 中认证相关键名 */
 export const AuthStorageKeys = {
   TOKEN: "auth_token",
   USER: "auth_user",
 } as const;
 
-/** 鏃犻渶鐧诲綍鍗冲彲璁块棶鐨勮矾鐢?path锛堜笌 router 涓?record.path 涓€鑷达級 */
+/** 无需登录即可访问的路由 path（与 router 中 record.path 一致） */
 export const ROUTE_WHITE_LIST = new Set<string>([
   PermissionPaths.LOGIN,
   PermissionPaths.REGISTER,
@@ -37,7 +37,7 @@ export interface AuthUser {
   role: UserRole;
 }
 
-/** 鍔熻兘绾ф潈闄愮爜锛屼究浜庡悗缁墿灞?RBAC */
+/** 功能级权限码，便于后续扩展 RBAC */
 export type PermissionCode = "chat-room:access";
 
 const CHAT_ROOM_ALLOWED_USERNAMES = new Set(["admin", "Chonny"]);
@@ -47,17 +47,17 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<PermissionCode>> = {
   user: new Set(),
 };
 
-/** 鏄惁宸茬櫥褰曪紙浠呬互 token 鏄惁瀛樺湪涓哄噯锛屼笌璺敱瀹堝崼涓€鑷达級 */
+/** 是否已登录（仅以 token 是否存在为准，与路由守卫一致） */
 export function isLoggedIn(token: string | null | undefined): boolean {
   return Boolean(token);
 }
 
-/** 璺敱鏄惁鍦ㄧ櫧鍚嶅崟鍐?*/
+/** 路由是否在白名单内 */
 export function isWhiteListedRoute(to: RouteLocationNormalized): boolean {
   return to.matched.some((record) => ROUTE_WHITE_LIST.has(record.path));
 }
 
-/** 璺敱鏄惁澹版槑闇€瑕佺櫥褰曪紙meta锛夋垨涓嶅湪鐧藉悕鍗?*/
+/** 路由是否声明需要登录（meta）或不在白名单 */
 export function routeRequiresAuth(to: RouteLocationNormalized): boolean {
   return (
     !isWhiteListedRoute(to)
@@ -65,7 +65,7 @@ export function routeRequiresAuth(to: RouteLocationNormalized): boolean {
   );
 }
 
-/** 璺敱鏄惁澹版槑闇€瑕佽亰澶╁鏉冮檺 */
+/** 路由是否声明需要聊天室权限 */
 export function routeRequiresChatRoomAccess(
   to: RouteLocationNormalized,
 ): boolean {
@@ -74,7 +74,7 @@ export function routeRequiresChatRoomAccess(
   );
 }
 
-/** 鐢ㄦ埛鏄惁鎷ユ湁鎸囧畾鏉冮檺鐮?*/
+/** 用户是否拥有指定权限码 */
 export function hasPermission(
   user: AuthUser | null | undefined,
   code: PermissionCode,
@@ -94,7 +94,7 @@ export function hasPermission(
   return false;
 }
 
-/** 鏄惁鍙闂亰澶╁ */
+/** 是否可访问聊天室 */
 export function canAccessChatRoom(
   user: AuthUser | null | undefined,
 ): boolean {
@@ -111,7 +111,9 @@ export type NavigationGuardRedirect = RouteLocationRaw & { replace?: boolean };
 export type NavigationGuardResult = true | NavigationGuardRedirect;
 
 /**
- * 鏍规嵁褰撳墠璁よ瘉涓婁笅鏂囦笌鐩爣璺敱锛岃绠楀鑸畧鍗簲杩斿洖鐨勭粨鏋溿€? * 渚?router.beforeEach 璋冪敤銆? */
+ * 根据当前认证上下文与目标路由，计算导航守卫应返回的结果。
+ * 供 router.beforeEach 调用。
+ */
 export function resolveNavigationGuard(
   to: RouteLocationNormalized,
   ctx: AuthContext,
@@ -137,7 +139,7 @@ export function resolveNavigationGuard(
   return true;
 }
 
-/** 鐧诲綍鎴愬姛鍚庡畨鍏ㄨВ鏋?redirect 鐩爣 */
+/** 登录成功后安全解析 redirect 目标 */
 export function resolvePostLoginRedirect(
   redirect: unknown,
   fallback: string = PermissionPaths.HOME,

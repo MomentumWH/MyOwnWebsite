@@ -141,9 +141,9 @@ type TaskAllResponsePayload = TaskAllResponse | TaskAllItem[] | {
 const navItems: NavItem[] = [
   { label: "首页", key: "home", icon: HomeOutline, path: "/cs-items" },
   { label: "饰品列表", key: "items", icon: ListOutline, path: "/item-list" },
-  { label: "排行榜单", key: "ranking", icon: TrophyOutline, path: "/cs-items", query: { section: "ranking" } },
+  { label: "排行榜单", key: "ranking", icon: TrophyOutline, path: "/item-ranking" },
   { label: "库存监控", key: "inventory", icon: AlbumsOutline },
-  { label: "挂刀行情", key: "knife", icon: CalendarOutline, path: "/cs-items", query: { section: "knife" } },
+  { label: "挂刀行情", key: "knife", icon: CalendarOutline, path: "/knife-market" },
   { label: "热门系列", key: "series", icon: BarChartOutline, path: "/cs-items", query: { section: "series" } },
 ];
 
@@ -769,6 +769,7 @@ const searchMonitorTasks = async () => {
 
 onMounted(() => {
   window.addEventListener("keydown", handleGlobalSearchShortcut);
+  void searchMonitorTasks();
 });
 
 onUnmounted(() => {

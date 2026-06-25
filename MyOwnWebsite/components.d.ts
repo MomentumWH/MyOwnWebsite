@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ArtTitle: typeof import('./src/components/artTitle/index.vue')['default']
+    CsgoFilterDrawer: typeof import('./src/components/csgo/CsgoFilterDrawer.vue')['default']
     CsgoLightParticles: typeof import('./src/components/csgo/CsgoLightParticles.vue')['default']
     DiyLoading: typeof import('./src/components/DiyLoading/index.vue')['default']
     DiyLoading2: typeof import('./src/components/DiyLoading2/index.vue')['default']
