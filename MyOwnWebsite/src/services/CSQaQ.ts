@@ -155,9 +155,57 @@ export const getOneChart = (data?: any) => {
 
 //涨跌/热门排行
 
+export interface RankListFilter {
+  排序: [string] | string[];
+  类型?: string[];
+  品质?: string[];
+  类别?: string[];
+  磨损?: string[];
+  价格最低价?: number;
+  价格最高价?: number;
+  短租最低价?: number;
+  短租最高价?: number;
+  长租最低价?: number;
+  长租最高价?: number;
+  短租收益最低?: number;
+  短租收益最高?: number;
+  长租收益最低?: number;
+  长租收益最高?: number;
+  在售最少?: number;
+  在售最多?: number;
+  出租最少?: number;
+  出租最多?: number;
+  求购最少?: number;
+  求购最多?: number;
+  [key: string]: string[] | number | undefined;
+}
+
+export interface RankListParams {
+  page_index: number;
+  page_size: number;
+  show_recently_price?: boolean;
+  filter: RankListFilter;
+}
+
 //获取排行榜单信息接口
-export const getRankList = (data?: any) => {
+export const getRankList = (data: RankListParams) => {
   return CSQaQAPI.post("/api/v1/info/get_rank_list", data);
+};
+
+//获取排行榜单信息接口（文档示例默认参数）
+export const getRankListByDefaultSort = (
+  data?: Partial<RankListParams>,
+) => {
+  return getRankList({
+    page_index: 1,
+    page_size: 15,
+    show_recently_price: false,
+    ...data,
+    filter: {
+      排序: ["价格_售价减求购价(百分比)_升序(BUFF)"],
+      ...data?.filter,
+    },
+  });
 };
 
 //获取饰品列表信息

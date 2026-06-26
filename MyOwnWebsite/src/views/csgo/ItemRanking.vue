@@ -7,6 +7,7 @@ import {
   NLayout,
   NLayoutContent,
   NLayoutHeader,
+  NPagination,
   NSpace,
   NSelect,
 } from "naive-ui";
@@ -26,12 +27,47 @@ import {
 } from "@vicons/ionicons5";
 import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
 import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
+import { getRankListByDefaultSort } from "@/services/CSQaQ";
 
 interface NavItem {
   label: string;
   key: string;
   icon: unknown;
   path: string;
+}
+
+interface CsqaqRankItem {
+  id?: number;
+  name?: string;
+  img?: string;
+  buff_price_chg?: number;
+  buff_sell_price?: number;
+  buff_buy_price?: number;
+  steam_sell_price?: number;
+  steam_buy_price?: number;
+  yyyp_sell_price?: number;
+  yyyp_buy_price?: number;
+  buff_sell_num?: number;
+  steam_sell_num?: number;
+  yyyp_sell_num?: number;
+  rarity_localized_name?: string | null;
+  exterior_localized_name?: string | null;
+  sell_price_1?: number;
+  sell_price_7?: number;
+  sell_price_15?: number;
+  sell_price_30?: number;
+  sell_price_90?: number;
+  sell_price_180?: number;
+  sell_price_365?: number;
+  sell_price_rate_1?: number;
+  sell_price_rate_7?: number;
+  sell_price_rate_15?: number;
+  sell_price_rate_30?: number;
+  sell_price_rate_90?: number;
+  sell_price_rate_180?: number;
+  sell_price_rate_365?: number;
+  sell_buy_diff_chg_buff?: number;
+  rank_num?: number;
 }
 
 interface RankingItem {
@@ -73,7 +109,7 @@ const timeOptions = [
   { label: "近90天", value: "90d" },
 ];
 
-const rankingItems: RankingItem[] = [
+const defaultRankingItems: RankingItem[] = [
   {
     id: 1,
     rank: 1,
@@ -172,21 +208,30 @@ const showSearchDropdown = shallowRef(false);
 const activeRankingTab = shallowRef("价格榜");
 const activeMetricChip = shallowRef("涨幅榜(百分比)");
 const selectedTimeRange = shallowRef("1d");
+const rankingItems = shallowRef<RankingItem[]>(defaultRankingItems);
+const rankingLoading = shallowRef(false);
+const currentPage = shallowRef(1);
+const pageSize = shallowRef(15);
+const fallbackTotalPages = shallowRef(Math.ceil(defaultRankingItems.length / pageSize.value));
 
 const filteredRankingItems = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
 
   if (!query) {
-    return rankingItems;
+    return rankingItems.value;
   }
 
-  return rankingItems.filter((item) => item.name.toLowerCase().includes(query));
+  return rankingItems.value.filter((item) => item.name.toLowerCase().includes(query));
 });
+
+const pageCount = computed(() => Math.max(fallbackTotalPages.value, currentPage.value));
+const itemRangeStart = computed(() => (currentPage.value - 1) * pageSize.value + 1);
+const itemRangeEnd = computed(() => (currentPage.value - 1) * pageSize.value + filteredRankingItems.value.length);
 
 const topSummary = computed(() => [
   { label: "榜单饰品", value: `${filteredRankingItems.value.length}`, note: "实时筛选结果" },
-  { label: "最高涨幅", value: `+${Math.max(...rankingItems.map((item) => item.changePercent)).toFixed(2)}%`, note: "近 24 小时" },
-  { label: "总成交量", value: rankingItems.reduce((sum, item) => sum + item.volume, 0).toLocaleString(), note: "样本成交件数" },
+  { label: "最高涨幅", value: `+${Math.max(...rankingItems.value.map((item) => item.changePercent)).toFixed(2)}%`, note: "近 24 小时" },
+  { label: "总成交量", value: rankingItems.value.reduce((sum, item) => sum + item.volume, 0).toLocaleString(), note: "样本成交件数" },
 ]);
 
 const formatMoney = (value: number) => `¥ ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -210,6 +255,125 @@ const getRankClass = (rank: number) => {
   if (rank === 2) return "rank-badge--silver";
   if (rank === 3) return "rank-badge--bronze";
   return "";
+};
+
+const toNumber = (value: unknown, fallback = 0) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+};
+
+const getResponseRankItems = (response: unknown): CsqaqRankItem[] => {
+  const payload = response as { data?: { data?: unknown } } | undefined;
+  return Array.isArray(payload?.data?.data) ? payload.data.data as CsqaqRankItem[] : [];
+};
+
+const getResponseCurrentPage = (response: unknown) => {
+  const payload = response as { data?: { current_page?: unknown } } | undefined;
+  return toNumber(payload?.data?.current_page, currentPage.value);
+};
+
+const getItemChangePercent = (item: CsqaqRankItem) => {
+  const changeByTimeRange: Record<string, number | undefined> = {
+    "1d": item.sell_price_rate_1,
+    "7d": item.sell_price_rate_7,
+    "30d": item.sell_price_rate_30,
+    "90d": item.sell_price_rate_90,
+  };
+
+  return toNumber(
+    changeByTimeRange[selectedTimeRange.value]
+      ?? item.sell_buy_diff_chg_buff
+      ?? item.buff_price_chg,
+  );
+};
+
+const getItemTag = (changePercent: number) => {
+  if (changePercent < 0) return "短线回调";
+  if (changePercent >= 10) return "涨幅领跑";
+  if (changePercent >= 5) return "稳定上涨";
+  return "数据更新";
+};
+
+const getItemTagType = (index: number, changePercent: number): RankingItem["tagType"] => {
+  if (changePercent < 0) return "red";
+  if (index === 0) return "gold";
+  if (index === 1) return "red";
+  if (index === 2) return "blue";
+  if (changePercent >= 5) return "green";
+  return "purple";
+};
+
+const mapRankItem = (item: CsqaqRankItem, index: number): RankingItem => {
+  const sellPrice = toNumber(item.buff_sell_price ?? item.yyyp_sell_price ?? item.steam_sell_price);
+  const buyPrice = toNumber(item.buff_buy_price ?? item.yyyp_buy_price ?? item.steam_buy_price);
+  const volume =  toNumber(item.yyyp_sell_num) ;
+  const changePercent = getItemChangePercent(item);
+  const sparklineBase = sellPrice || buyPrice || 1;
+
+  return {
+    id: toNumber(item.id, index + 1),
+    rank: toNumber(item.rank_num, (currentPage.value - 1) * pageSize.value + index + 1) || (currentPage.value - 1) * pageSize.value + index + 1,
+    name: item.name || "未知饰品",
+    subtitle: `悠悠有品在售 ${volume.toLocaleString()} 件 · ${item.rarity_localized_name || item.exterior_localized_name || "CSQAQ榜单"}`,
+    image: item.img || "",
+    sellPrice,
+    buyPrice,
+    changePercent,
+    marketCap: `悠悠有品在售 ${volume.toLocaleString()} 件`,
+    volume,
+    sparkline: [
+      item.sell_price_365,
+      item.sell_price_180,
+      item.sell_price_90,
+      item.sell_price_30,
+      item.sell_price_15,
+      item.sell_price_7,
+      item.sell_price_1,
+    ].map((value, valueIndex) => sparklineBase + toNumber(value) + valueIndex * 0.01),
+    tag: getItemTag(changePercent),
+    tagType: getItemTagType(index, changePercent),
+  };
+};
+
+const loadRankList = async () => {
+  rankingLoading.value = true;
+
+  try {
+    const response = await getRankListByDefaultSort({
+      page_index: currentPage.value,
+      page_size: pageSize.value,
+    });
+    const apiItems = getResponseRankItems(response);
+
+    if (apiItems.length) {
+      rankingItems.value = apiItems.map(mapRankItem);
+      currentPage.value = getResponseCurrentPage(response);
+      fallbackTotalPages.value = Math.max(
+        fallbackTotalPages.value,
+        currentPage.value + (apiItems.length >= pageSize.value ? 1 : 0),
+      );
+    } else {
+      rankingItems.value = [];
+      fallbackTotalPages.value = currentPage.value;
+    }
+  } catch (error) {
+    console.error("获取排行榜单失败", error);
+  } finally {
+    rankingLoading.value = false;
+  }
+};
+
+const handlePageChange = async (page: number) => {
+  currentPage.value = page;
+  await loadRankList();
+  void playStaggerIn({
+    targets: ".ranking-row",
+    fromY: 16,
+    fromScale: 0.99,
+    delay: 35,
+    duration: 320,
+    ease: "outCubic",
+  });
 };
 
 const handleNavClick = (item: NavItem) => {
@@ -275,7 +439,8 @@ const animatePageIntro = async () => {
   });
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await loadRankList();
   void animatePageIntro();
 });
 
@@ -365,6 +530,8 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
                 <strong>{{ card.value }}</strong>
                 <small>{{ card.note }}</small>
               </div>
+
+
             </div>
           </section>
 
@@ -427,7 +594,7 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
                   {{ chip }}
                 </button>
               </div>
-              <div class="updated-at">更新时间：2026-06-25 14:30</div>
+              <div class="updated-at">{{ rankingLoading ? "榜单加载中..." : "榜单数据已更新" }}</div>
             </div>
 
             <div class="ranking-table-card">
@@ -478,6 +645,18 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
                     <span>{{ item.marketCap }}</span>
                   </div>
                 </div>
+              </div>
+              <div class="ranking-pagination">
+                <n-pagination
+                  v-model:page="currentPage"
+                  :page-count="pageCount"
+                  :page-slot="7"
+                  :disabled="rankingLoading"
+                  show-quick-jumper
+                  @update:page="handlePageChange"
+                >
+                  <template #goto>跳至</template>
+                </n-pagination>
               </div>
             </div>
           </section>
@@ -965,6 +1144,81 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
   }
 }
 
+.ranking-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 86px;
+  padding: 18px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(12, 14, 20, 0.78);
+}
+
+.ranking-pagination :deep(.n-pagination) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.ranking-pagination :deep(.n-pagination-item),
+.ranking-pagination :deep(.n-pagination-item--button) {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #babec8;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.18s ease;
+}
+
+.ranking-pagination :deep(.n-pagination-item:not(.n-pagination-item--disabled):hover),
+.ranking-pagination :deep(.n-pagination-item--button:not(.n-pagination-item--disabled):hover) {
+  border-color: rgba(75, 152, 255, 0.55);
+  background: rgba(75, 152, 255, 0.1);
+  color: #e6f0ff;
+}
+
+.ranking-pagination :deep(.n-pagination-item--active) {
+  border-color: #2d6bb3;
+  background: rgba(24, 91, 168, 0.22);
+  color: #58a6ff;
+}
+
+.ranking-pagination :deep(.n-pagination-item--disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ranking-pagination :deep(.n-pagination-item--ellipsis) {
+  border-color: transparent;
+  background: transparent;
+  color: #6f7480;
+}
+
+.ranking-pagination :deep(.n-pagination-quick-jumper) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 18px;
+  color: #babec8;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ranking-pagination :deep(.n-pagination-quick-jumper input) {
+  width: 76px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #e5e7eb;
+  text-align: center;
+}
+
 .rank-cell {
   display: flex;
   justify-content: center;
@@ -1168,7 +1422,8 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
   }
 
   .toolbar-card,
-  .metric-row {
+  .metric-row,
+  .ranking-pagination {
     align-items: stretch;
     flex-direction: column;
   }
