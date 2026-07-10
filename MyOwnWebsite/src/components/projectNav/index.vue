@@ -4,8 +4,10 @@ import { useRoute, useRouter } from "vue-router";
 
 const props = withDefaults(defineProps<{
   showDefaultAction?: boolean;
+  tone?: "cool" | "warm";
 }>(), {
   showDefaultAction: true,
+  tone: "cool",
 });
 
 const route = useRoute();
@@ -38,7 +40,11 @@ const goBack = () => {
 </script>
 
 <template>
-  <nav class="project-nav" aria-label="项目页面导航">
+  <nav
+    class="project-nav"
+    :class="`project-nav--${props.tone}`"
+    aria-label="项目页面导航"
+  >
     <button class="nav-brand" type="button" @click="goHome">
       <span class="brand-mark">C</span>
       <span class="brand-copy">
@@ -223,6 +229,52 @@ const goBack = () => {
 .nav-action:hover {
   box-shadow: 0 10px 28px rgba(0, 217, 255, 0.34);
   transform: translateY(-2px);
+}
+
+.project-nav--warm {
+  border-color: rgba(255, 207, 165, 0.22);
+  border-radius: 6px;
+  background:
+    linear-gradient(110deg, rgba(31, 13, 17, 0.94), rgba(65, 24, 25, 0.9)),
+    rgba(24, 10, 14, 0.9);
+  box-shadow:
+    0 16px 46px rgba(20, 5, 9, 0.38),
+    inset 0 1px 0 rgba(255, 232, 211, 0.08);
+}
+
+.project-nav--warm .brand-mark {
+  color: #261014;
+  border-color: rgba(255, 227, 202, 0.68);
+  border-radius: 3px;
+  background: linear-gradient(135deg, #ffc179, #ff705b);
+  box-shadow: 0 0 24px rgba(255, 112, 91, 0.24);
+}
+
+.project-nav--warm .brand-copy strong,
+.project-nav--warm .brand-copy small {
+  letter-spacing: 0;
+}
+
+.project-nav--warm .brand-copy small,
+.project-nav--warm .nav-link {
+  color: rgba(255, 232, 211, 0.66);
+}
+
+.project-nav--warm .nav-link {
+  border-radius: 3px;
+}
+
+.project-nav--warm .nav-link:hover,
+.project-nav--warm .nav-link--active {
+  color: #fff8ee;
+  border-color: rgba(255, 190, 132, 0.28);
+  background: rgba(255, 145, 86, 0.09);
+  box-shadow: none;
+}
+
+.project-nav--warm .nav-link--active::after {
+  background: linear-gradient(90deg, #ffbd73, #ff6e5b);
+  box-shadow: 0 0 10px rgba(255, 110, 91, 0.52);
 }
 
 @media (max-width: 980px) {

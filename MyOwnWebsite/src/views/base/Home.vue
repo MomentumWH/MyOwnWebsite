@@ -1,18 +1,24 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import ProjectNav from "@/components/projectNav/index.vue";
 import UploadBox from "@/components/uploadByNaviUI/index.vue";
 import { useDialog, useMessage } from "naive-ui";
-import { markRaw, ref, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
 import { useRouter } from "vue-router";
-import { CashOutline as CashIcon } from "@vicons/ionicons5";
+import {
+  ArrowForwardOutline as ArrowIcon,
+  CloudUploadOutline as UploadIcon,
+  MoveOutline as MoveIcon,
+} from "@vicons/ionicons5";
 import { useAuthStore } from "@/stores/auth";
 import TypeIt from "typeit";
 
 const message = useMessage();
 const dialog = useDialog();
 const authStore = useAuthStore();
-const typePrinterMaker = ref<HTMLElement | null>(null);
-const profile = markRaw({
+const router = useRouter();
+const typePrinterMaker = useTemplateRef<HTMLElement>("typePrinterMaker");
+
+const profile = {
   name: "张三",
   title: "前端开发工程师",
   avatar:
@@ -20,131 +26,69 @@ const profile = markRaw({
   bio: "热爱编程，专注于前端技术，擅长 Vue、React 等框架。",
   skills: ["Vue 3", "TypeScript", "JavaScript", "HTML/CSS", "Node.js"],
   projects: [
-    { name: "个人博客", description: "使用 Vue 3 和 Vite 构建的个人博客系统" },
-    { name: "电商平台", description: "基于 Nuxt 3 的电商平台项目" },
-    { name: "数据可视化", description: "使用 ECharts 实现的数据分析平台" },
-    { name: "CS饰品数据", description: "CS饰品行情数据展示和分析平台" },
+    {
+      name: "个人博客",
+      label: "Editorial System",
+      description: "使用 Vue 3 和 Vite 构建的个人博客系统",
+    },
+    {
+      name: "电商平台",
+      label: "Commerce Lab",
+      description: "基于 Nuxt 3 的电商平台项目",
+    },
+    {
+      name: "数据可视化",
+      label: "Data Interface",
+      description: "使用 ECharts 实现的数据分析平台",
+    },
+    {
+      name: "CS饰品数据",
+      label: "Market Intelligence",
+      description: "CS饰品行情数据展示和分析平台",
+    },
   ],
-});
+} as const;
 
-const skillsRendered = ref(false);
-const MAX_SNOWFLAKES = 50;
-const SKILLS_RENDER_DELAY = 2000;
-let skillsTimer: ReturnType<typeof setTimeout> | null = null;
+const stats = [
+  { value: "05", label: "Core skills" },
+  { value: "04", label: "Selected works" },
+  { value: "01", label: "Live data lab" },
+] as const;
+
+const isShowUploadBox = shallowRef(false);
 let typeItInstance: TypeIt | null = null;
 
-// 技能栈渲染完成后显示项目经验
-onMounted(() => {
-
-  skillsTimer = setTimeout(() => {
-    skillsRendered.value = true;
-  }, SKILLS_RENDER_DELAY); // 2秒后显示项目经验
-});
-
-// 获取项目路由
-const router = useRouter();
-
 const goToCheckProjectRoute = (name: string) => {
-  switch (name) {
-    case "个人博客":
-      router.push("/blog");
-      break;
-    case "电商平台":
-      router.push("/ecommerce");
-      break;
-    case "数据可视化":
-      router.push("/data-visualization");
-      break;
-    case "CS饰品数据":
-      router.push("/cs-items");
-      break;
-    default:
-      router.push("/");
-  }
+  const projectRoutes: Record<string, string> = {
+    个人博客: "/blog",
+    电商平台: "/ecommerce",
+    数据可视化: "/data-visualization",
+    CS饰品数据: "/cs-items",
+  };
+
+  router.push(projectRoutes[name] || "/");
 };
 
-// 雪花特效
-interface Snowflake {
-  id: number;
-  x: number;
-  size: number;
-  opacity: number;
-  drift: number;
-  duration: number;
-  delay: number;
-}
-
-const createSnowflake = (index: number): Snowflake => ({
-  id: index,
-  x: Math.random() * 100,
-  size: Math.random() * 8 + 4,
-  opacity: Math.random() * 0.45 + 0.35,
-  drift: Math.random() * 80 - 40,
-  duration: Math.random() * 10 + 12,
-  delay: Math.random() * -18,
-});
-
-const snowflakes = markRaw(Array.from({ length: MAX_SNOWFLAKES }, (_, index) => createSnowflake(index)));
-const handleConfirm = (value: string) => {
-  dialog.warning({
-    title: "Tips",
-    content: "你确定要跳转到对应技术栈介绍页面吗？",
-    positiveText: "确定",
-    negativeText: "不确定",
-    draggable: true,
-    onPositiveClick: () => {
-      //message.success('确定')
-      handleSkillClick(value);
-    },
-    onNegativeClick: () => {
-      message.warning("取消跳转");
-    },
-  });
-};
 const handleSkillClick = (skill: string) => {
-  switch (skill) {
-    case "Vue 3":
-      window.open("https://cn.vuejs.org/", "_blank");
-      break;
-    case "TypeScript":
-      window.open("https://www.typescriptlang.org/", "_blank");
-      break;
-    case "JavaScript":
-      window.open(
-        "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide",
-        "_blank",
-      );
-      break;
-    case "HTML/CSS":
-      window.open("https://web.developers.google.cn/css?hl=zh-cn", "_blank");
-      break;
-    case "Node.js":
-      window.open("https://nodejs.org/zh-cn", "_blank");
-      break;
-    default:
-      router.push("/");
+  const skillLinks: Record<string, string> = {
+    "Vue 3": "https://cn.vuejs.org/",
+    TypeScript: "https://www.typescriptlang.org/",
+    JavaScript: "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide",
+    "HTML/CSS": "https://web.developers.google.cn/css?hl=zh-cn",
+    "Node.js": "https://nodejs.org/zh-cn",
+  };
+
+  const url = skillLinks[skill];
+  if (url) {
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 };
 
-const goToDrag = () => {
-  router.push("/drag-box");
-};
-
-const goToProfile = () => {
-  router.push("/profile");
-};
-
-const goToChatRoom = () => {
-  router.push("/chat-room");
-};
-
-const goToPretextDemo = () => {
-  router.push("/pretext-demo");
-};
-
-const goToSoybeanDemo = () => {
-  router.push("/soybean-ui-demo");
-};
+const goToDrag = () => router.push("/drag-box");
+const goToProfile = () => router.push("/profile");
+const goToChatRoom = () => router.push("/chat-room");
+const goToPretextDemo = () => router.push("/pretext-demo");
+const goToSoybeanDemo = () => router.push("/soybean-ui-demo");
 
 const handleLogout = () => {
   dialog.warning({
@@ -160,257 +104,260 @@ const handleLogout = () => {
     },
   });
 };
-onMounted(() => {
-  if (typePrinterMaker.value) {
-    typeItInstance = new TypeIt(typePrinterMaker.value, {
-      strings: [
-        "Welcome  to  SoyBean   Introduction !",
-        "This is the first Admin  powered by  Chonny !",
-      ],
-      speed: 100,
-      waitUntilVisible: true,
-      loop: true,
-      breakLines: true, // 是否允许换行
-      lifeLike: true,
-      nextStringDelay: 1000,
-    }).go();
-  }
-});
-const isShowUploadBox = ref(false);
+
 const showUploadBox = () => {
   isShowUploadBox.value = !isShowUploadBox.value;
 };
-const options = ref([
-  {
-    label: "个人中心",
-    key: "profile",
-  },
-  {
-    label: "聊天室",
-    key: "chat-room",
-  },
-  {
-    label: "pretextDemo",
-    key: "pretextDemo",
-  },
-  {
-    label: "SoybeanUI Demo",
-    key: "soybean-ui-demo",
-  },
-  {
-    label: "退出登录",
-    key: "logout",
-  },
-]);
+
+const options = [
+  { label: "个人中心", key: "profile" },
+  { label: "聊天室", key: "chat-room" },
+  { label: "Pretext Demo", key: "pretextDemo" },
+  { label: "SoybeanUI Demo", key: "soybean-ui-demo" },
+  { label: "退出登录", key: "logout" },
+] as const;
+
 const handleSelectOptions = (key: string | number) => {
-  switch (key) {
-    case "profile":
-      goToProfile();
-      break;
-    case "chat-room":
-      goToChatRoom();
-      break;
-    case "pretextDemo":
-      goToPretextDemo();
-      break;
-    case "soybean-ui-demo":
-      goToSoybeanDemo();
-      break;
-    case "logout":
-      handleLogout();
-      break;
-    default:
-      break;
-  }
+  const handlers: Record<string, () => void> = {
+    profile: goToProfile,
+    "chat-room": goToChatRoom,
+    pretextDemo: goToPretextDemo,
+    "soybean-ui-demo": goToSoybeanDemo,
+    logout: handleLogout,
+  };
+
+  handlers[String(key)]?.();
 };
-onUnmounted(() => {
-  if (skillsTimer) {
-    clearTimeout(skillsTimer);
+
+onMounted(() => {
+  if (!typePrinterMaker.value) {
+    return;
   }
+
+  typeItInstance = new TypeIt(typePrinterMaker.value, {
+    strings: [
+      "BUILDING INTERFACES WITH MOTION.",
+      "VUE / TYPESCRIPT / DATA VISUALIZATION.",
+    ],
+    speed: 58,
+    waitUntilVisible: true,
+    loop: true,
+    breakLines: false,
+    lifeLike: true,
+    nextStringDelay: 1200,
+  }).go();
+});
+
+onUnmounted(() => {
   typeItInstance?.destroy();
 });
 </script>
+
 <template>
   <div class="profile-page">
-    <div class="snow-container">
-      <div
-        v-for="snowflake in snowflakes"
-        :key="snowflake.id"
-        class="snowflake"
-        :style="{
-          left: `${snowflake.x}%`,
-          width: `${snowflake.size}px`,
-          height: `${snowflake.size}px`,
-          opacity: snowflake.opacity,
-          '--snow-drift': `${snowflake.drift}px`,
-          '--snow-duration': `${snowflake.duration}s`,
-          '--snow-delay': `${snowflake.delay}s`,
-        }"
-      ></div>
-    </div>
+    <div class="ambient-grid" aria-hidden="true"></div>
 
     <div class="page-shell">
-      <ProjectNav :show-default-action="false">
+      <ProjectNav tone="warm" :show-default-action="false">
         <template #action>
           <n-dropdown
-            placement="bottom-start"
+            placement="bottom-end"
             trigger="click"
             size="medium"
             :options="options"
             @select="handleSelectOptions"
           >
-            <button class="profile-btn">个人中心</button>
+            <button class="profile-btn" type="button">个人中心</button>
           </n-dropdown>
         </template>
       </ProjectNav>
 
-      <header class="profile-header">
-        <div class="hero-profile-card">
-          <img :src="profile.avatar" alt="Avatar" class="avatar" />
-          <div class="profile-info">
-            <span class="section-kicker">Personal Portal</span>
-            <h1 class="name">{{ profile.name }}</h1>
-            <p class="title">{{ profile.title }}</p>
+      <header class="hero" aria-labelledby="home-title">
+        <div class="hero-copy">
+          <div class="hero-status-row">
+            <span class="availability"><i></i> Available for ideas</span>
+            <span>Shanghai / UTC+8</span>
+          </div>
+
+          <p class="hero-kicker">Frontend developer / Creative coder</p>
+          <h1 id="home-title" class="hero-title">
+            <span>{{ profile.name }}</span>
+            <span class="hero-title-outline">Digital Lab</span>
+          </h1>
+
+          <div class="hero-intro">
+            <p>{{ profile.bio }} 关注动效、数据表达与复杂界面的可用性。</p>
+            <div class="type-line">
+              <span ref="typePrinterMaker" class="type-printer"></span>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <button
+              class="command-button command-button--primary"
+              type="button"
+              @click="goToCheckProjectRoute('CS饰品数据')"
+            >
+              <span>进入 CS 饰品实验室</span>
+              <n-icon><ArrowIcon /></n-icon>
+            </button>
+            <a class="command-button command-button--ghost" href="#selected-work">
+              <span>浏览项目</span>
+              <n-icon><ArrowIcon /></n-icon>
+            </a>
           </div>
         </div>
 
-        <div class="hero-intro-card">
-          <span class="section-kicker">Live Intro</span>
-          <div class="titleTypePrintBox">
-            <span
-              ref="typePrinterMaker"
-              class="typePrinterTitleLike"
-              :style="{ color: '#FFF' }"
-            ></span>
+        <div class="hero-visual" aria-label="个人头像">
+          <div class="portrait-index">/ 001</div>
+          <div class="portrait-frame">
+            <img :src="profile.avatar" :alt="`${profile.name}的头像`" class="portrait" />
+            <div class="portrait-scanline" aria-hidden="true"></div>
           </div>
-          <p class="hero-support-text">
-            聚合个人简介、技能栈、项目入口与建议上传，让访问路径更清晰。
-          </p>
+          <div class="portrait-caption">
+            <span>Current focus</span>
+            <strong>Vue 3 / Motion / Data</strong>
+          </div>
+        </div>
+
+        <div class="hero-stats" aria-label="作品概览">
+          <div v-for="stat in stats" :key="stat.label" class="stat-item">
+            <strong>{{ stat.value }}</strong>
+            <span>{{ stat.label }}</span>
+          </div>
         </div>
       </header>
 
-      <main class="content-layout">
-        <section class="bio-section content-card">
-          <span class="section-kicker">About Me</span>
-          <h2>个人简介</h2>
-          <p class="bio">{{ profile.bio }}</p>
-        </section>
-
-        <section class="skills-section content-card">
-          <div class="section-heading-row">
-            <div>
-              <span class="section-kicker">Tech Stack</span>
-              <h2>技能栈</h2>
-            </div>
-            <span class="section-count">{{ profile.skills.length }} 项能力</span>
+      <main>
+        <section class="manifesto-section">
+          <span class="section-number">01</span>
+          <div class="manifesto-heading">
+            <p class="section-kicker">About / System</p>
+            <h2>把工程能力和视觉表达<br />放在同一条轨道上。</h2>
           </div>
-          <div class="skills-grid">
-            <TransitionGroup
-              name="skill-fade"
-              tag="div"
-              class="skills-transition-group"
-            >
-              <div
-                v-for="(skill, index) in profile.skills"
+          <div class="manifesto-copy">
+            <p>
+              从业务页面、数据仪表盘到交互动效，用可维护的组件结构承载更有辨识度的视觉体验。
+            </p>
+            <div class="skill-rail" aria-label="技能栈">
+              <button
+                v-for="skill in profile.skills"
                 :key="skill"
-                class="skill-tag"
-                :style="{ animationDelay: `${index * 0.1}s` }"
-                @click="handleConfirm(skill)"
+                type="button"
+                class="skill-link"
+                :title="`打开 ${skill} 官方资料`"
+                @click="handleSkillClick(skill)"
               >
                 {{ skill }}
-              </div>
-            </TransitionGroup>
+              </button>
+            </div>
           </div>
         </section>
-      </main>
 
-      <section v-if="skillsRendered" class="projects-section content-card">
-        <div class="section-heading-row">
-          <div>
-            <span class="section-kicker">Selected Work</span>
-            <h2>项目经验</h2>
+        <section id="selected-work" class="projects-section">
+          <div class="section-heading-row">
+            <div>
+              <p class="section-kicker">Selected work / 2026</p>
+              <h2>正在构建的项目</h2>
+            </div>
+            <p class="section-note">从页面表现到真实数据接口，持续迭代中的前端实验集合。</p>
           </div>
-          <span class="section-count">{{ profile.projects.length }} 个项目</span>
-        </div>
-        <div class="projects-list">
-          <TransitionGroup
-            name="project-fade"
-            tag="div"
-            class="projects-transition-group"
-          >
-            <div
+
+          <div class="projects-grid">
+            <article
               v-for="(project, index) in profile.projects"
               :key="project.name"
               class="project-card"
-              :style="{ animationDelay: `${index * 0.2}s` }"
             >
-              <h3>{{ project.name }}</h3>
-              <p>{{ project.description }}</p>
+              <div class="project-meta">
+                <span>0{{ index + 1 }}</span>
+                <span>{{ project.label }}</span>
+              </div>
+              <div class="project-copy">
+                <h3>{{ project.name }}</h3>
+                <p>{{ project.description }}</p>
+              </div>
               <button
                 class="project-link"
+                type="button"
+                :aria-label="`查看${project.name}`"
                 @click="goToCheckProjectRoute(project.name)"
               >
-                查看详情
+                <span>Open case</span>
+                <n-icon><ArrowIcon /></n-icon>
               </button>
-            </div>
-          </TransitionGroup>
-        </div>
-      </section>
+            </article>
+          </div>
+        </section>
 
-      <section v-if="skillsRendered" class="action-section content-card">
-        <div class="action-copy">
-          <span class="section-kicker">Playground & Feedback</span>
-          <h2>互动体验</h2>
-          <p>尝试拖拽 Demo，或上传建议帮助网站持续优化。</p>
-        </div>
-        <div class="dragBox">
-          <div class="dragButtonBox">
-            <n-button class="tech-action-button" @click="goToDrag">
-              <template #icon>
-                <n-icon>
-                  <CashIcon />
-                </n-icon>
-              </template>
-              This is drag button demo
-            </n-button>
+        <section class="lab-section">
+          <div class="lab-heading">
+            <span class="section-number">03</span>
+            <div>
+              <p class="section-kicker">Playground / Feedback</p>
+              <h2>进入交互试验区</h2>
+            </div>
           </div>
-          <div
-            class="upload-suggestion-banner"
-            :class="{ 'upload-suggestion-banner--open': isShowUploadBox }"
-            @click="showUploadBox"
-          >
-            <n-gradient-text
-              gradient="linear-gradient(90deg, #c7f6ff 0%, #5fe7ff 38%, #b994ff 76%, #f3f7ff 100%)"
+
+          <div class="lab-actions">
+            <button class="lab-action" type="button" @click="goToDrag">
+              <n-icon><MoveIcon /></n-icon>
+              <span>
+                <small>Interaction 01</small>
+                拖拽实验
+              </span>
+              <n-icon class="action-arrow"><ArrowIcon /></n-icon>
+            </button>
+            <button
+              class="lab-action"
+              :class="{ 'lab-action--active': isShowUploadBox }"
+              type="button"
+              @click="showUploadBox"
             >
-              如果您对本网站有什么更好的建议的话，欢迎在下方上传您的宝贵建议哦！！！{{
-                isShowUploadBox ? "(再次点击收起上传)" : ""
-              }}
-            </n-gradient-text>
+              <n-icon><UploadIcon /></n-icon>
+              <span>
+                <small>Feedback channel</small>
+                {{ isShowUploadBox ? "收起建议上传" : "提交改进建议" }}
+              </span>
+              <n-icon class="action-arrow"><ArrowIcon /></n-icon>
+            </button>
           </div>
+
           <transition name="upload-box-fade">
-            <UploadBox v-if="isShowUploadBox"></UploadBox>
+            <div v-if="isShowUploadBox" class="upload-panel">
+              <UploadBox />
+            </div>
           </transition>
-        </div>
-      </section>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <span>Chonny Lab / Personal Project Center</span>
+        <span>Vue 3 + TypeScript</span>
+      </footer>
     </div>
 
-    <n-back-top :right="100" />
+    <n-back-top :right="32" />
   </div>
 </template>
+
 <style scoped lang="scss">
 .profile-page {
+  --ink: #fff8ee;
+  --muted: rgba(255, 235, 218, 0.66);
+  --line: rgba(255, 212, 174, 0.2);
+  --amber: #ffb45f;
+  --coral: #ff6b59;
+  --rose: #dd416c;
   position: relative;
-  min-width: 1200px;
   min-height: 100vh;
-  padding: 2rem 4rem 4rem;
   overflow-x: hidden;
-  font-family: "Arial", sans-serif;
+  color: var(--ink);
+  font-family: "Lato", "Microsoft YaHei", sans-serif;
   background:
-    radial-gradient(circle at 12% 18%, rgba(0, 224, 255, 0.34), transparent 28%),
-    radial-gradient(circle at 88% 12%, rgba(165, 92, 255, 0.42), transparent 30%),
-    radial-gradient(circle at 50% 88%, rgba(73, 108, 255, 0.34), transparent 36%),
-    linear-gradient(135deg, #050816 0%, #0b1741 42%, #31105f 72%, #14091f 100%);
-  background-attachment: fixed;
+    linear-gradient(118deg, rgba(255, 139, 75, 0.1) 0%, transparent 28%),
+    linear-gradient(300deg, rgba(205, 49, 90, 0.12) 0%, transparent 34%),
+    linear-gradient(145deg, #160b0f 0%, #291014 42%, #471d19 74%, #1a0c12 100%);
 }
 
 .profile-page::before {
@@ -420,569 +367,675 @@ onUnmounted(() => {
   pointer-events: none;
   content: "";
   background-image:
-    linear-gradient(rgba(102, 220, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(102, 220, 255, 0.08) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 88%);
+    linear-gradient(rgba(255, 222, 192, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 222, 192, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 82%);
 }
 
 .profile-page::after {
   position: fixed;
-  inset: -20%;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
   content: "";
   background:
-    conic-gradient(from 120deg at 30% 50%, transparent, rgba(0, 238, 255, 0.18), transparent 28%),
-    conic-gradient(from 280deg at 72% 48%, transparent, rgba(177, 91, 255, 0.2), transparent 30%);
-  filter: blur(18px);
-  animation: auroraFloat 16s ease-in-out infinite alternate;
+    linear-gradient(105deg, transparent 0 58%, rgba(255, 180, 95, 0.05) 58.1% 58.3%, transparent 58.4%),
+    repeating-linear-gradient(115deg, transparent 0 96px, rgba(255, 255, 255, 0.018) 97px 98px);
+}
+
+.ambient-grid {
+  position: fixed;
+  top: 16%;
+  right: -12%;
+  z-index: 0;
+  width: 56vw;
+  height: 56vw;
+  pointer-events: none;
+  border: 1px solid rgba(255, 180, 95, 0.08);
+  transform: rotate(18deg);
+  background: repeating-linear-gradient(90deg, transparent 0 72px, rgba(255, 160, 94, 0.028) 73px 74px);
 }
 
 .page-shell {
   position: relative;
   z-index: 1;
-  display: grid;
-  gap: 1.5rem;
-  width: min(1480px, 100%);
+  width: min(1480px, calc(100% - 48px));
   margin: 0 auto;
+  padding: 24px 0 36px;
 }
 
-
-.profile-header,
-.content-card {
-  contain: layout paint;
-  border: 1px solid rgba(136, 220, 255, 0.24);
-  box-shadow:
-    0 24px 80px rgba(3, 9, 34, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 0 36px rgba(94, 178, 255, 0.14);
-  backdrop-filter: blur(18px);
+.profile-btn {
+  min-height: 42px;
+  padding: 0 1.1rem;
+  color: #211014;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  border: 1px solid rgba(255, 231, 207, 0.7);
+  border-radius: 4px;
+  background: linear-gradient(135deg, #ffd19c, #ff765f);
+  box-shadow: 0 10px 32px rgba(255, 103, 77, 0.2);
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.profile-header {
-  display: grid;
-  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
-  gap: 1.5rem;
-  align-items: stretch;
-  height: 330px;
-  padding: 1.5rem;
-  color: white;
-  border-radius: 28px;
-  background:
-    linear-gradient(135deg, rgba(22, 42, 92, 0.72) 0%, rgba(74, 32, 128, 0.7) 100%),
-    linear-gradient(90deg, rgba(0, 238, 255, 0.2), rgba(174, 94, 255, 0.22));
+.profile-btn:hover {
+  box-shadow: 0 14px 38px rgba(255, 103, 77, 0.3);
+  transform: translateY(-2px);
 }
 
-.hero-profile-card,
-.hero-intro-card,
-.content-card {
+.hero {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+  grid-template-rows: 1fr auto;
+  height: calc(100svh - 150px);
+  min-height: 540px;
+  max-height: 660px;
+  margin-top: 20px;
   overflow: hidden;
-  transform: translateZ(0);
-  background: linear-gradient(135deg, rgba(9, 24, 58, 0.58), rgba(44, 25, 88, 0.5));
-  border-radius: 22px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
-.hero-profile-card,
-.hero-intro-card {
+.hero::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 62%;
+  width: 1px;
+  content: "";
+  background: linear-gradient(to bottom, transparent, rgba(255, 199, 153, 0.34), transparent);
+}
+
+.hero-copy {
   display: flex;
-  align-items: center;
-  height: 100%;
-  min-height: 0;
-  padding: 2rem;
-  border: 1px solid rgba(138, 220, 255, 0.18);
-}
-
-.hero-profile-card {
-  gap: 2.5rem;
-  padding: 2.4rem;
-}
-
-.hero-intro-card {
-  align-items: flex-start;
   flex-direction: column;
   justify-content: center;
-}
-
-.hero-intro-card::after,
-.content-card::after {
-  position: absolute;
-  inset: auto -18% -45% 32%;
-  height: 150px;
-  pointer-events: none;
-  content: "";
-  background: radial-gradient(circle, rgba(0, 217, 255, 0.16), transparent 66%);
-}
-
-.avatar {
-  flex: 0 0 auto;
-  width: 178px;
-  height: 178px;
-  object-fit: cover;
-  border: 4px solid rgba(196, 244, 255, 0.85);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 8px rgba(82, 211, 255, 0.1),
-    0 0 30px rgba(0, 238, 255, 0.48),
-    0 18px 45px rgba(0, 0, 0, 0.28);
-}
-
-.profile-info {
   min-width: 0;
+  padding: 28px 44px 28px 16px;
+  animation: copyReveal 700ms ease both;
 }
 
-.section-kicker {
-  display: inline-flex;
-  margin-bottom: 0.65rem;
-  color: #6ff0ff;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  text-shadow: 0 0 16px rgba(0, 238, 255, 0.46);
-}
-
-.name {
-  margin: 0;
-  color: #f7fbff;
-  font-size: clamp(3rem, 4.8vw, 5.4rem);
-  font-weight: 800;
-  line-height: 1;
-}
-
-.title {
-  margin: 0.9rem 0 0;
-  color: rgba(237, 247, 255, 0.78);
-  font-size: 1.38rem;
-  font-weight: 700;
-}
-
-.titleTypePrintBox {
+.hero-status-row,
+.project-meta,
+.page-footer {
   display: flex;
   align-items: center;
-  width: 100%;
-  min-height: 82px;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
-.typePrinterTitleLike {
-  font-family: "Times New Roman", Times, serif;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  font-size: clamp(1.75rem, 2.8vw, 3rem);
-  font-weight: bold;
-  line-height: 1.12;
-  text-shadow: 0 0 24px rgba(172, 128, 255, 0.36);
-}
-
-.hero-support-text {
+.hero-status-row {
   max-width: 620px;
-  margin: 0.75rem 0 0;
-  color: rgba(237, 247, 255, 0.7);
-  font-size: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.availability {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.availability i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a7ef9d;
+  box-shadow: 0 0 14px rgba(167, 239, 157, 0.8);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.hero-kicker,
+.section-kicker {
+  margin: 0 0 0.8rem;
+  color: var(--amber);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  display: grid;
+  margin: 0;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 5.8rem;
+  font-weight: 700;
+  line-height: 0.88;
+  letter-spacing: 0;
+}
+
+.hero-title-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 217, 183, 0.52);
+  white-space: nowrap;
+}
+
+.hero-intro {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.2fr);
+  gap: 2rem;
+  align-items: end;
+  max-width: 760px;
+  margin-top: 1.25rem;
+}
+
+.hero-intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
   line-height: 1.8;
 }
 
-.content-layout {
+.type-line {
+  min-width: 0;
+  min-height: 52px;
+  padding: 0.85rem 0;
+  color: #ffd4ad;
+  font-family: "Fira Code", monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.type-printer {
+  overflow-wrap: anywhere;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+}
+
+.command-button {
+  display: inline-flex;
+  gap: 1.4rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 1.2rem;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.command-button .n-icon,
+.project-link .n-icon,
+.action-arrow {
+  transform: rotate(-35deg);
+  transition: transform 180ms ease;
+}
+
+.command-button:hover .n-icon,
+.project-link:hover .n-icon,
+.lab-action:hover .action-arrow {
+  transform: rotate(0deg) translateX(3px);
+}
+
+.command-button--primary {
+  color: #231014;
+  border: 1px solid #ffbc79;
+  background: linear-gradient(120deg, #ffc17f, #ff765f);
+}
+
+.command-button--ghost {
+  border: 1px solid var(--line);
+  background: rgba(255, 246, 237, 0.035);
+}
+
+.command-button:hover {
+  border-color: rgba(255, 215, 180, 0.64);
+  transform: translateY(-2px);
+}
+
+.hero-visual {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(360px, 0.85fr) minmax(560px, 1.15fr);
-  gap: 1.5rem;
-  align-items: stretch;
+  align-content: center;
+  justify-items: center;
+  min-width: 0;
+  padding: 24px 20px 24px 56px;
+  animation: visualReveal 900ms 100ms ease both;
 }
 
-.content-card {
-  padding: 2rem;
-  background: linear-gradient(135deg, rgba(9, 24, 58, 0.68), rgba(44, 25, 88, 0.58));
+.portrait-index {
+  position: absolute;
+  top: 24px;
+  right: 18px;
+  color: rgba(255, 221, 191, 0.46);
+  font-family: "Fira Code", monospace;
+  font-size: 0.78rem;
 }
 
-.bio-section,
-.skills-section,
-.projects-section,
-.action-section {
-  min-height: 100%;
+.portrait-frame {
+  position: relative;
+  width: min(350px, 82%);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  clip-path: polygon(12% 0, 100% 0, 100% 86%, 86% 100%, 0 100%, 0 12%);
+  background: #331519;
+  box-shadow: 34px 34px 0 rgba(255, 112, 81, 0.07);
 }
 
-.bio-section h2,
-.skills-section h2,
-.projects-section h2,
-.action-copy h2 {
+.portrait-frame::before {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(to top, rgba(38, 10, 15, 0.64), transparent 50%),
+    linear-gradient(130deg, rgba(255, 174, 99, 0.18), transparent 46%);
+  mix-blend-mode: color;
+}
+
+.portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.78) contrast(1.08) sepia(0.12);
+  transform: scale(1.02);
+}
+
+.portrait-scanline {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 5px, rgba(255, 244, 233, 0.035) 6px);
+}
+
+.portrait-caption {
+  display: grid;
+  gap: 0.25rem;
+  width: min(350px, 82%);
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.portrait-caption span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.portrait-caption strong {
+  font-size: 0.9rem;
+}
+
+.hero-stats {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+}
+
+.stat-item {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 1rem 1.2rem;
+}
+
+.stat-item + .stat-item {
+  border-left: 1px solid var(--line);
+}
+
+.stat-item strong {
+  color: var(--coral);
+  font-family: Georgia, serif;
+  font-size: 1.8rem;
+}
+
+.stat-item span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.manifesto-section {
+  display: grid;
+  grid-template-columns: 80px minmax(360px, 1.1fr) minmax(320px, 0.9fr);
+  gap: 3rem;
+  padding: 7rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-number {
+  color: rgba(255, 215, 181, 0.42);
+  font-family: "Fira Code", monospace;
+  font-size: 0.82rem;
+}
+
+.manifesto-heading h2,
+.section-heading-row h2,
+.lab-heading h2 {
   margin: 0;
-  color: #c7f6ff;
-  font-size: 1.75rem;
-  text-shadow: 0 0 18px rgba(0, 238, 255, 0.42);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.bio {
-  margin: 1.25rem 0 0;
-  color: rgba(237, 247, 255, 0.86);
-  font-size: 1.08rem;
+.manifesto-heading h2 {
+  font-size: 3.7rem;
+  line-height: 1.08;
+}
+
+.manifesto-copy {
+  align-self: end;
+}
+
+.manifesto-copy > p,
+.section-note {
+  margin: 0;
+  color: var(--muted);
   line-height: 1.9;
+}
+
+.skill-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 2rem;
+}
+
+.skill-link {
+  padding: 0.55rem 0.75rem;
+  color: rgba(255, 241, 227, 0.84);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.skill-link:hover {
+  color: #2a1115;
+  border-color: var(--amber);
+  background: var(--amber);
+}
+
+.projects-section {
+  padding: 7rem 1rem;
+  scroll-margin-top: 110px;
 }
 
 .section-heading-row {
   display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+  gap: 3rem;
+  align-items: end;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.4rem;
 }
 
-.section-count {
-  flex: 0 0 auto;
-  padding: 0.42rem 0.8rem;
-  color: #dffaff;
-  font-size: 0.88rem;
-  font-weight: 700;
-  border: 1px solid rgba(138, 220, 255, 0.22);
-  border-radius: 999px;
-  background: rgba(0, 217, 255, 0.08);
+.section-heading-row h2,
+.lab-heading h2 {
+  font-size: 3.4rem;
 }
 
-.skills-grid,
-.skills-transition-group {
+.section-note {
+  max-width: 440px;
+}
+
+.projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  gap: 0.9rem;
-}
-
-.skill-tag {
-  padding: 1.05rem 1.25rem;
-  color: white;
-  font-weight: 700;
-  text-align: center;
-  cursor: pointer;
-  border: 1px solid rgba(203, 246, 255, 0.36);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(0, 194, 255, 0.78) 0%, rgba(132, 78, 255, 0.86) 100%);
-  box-shadow:
-    0 10px 26px rgba(38, 109, 255, 0.24),
-    0 0 22px rgba(0, 238, 255, 0.16);
-  opacity: 0;
-  animation: skillFlyIn 2s ease forwards;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.skill-tag:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 16px 34px rgba(38, 109, 255, 0.3),
-    0 0 28px rgba(0, 238, 255, 0.22);
-}
-
-.projects-list {
-  width: 100%;
-}
-
-.projects-transition-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.15rem;
-  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 
 .project-card {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   min-width: 0;
-  min-height: 210px;
+  min-height: 300px;
   padding: 1.5rem;
-  border: 1px solid rgba(138, 220, 255, 0.22);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(12, 31, 72, 0.78) 0%, rgba(53, 27, 101, 0.72) 100%);
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  opacity: 0;
-  backdrop-filter: blur(16px);
-  animation: projectFadeIn 1.5s ease forwards;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: rgba(255, 242, 231, 0.025);
+  transition: background-color 220ms ease, transform 220ms ease;
 }
+
+.project-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34%;
+  height: 3px;
+  content: "";
+  background: var(--amber);
+  transform: scaleX(0.2);
+  transform-origin: right;
+  transition: transform 220ms ease;
+}
+
+.project-card:nth-child(2)::before { background: var(--coral); }
+.project-card:nth-child(3)::before { background: var(--rose); }
+.project-card:nth-child(4)::before { background: #72d8cf; }
 
 .project-card:hover {
-  border-color: rgba(122, 232, 255, 0.48);
-  box-shadow:
-    0 26px 70px rgba(0, 0, 0, 0.34),
-    0 0 38px rgba(0, 238, 255, 0.24);
-  transform: translateY(-8px);
+  z-index: 1;
+  background: rgba(255, 156, 108, 0.07);
+  transform: translateY(-5px);
 }
 
-.project-card h3 {
-  margin: 0 0 0.65rem;
-  color: #f4fbff;
-  font-size: 1.2rem;
-  line-height: 1.35;
-  word-break: keep-all;
+.project-card:hover::before {
+  transform: scaleX(1);
 }
 
-.project-card p {
-  flex: 1;
-  margin: 0 0 1.25rem;
-  color: rgba(229, 241, 255, 0.78);
-  font-size: 0.94rem;
-  line-height: 1.7;
-  word-break: normal;
+.project-meta {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
 }
 
-.project-link {
-  align-self: flex-start;
-  display: inline-flex;
-  padding: 0.55rem 1rem;
-  color: white;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-  border: 1px solid rgba(214, 250, 255, 0.36);
-  border-radius: 10px;
-  background: linear-gradient(135deg, #00d9ff 0%, #8f5cff 100%);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+.project-copy {
+  align-self: center;
+  padding: 2rem 0;
 }
 
-.project-link:hover {
-  box-shadow: 0 8px 24px rgba(0, 217, 255, 0.34);
-  transform: translateY(-2px);
+.project-copy h3 {
+  margin: 0 0 0.8rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.5rem;
+  font-weight: 600;
 }
 
-.action-section {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.42fr) minmax(560px, 1fr);
-  gap: 1.5rem;
-  align-items: center;
-}
-
-.action-copy p {
-  margin: 1rem 0 0;
-  color: rgba(237, 247, 255, 0.74);
+.project-copy p {
+  max-width: 420px;
+  margin: 0;
+  color: var(--muted);
   line-height: 1.8;
 }
 
-.dragBox {
-  display: grid;
+.project-link {
+  display: inline-flex;
   gap: 1rem;
-  width: 100%;
-}
-
-.dragButtonBox {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.tech-action-button {
-  --n-color: linear-gradient(135deg, rgba(0, 217, 255, 0.82), rgba(126, 92, 255, 0.88)) !important;
-  --n-color-hover: linear-gradient(135deg, rgba(47, 233, 255, 0.94), rgba(165, 119, 255, 0.96)) !important;
-  --n-color-pressed: linear-gradient(135deg, rgba(0, 171, 224, 0.94), rgba(95, 65, 224, 0.96)) !important;
-  --n-border: 1px solid rgba(202, 247, 255, 0.42) !important;
-  --n-border-hover: 1px solid rgba(202, 247, 255, 0.72) !important;
-  --n-border-pressed: 1px solid rgba(171, 224, 255, 0.58) !important;
-  --n-text-color: #f4fbff !important;
-  --n-text-color-hover: #ffffff !important;
-  --n-text-color-pressed: #ffffff !important;
-  --n-ripple-color: rgba(95, 231, 255, 0.38) !important;
-  box-shadow:
-    0 12px 32px rgba(0, 217, 255, 0.22),
-    0 0 22px rgba(143, 92, 255, 0.22);
-  backdrop-filter: blur(14px);
-}
-
-.upload-suggestion-banner {
-  padding: 0.95rem 1.35rem;
-  color: aliceblue;
-  font-family:
-    "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
-    "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
-  font-size: 17px;
-  text-align: center;
+  align-items: center;
+  justify-self: start;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
   cursor: pointer;
-  border: 1px solid rgba(176, 232, 255, 0.28);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(0, 194, 255, 0.22) 0%, rgba(91, 100, 255, 0.34) 48%, rgba(143, 92, 255, 0.4) 100%);
-  box-shadow:
-    0 14px 38px rgba(28, 94, 255, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(16px);
-  transition: transform 0.3s ease, border-color 0.3s ease, filter 0.3s ease, box-shadow 0.3s ease;
+  border: 0;
+  background: transparent;
 }
 
-.upload-suggestion-banner--open {
-  background: linear-gradient(135deg, rgba(0, 217, 255, 0.28) 0%, rgba(143, 92, 255, 0.48) 100%);
-  box-shadow:
-    0 18px 48px rgba(0, 217, 255, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+.lab-section {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(520px, 1.2fr);
+  gap: 4rem;
+  padding: 5rem 1rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(100deg, rgba(255, 173, 95, 0.06), rgba(207, 55, 91, 0.05));
 }
 
-.upload-suggestion-banner:hover {
-  border-color: rgba(202, 247, 255, 0.52);
-  filter: brightness(1.08);
-  transform: translateY(-2px);
+.lab-heading {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 1.2rem;
 }
 
-.profile-btn,
-.chat-btn {
-  padding: 0.75rem 1.5rem;
-  color: white;
-  font-size: 1rem;
-  font-weight: 700;
+.lab-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.lab-action {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 120px;
+  padding: 1.2rem;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  border: 1px solid rgba(215, 250, 255, 0.38);
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(0, 217, 255, 0.9) 0%, rgba(143, 92, 255, 0.92) 100%);
-  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 248, 240, 0.025);
+  transition: background-color 180ms ease;
 }
 
-.profile-btn:hover,
-.chat-btn:hover {
-  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.34);
-  transform: translateY(-2px);
+.lab-action:hover,
+.lab-action--active {
+  background: rgba(255, 140, 92, 0.12);
 }
 
-.snow-container {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
+.lab-action > .n-icon:first-child {
+  color: var(--amber);
+  font-size: 1.4rem;
 }
 
-.snowflake {
-  position: absolute;
-  top: -24px;
-  background: #e8fbff;
-  border-radius: 50%;
-  box-shadow:
-    0 0 10px rgba(255, 255, 255, 0.8),
-    0 0 18px rgba(0, 238, 255, 0.55);
-  will-change: transform;
-  animation: snowfall var(--snow-duration) linear var(--snow-delay) infinite;
+.lab-action span {
+  display: grid;
+  gap: 0.32rem;
+  font-weight: 800;
+}
+
+.lab-action small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.upload-panel {
+  grid-column: 1 / -1;
+  padding-top: 2rem;
 }
 
 .upload-box-fade-enter-active,
 .upload-box-fade-leave-active {
-  transition: all 0.5s ease;
+  transition: opacity 240ms ease, transform 240ms ease;
 }
 
 .upload-box-fade-enter-from,
 .upload-box-fade-leave-to {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(12px);
 }
 
-@keyframes skillFlyIn {
-  0% {
-    opacity: 0;
-    transform: translateX(-100px) rotate(0deg);
-  }
-  50% {
-    transform: translateX(10px) rotate(5deg);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0) rotate(0deg);
-  }
+.page-footer {
+  padding: 1.4rem 1rem 0;
 }
 
-@keyframes projectFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes copyReveal {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes auroraFloat {
-  0% {
-    transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1);
-  }
-  100% {
-    transform: translate3d(2%, 1%, 0) rotate(8deg) scale(1.08);
-  }
+@keyframes visualReveal {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); }
+  to { opacity: 1; clip-path: inset(0); }
 }
 
-@keyframes snowfall {
-  0% {
-    transform: translate3d(0, -10vh, 0) rotate(0deg);
-  }
-  100% {
-    transform: translate3d(var(--snow-drift), 110vh, 0) rotate(360deg);
-  }
+@keyframes statusPulse {
+  50% { opacity: 0.45; transform: scale(0.8); }
 }
 
-@media (max-width: 1280px) {
-  .profile-page {
-    min-width: 0;
-    padding: 1.5rem;
-  }
-
-  .profile-header,
-  .content-layout,
-  .action-section {
-    grid-template-columns: 1fr;
-  }
-
-  .profile-header {
-    height: auto;
-  }
-
-  .hero-profile-card,
-  .hero-intro-card {
-    min-height: 260px;
-  }
-
-  .projects-transition-group {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+@media (max-width: 1120px) {
+  .hero-title { font-size: 5.4rem; }
+  .hero-intro { grid-template-columns: 1fr; gap: 1rem; }
+  .manifesto-section { grid-template-columns: 52px 1fr; }
+  .manifesto-copy { grid-column: 2; }
+  .lab-section { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 760px) {
-  .profile-page {
-    padding: 1rem;
-  }
+@media (max-width: 820px) {
+  .page-shell { width: min(100% - 28px, 1480px); padding-top: 14px; }
+  .hero { grid-template-columns: 1fr; min-height: auto; }
+  .hero::before { display: none; }
+  .hero-copy { padding: 4rem 0.4rem 2.5rem; }
+  .hero-visual { padding: 1rem 0.4rem 3rem; }
+  .portrait-frame,
+  .portrait-caption { width: min(500px, 100%); }
+  .hero-stats { grid-template-columns: 1fr; }
+  .stat-item + .stat-item { border-top: 1px solid var(--line); border-left: 0; }
+  .manifesto-section { padding: 5rem 0.4rem; }
+  .manifesto-heading h2,
+  .section-heading-row h2,
+  .lab-heading h2 { font-size: 2.8rem; }
+  .projects-section { padding: 5rem 0.4rem; }
+  .projects-grid { grid-template-columns: 1fr; }
+  .lab-section { padding: 4rem 0.4rem; }
+}
 
+@media (max-width: 560px) {
+  .profile-btn { min-height: 38px; padding: 0 0.8rem; font-size: 0.82rem; }
+  .hero-status-row { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
+  .hero-title { font-size: 3.65rem; }
+  .hero-intro { margin-top: 1.6rem; }
+  .hero-actions { flex-direction: column; }
+  .command-button { width: 100%; }
+  .manifesto-section { grid-template-columns: 1fr; gap: 1.5rem; }
+  .manifesto-copy { grid-column: auto; }
+  .manifesto-heading h2,
+  .section-heading-row h2,
+  .lab-heading h2 { font-size: 2.2rem; }
+  .section-heading-row { align-items: flex-start; flex-direction: column; }
+  .project-card { min-height: 270px; padding: 1.2rem; }
+  .project-copy h3 { font-size: 2rem; }
+  .lab-heading { grid-template-columns: 36px 1fr; }
+  .lab-actions { grid-template-columns: 1fr; }
+  .page-footer { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
+}
 
-  .hero-profile-card {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .hero-profile-card,
-  .hero-intro-card,
-  .content-card {
-    padding: 1.25rem;
-  }
-
-  .avatar {
-    width: 140px;
-    height: 140px;
-  }
-
-  .name {
-    font-size: 3rem;
-  }
-
-  .title {
-    font-size: 1.15rem;
-  }
-
-  .projects-transition-group,
-  .skills-grid,
-  .skills-transition-group {
-    grid-template-columns: 1fr;
-  }
-
-  .section-heading-row {
-    flex-direction: column;
-  }
-
-  .typePrinterTitleLike {
-    font-size: 1.65rem;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 </style>
-
-
-
-
-
-
