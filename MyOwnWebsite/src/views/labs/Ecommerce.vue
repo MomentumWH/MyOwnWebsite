@@ -1,123 +1,165 @@
-﻿<script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
-import ProjectNav from "@/components/projectNav/index.vue";
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, useTemplateRef, watch } from "vue";
+import WarmProjectLayout from "@/components/projectShowcase/WarmProjectLayout.vue";
 import { useMessage } from "naive-ui";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { PieChart } from "echarts/charts";
-import { TooltipComponent, LegendComponent } from "echarts/components";
-import { animate, createTimeline, stagger } from "animejs";
+import { LegendComponent, TooltipComponent } from "echarts/components";
+import { animate, stagger } from "animejs";
 import VChart from "vue-echarts";
 import { fetchProducts, login } from "@/services/apiCalls";
 
 use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent]);
 
+interface ProductRecord {
+  description?: string;
+  id?: number | string;
+  name?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
+interface LoginResponse {
+  token?: string;
+}
+
 const message = useMessage();
-const features = ref([
-  { name: "Product display and search", icon: "P" },
-  { name: "Cart and checkout", icon: "C" },
-  { name: "User auth", icon: "U" },
-  { name: "Order management", icon: "O" },
-]);
 
-const techStack = ref([
-  { name: "Nuxt 3", icon: "N" },
-  { name: "Tailwind CSS", icon: "T" },
-  { name: "Pinia", icon: "P" },
-  { name: "Stripe", icon: "S" },
-]);
+const features = [
+  { name: "Product display and search", icon: "PD" },
+  { name: "Cart and checkout", icon: "CO" },
+  { name: "User auth", icon: "UA" },
+  { name: "Order management", icon: "OM" },
+] as const;
 
-const showDrawer = ref(false);
-const currentFeature = ref("");
-const selectDrawer = ref("");
+const techStack = [
+  { name: "Nuxt 3", icon: "N3" },
+  { name: "Tailwind CSS", icon: "TW" },
+  { name: "Pinia", icon: "PI" },
+  { name: "Stripe", icon: "ST" },
+] as const;
 
-const imgList = ref([
+const previewImages = [
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg",
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg",
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg",
   "https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg",
-]);
+] as const;
 
-const chartData = ref([
+const chartData = [
   { name: "Electronics", value: 35 },
   { name: "Fashion", value: 25 },
   { name: "Home", value: 20 },
   { name: "Food", value: 15 },
   { name: "Other", value: 5 },
+] as const;
+
+const showDrawer = shallowRef(false);
+const selectedFeature = shallowRef("");
+const products = shallowRef<ProductRecord[]>([]);
+const loading = shallowRef(false);
+const apiError = shallowRef<string | null>(null);
+const loginLoading = shallowRef(false);
+const loginData = ref({ username: "", password: "" });
+const pageRef = useTemplateRef<HTMLElement>("pageRef");
+const drawerContentRef = useTemplateRef<HTMLElement>("drawerContentRef");
+
+let drawerAnimation: ReturnType<typeof animate> | null = null;
+let drawerImageAnimation: ReturnType<typeof animate> | null = null;
+let productAnimation: ReturnType<typeof animate> | null = null;
+
+const projectStats = computed(() => [
+  { value: features.length, label: "Business modules" },
+  { value: techStack.length, label: "Core technologies" },
+  { value: products.value.length.toString().padStart(2, "0"), label: "Loaded products" },
 ]);
 
 const ringChartOption = computed(() => ({
+  color: ["#ffb45f", "#ff6b59", "#dd416c", "#72d8cf", "#b98bff"],
   tooltip: {
     trigger: "item",
-    formatter: "{a} <br/>{b} : {c}%",
+    backgroundColor: "rgba(35, 14, 18, 0.96)",
+    borderColor: "rgba(255, 190, 132, 0.32)",
+    textStyle: { color: "#fff8ee" },
+    formatter: "{b}: {c}%",
   },
   legend: {
     orient: "horizontal",
-    bottom: "5%",
+    bottom: 0,
     left: "center",
-    textStyle: {
-      color: "white",
-      fontSize: 14,
-    },
+    textStyle: { color: "rgba(255, 235, 218, 0.68)", fontSize: 12 },
   },
   series: [
     {
       name: "Categories",
       type: "pie",
-      radius: ["20%", "70%"],
-      center: ["50%", "40%"],
+      radius: ["34%", "72%"],
+      center: ["50%", "44%"],
       roseType: "area",
-      avoidLabelOverlap: false,
       itemStyle: {
-        borderRadius: 10,
-        borderColor: "#fff",
-        borderWidth: 2,
+        borderColor: "#251015",
+        borderRadius: 2,
+        borderWidth: 3,
       },
       label: {
-        show: true,
-        position: "outside",
-        formatter: "{b}: {c}%",
-        color: "white",
-        fontSize: 14,
-        fontWeight: "bold",
+        color: "rgba(255, 241, 227, 0.82)",
+        formatter: "{b}\n{c}%",
+        fontSize: 12,
+        lineHeight: 18,
       },
-      emphasis: {
-        label: {
-          show: true,
-          fontSize: 16,
-          fontWeight: "bold",
-        },
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: "rgba(0, 0, 0, 0.5)",
-        },
-      },
-      data: chartData.value,
+      data: chartData,
     },
   ],
 }));
 
-const products = ref<any[]>([]);
-const loading = ref(false);
-const apiError = ref<string | null>(null);
-const loginData = ref({
-  username: "",
-  password: "",
-});
-const loginLoading = ref(false);
-const pageRef = useTemplateRef<HTMLElement>("pageRef");
-const drawerContentRef = useTemplateRef<HTMLElement>("drawerContentRef");
+const drawerContentStyle = {
+  background: "linear-gradient(135deg, rgba(35, 14, 18, 0.98), rgba(82, 30, 34, 0.98))",
+  backdropFilter: "blur(20px)",
+};
 
-let introTimeline: ReturnType<typeof createTimeline> | null = null;
-let drawerAnimation: ReturnType<typeof animate> | null = null;
-let drawerImageAnimation: ReturnType<typeof animate> | null = null;
-let productAnimation: ReturnType<typeof animate> | null = null;
+const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const handleFeatureClick = (featureName: string) => {
-  currentFeature.value = featureName;
+const readErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+const normalizeProducts = (result: unknown): ProductRecord[] => {
+  if (Array.isArray(result)) {
+    return result as ProductRecord[];
+  }
+
+  if (result && typeof result === "object" && "data" in result) {
+    const data = (result as { data?: unknown }).data;
+    return Array.isArray(data) ? data as ProductRecord[] : [];
+  }
+
+  return [];
+};
+
+const normalizeLoginResponse = (result: unknown): LoginResponse => {
+  if (!result || typeof result !== "object") {
+    return {};
+  }
+
+  if ("data" in result && (result as { data?: unknown }).data) {
+    return (result as { data: LoginResponse }).data;
+  }
+
+  return result as LoginResponse;
+};
+
+const productKey = (product: ProductRecord, index: number) =>
+  product.id ?? product.name ?? product.title ?? `product-${index}`;
+
+const productTitle = (product: ProductRecord) =>
+  product.name ?? product.title ?? "Product Item";
+
+const productDescription = (product: ProductRecord) =>
+  product.description ?? JSON.stringify(product, null, 2);
+
+const openFeature = (featureName: string) => {
+  selectedFeature.value = featureName;
   showDrawer.value = true;
-  selectDrawer.value = featureName;
 };
 
 const handleFetchProducts = async () => {
@@ -125,11 +167,10 @@ const handleFetchProducts = async () => {
   apiError.value = null;
 
   try {
-    const result = await fetchProducts();
-    products.value = result || [];
-    message.success("Products loaded");
-  } catch (error: any) {
-    apiError.value = error.message || "Failed to load products";
+    products.value = normalizeProducts(await fetchProducts());
+    message.success(`Loaded ${products.value.length} products`);
+  } catch (error: unknown) {
+    apiError.value = readErrorMessage(error, "Failed to load products");
     message.error(apiError.value);
   } finally {
     loading.value = false;
@@ -145,134 +186,70 @@ const handleLogin = async () => {
   loginLoading.value = true;
 
   try {
-    const result = await login(
+    const result = normalizeLoginResponse(await login(
       loginData.value.username,
       loginData.value.password,
-    );
+    ));
 
     if (result.token) {
       localStorage.setItem("token", result.token);
       message.success("Login success");
       loginData.value = { username: "", password: "" };
+    } else {
+      message.warning("The API did not return a token");
     }
-  } catch (error: any) {
-    message.error(error.message || "Login failed");
+  } catch (error: unknown) {
+    message.error(readErrorMessage(error, "Login failed"));
   } finally {
     loginLoading.value = false;
   }
 };
 
-const animatePageIntro = () => {
-  if (!pageRef.value) {
-    return;
-  }
-
-  introTimeline?.revert();
-
-  const sectionTargets = pageRef.value.querySelectorAll(".fade-in-section");
-  const featureTargets = pageRef.value.querySelectorAll(".feature-card");
-  const techTargets = pageRef.value.querySelectorAll(".tech-card");
-  const demoCardTargets = pageRef.value.querySelectorAll(".demo-card");
-
-  introTimeline = createTimeline({
-    defaults: {
-      duration: 820,
-      ease: "outExpo",
-    },
-  })
-    .add(sectionTargets, {
-      opacity: { from: 0 },
-      y: { from: 32 },
-    })
-    .add(
-      featureTargets,
-      {
-        opacity: { from: 0 },
-        y: { from: 48 },
-        scale: { from: 0.92 },
-        delay: stagger(140),
-        duration: 720,
-        ease: "outBack",
-      },
-      "-=480",
-    )
-    .add(
-      techTargets,
-      {
-        opacity: { from: 0 },
-        y: { from: 40 },
-        scale: { from: 0.94 },
-        delay: stagger(120),
-        duration: 680,
-      },
-      "-=520",
-    )
-    .add(
-      demoCardTargets,
-      {
-        opacity: { from: 0 },
-        y: { from: 28 },
-        delay: stagger(120),
-        duration: 620,
-        ease: "outCubic",
-      },
-      "-=360",
-    );
-};
-
 const animateDrawerContent = async () => {
-  if (!showDrawer.value) {
+  if (!showDrawer.value || prefersReducedMotion()) {
     return;
   }
 
   await nextTick();
-
   if (!drawerContentRef.value) {
     return;
   }
 
   drawerAnimation?.revert();
   drawerImageAnimation?.revert();
-
   drawerAnimation = animate(drawerContentRef.value, {
     opacity: { from: 0 },
-    y: { from: 52 },
-    duration: 520,
+    y: { from: 32 },
+    duration: 420,
     ease: "outCubic",
   });
-
-  const carouselImages = drawerContentRef.value.querySelectorAll(".carousel-img");
-
-  drawerImageAnimation = animate(carouselImages, {
-    opacity: { from: 0 },
-    scale: { from: 0.9 },
-    delay: stagger(110),
-    duration: 560,
-    ease: "outExpo",
-  });
+  drawerImageAnimation = animate(
+    drawerContentRef.value.querySelectorAll(".carousel-img"),
+    {
+      opacity: { from: 0 },
+      scale: { from: 0.96 },
+      delay: stagger(80),
+      duration: 460,
+      ease: "outExpo",
+    },
+  );
 };
 
 const animateProducts = async () => {
   await nextTick();
-
-  if (!pageRef.value || products.value.length === 0) {
+  if (!pageRef.value || products.value.length === 0 || prefersReducedMotion()) {
     return;
   }
 
   productAnimation?.revert();
-
   productAnimation = animate(pageRef.value.querySelectorAll(".product-item"), {
     opacity: { from: 0 },
-    y: { from: 24 },
-    delay: stagger(90),
-    duration: 520,
+    y: { from: 18 },
+    delay: stagger(70),
+    duration: 420,
     ease: "outCubic",
   });
 };
-
-onMounted(() => {
-  animatePageIntro();
-});
 
 watch(showDrawer, (isOpen) => {
   if (isOpen) {
@@ -290,160 +267,145 @@ watch(
 );
 
 onBeforeUnmount(() => {
-  introTimeline?.revert();
   drawerAnimation?.revert();
   drawerImageAnimation?.revert();
   productAnimation?.revert();
 });
 </script>
+
 <template>
-  <div ref="pageRef" class="project-page">
-    <div class="project-shell">
-      <ProjectNav class="fade-in-section" />
-
-      <header class="project-hero fade-in-section">
-        <div class="hero-copy">
-          <span class="section-kicker">Commerce Lab</span>
-          <h1>Ecommerce Platform</h1>
-          <p class="project-subtitle">
-            Built with Nuxt 3 and vue-echarts. 展示商品浏览、用户认证、图表统计与接口请求能力。
-          </p>
+  <WarmProjectLayout
+    eyebrow="Commerce lab / Storefront system"
+    page-code="003"
+    :stats="projectStats"
+    subtitle="围绕商品浏览、认证、交易数据与接口联调构建的电商前端实验场。"
+    title="Ecommerce Platform"
+  >
+    <template #visual>
+      <div class="commerce-terminal">
+        <div class="terminal-header">
+          <span>Store pulse / Live</span>
+          <i></i>
         </div>
-        <aside class="hero-panel">
-          <div class="hero-stat">
-            <strong>{{ features.length }}</strong>
-            <span>核心业务能力</span>
-          </div>
-          <div class="hero-stat">
-            <strong>{{ techStack.length }}</strong>
-            <span>关键技术栈</span>
-          </div>
-          <div class="hero-stat">
-            <strong>{{ products.length }}</strong>
-            <span>已加载商品数据</span>
-          </div>
-        </aside>
-      </header>
+        <div class="terminal-value">
+          <span>Net sales</span>
+          <strong>¥ 84,620</strong>
+          <small>+18.6% / This month</small>
+        </div>
+        <div class="terminal-orders">
+          <div><span>#2048</span><strong>Electronics</strong><i>¥ 1,299</i></div>
+          <div><span>#2047</span><strong>Fashion</strong><i>¥ 689</i></div>
+          <div><span>#2046</span><strong>Home</strong><i>¥ 428</i></div>
+        </div>
+      </div>
+    </template>
 
-      <main class="content-grid">
-        <section class="content-card fade-in-section">
-          <span class="section-kicker">Overview</span>
+    <div ref="pageRef" class="commerce-content">
+      <section class="overview-section">
+        <span class="section-number">01</span>
+        <div>
+          <p class="section-kicker">Overview / Store logic</p>
           <h2>项目介绍</h2>
-          <p>
-            This page demonstrates product browsing, auth flow, charts, and basic
-            API requests while keeping the original data access pattern intact.
-            页面结构已统一为首页同款蓝紫科技玻璃风格。
-          </p>
-        </section>
-
-        <section class="content-card fade-in-section">
-          <div class="section-heading-row">
-            <div>
-              <span class="section-kicker">Key Features</span>
-              <h2>核心功能</h2>
-            </div>
-            <span class="section-count">{{ features.length }} 项能力</span>
-          </div>
-          <div class="features-grid">
-            <article
-              v-for="feature in features"
-              :key="feature.name"
-              class="feature-card"
-              @click="handleFeatureClick(feature.name)"
-            >
-              <span class="feature-icon">{{ feature.icon }}</span>
-              <h3>{{ feature.name }}</h3>
-            </article>
-          </div>
-        </section>
-      </main>
-
-      <section class="content-card fade-in-section">
-        <div class="section-heading-row">
-          <div>
-            <span class="section-kicker">Tech Stack</span>
-            <h2>技术栈</h2>
-          </div>
-          <span class="section-count">{{ techStack.length }} 项技术</span>
         </div>
-        <div class="tech-grid">
-          <article v-for="tech in techStack" :key="tech.name" class="tech-card">
-            <span class="tech-icon">{{ tech.icon }}</span>
-            <h3>{{ tech.name }}</h3>
-          </article>
+        <p>
+          页面保留商品浏览、用户认证、品类分析和接口请求能力，并把展示结构调整为更接近运营工作台的阅读节奏。
+        </p>
+      </section>
+
+      <section class="feature-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Capabilities / Explore</p>
+            <h2>核心功能</h2>
+          </div>
+          <span>04 Modules</span>
+        </div>
+        <div class="feature-grid">
+          <button
+            v-for="(feature, index) in features"
+            :key="feature.name"
+            class="feature-tile"
+            type="button"
+            @click="openFeature(feature.name)"
+          >
+            <span>0{{ index + 1 }}</span>
+            <strong>{{ feature.icon }}</strong>
+            <h3>{{ feature.name }}</h3>
+            <small>Open preview ↗</small>
+          </button>
         </div>
       </section>
 
-      <section class="content-card chart-section fade-in-section">
-        <div class="section-heading-row">
+      <section class="tech-section">
+        <div class="section-heading">
           <div>
-            <span class="section-kicker">Analytics</span>
-            <h2>Category Share</h2>
+            <p class="section-kicker">Technology / Foundation</p>
+            <h2>技术栈</h2>
           </div>
-          <span class="section-count">Rose Chart</span>
+          <span>04 Tools</span>
+        </div>
+        <div class="tech-rail">
+          <div v-for="(tech, index) in techStack" :key="tech.name" class="tech-item">
+            <span>0{{ index + 1 }}</span>
+            <i>{{ tech.icon }}</i>
+            <strong>{{ tech.name }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="analytics-section">
+        <div class="analytics-copy">
+          <span class="section-number">03</span>
+          <p class="section-kicker">Analytics / Category share</p>
+          <h2>销售结构</h2>
+          <p>用玫瑰图观察各品类贡献，让界面在视觉表达之外保留可比较的数据结构。</p>
         </div>
         <VChart :option="ringChartOption" autoresize class="ring-chart" />
       </section>
 
-      <section class="content-card api-demo-section fade-in-section">
-        <div class="section-heading-row">
+      <section class="api-section">
+        <div class="section-heading">
           <div>
-            <span class="section-kicker">API Demo</span>
+            <p class="section-kicker">API demo / Connected tools</p>
             <h2>接口演示</h2>
           </div>
-          <span class="section-count">Login / Products</span>
+          <span>Login / Products</span>
         </div>
 
         <div class="demo-grid">
           <n-card title="User Login" class="demo-card">
             <form class="login-form" @submit.prevent="handleLogin">
-              <div class="form-group">
-                <label>Username</label>
-                <input
-                  v-model="loginData.username"
-                  class="form-input"
-                  type="text"
-                  placeholder="Enter username"
-                />
-              </div>
-              <div class="form-group">
-                <label>Password</label>
-                <input
-                  v-model="loginData.password"
-                  class="form-input"
-                  type="password"
-                  placeholder="Enter password"
-                />
-              </div>
-              <button class="demo-action submit-btn" :disabled="loginLoading">
+              <label class="form-field">
+                <span>Username</span>
+                <input v-model="loginData.username" type="text" placeholder="Enter username" />
+              </label>
+              <label class="form-field">
+                <span>Password</span>
+                <input v-model="loginData.password" type="password" placeholder="Enter password" />
+              </label>
+              <button class="demo-action" type="submit" :disabled="loginLoading">
                 {{ loginLoading ? "Logging in..." : "Login" }}
               </button>
             </form>
           </n-card>
 
           <n-card title="Product Data" class="demo-card">
-            <div class="product-demo">
-              <button class="demo-action fetch-btn" :disabled="loading" @click="handleFetchProducts">
-                {{ loading ? "Loading..." : "Fetch Products" }}
-              </button>
-
-              <div v-if="apiError" class="error-message">
-                {{ apiError }}
-              </div>
-
-              <div v-if="loading" class="loading-container">
-                <p>Loading products...</p>
-              </div>
-
-              <div v-if="products.length" class="products-list">
-                <article v-for="product in products" :key="product.id || product.name" class="product-item">
-                  <div class="product-info">
-                    <h4>{{ product.name || product.title || 'Product Item' }}</h4>
-                    <p>{{ product.description || JSON.stringify(product, null, 2) }}</p>
-                  </div>
-                </article>
-              </div>
+            <button class="demo-action" type="button" :disabled="loading" @click="handleFetchProducts">
+              {{ loading ? "Loading..." : "Fetch Products" }}
+            </button>
+            <p v-if="apiError" class="error-message">{{ apiError }}</p>
+            <p v-else-if="loading" class="loading-message">Loading products...</p>
+            <div v-else-if="products.length" class="products-list">
+              <article
+                v-for="(product, index) in products"
+                :key="productKey(product, index)"
+                class="product-item"
+              >
+                <h4>{{ productTitle(product) }}</h4>
+                <p>{{ productDescription(product) }}</p>
+              </article>
             </div>
+            <p v-else class="empty-message">No product data loaded.</p>
           </n-card>
         </div>
       </section>
@@ -451,302 +413,261 @@ onBeforeUnmount(() => {
 
     <n-drawer
       v-model:show="showDrawer"
-      height="70%"
+      height="72%"
       placement="bottom"
-      :content-style="{
-        borderRadius: '24px 24px 0 0',
-        background: 'linear-gradient(135deg, rgba(9, 24, 58, 0.96), rgba(49, 16, 95, 0.96))',
-        backdropFilter: 'blur(20px)',
-      }"
-      style="border-radius: 24px 24px 0 0"
+      :content-style="drawerContentStyle"
     >
-      <n-drawer-content :title="selectDrawer" :native-scrollbar="false">
+      <n-drawer-content :title="selectedFeature" :native-scrollbar="false">
         <div ref="drawerContentRef" class="drawer-content">
-          <n-carousel show-arrow>
+          <n-carousel show-arrow class="preview-carousel">
             <img
-              v-for="item in imgList"
-              :key="item"
+              v-for="(image, index) in previewImages"
+              :key="image"
               class="carousel-img"
-              :src="item"
+              :src="image"
+              :alt="`电商平台预览图 ${index + 1}`"
             />
           </n-carousel>
         </div>
       </n-drawer-content>
     </n-drawer>
-
-    <n-back-top :right="100" />
-  </div>
+  </WarmProjectLayout>
 </template>
-<style lang="scss" scoped>
-.project-page {
-  position: relative;
-  min-width: 1200px;
-  min-height: 100vh;
-  padding: 2rem 4rem 4rem;
-  overflow-x: hidden;
-  color: #f4fbff;
-  font-family: "Arial", "Microsoft YaHei", sans-serif;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(0, 224, 255, 0.28), transparent 28%),
-    radial-gradient(circle at 88% 12%, rgba(165, 92, 255, 0.38), transparent 30%),
-    radial-gradient(circle at 50% 88%, rgba(73, 108, 255, 0.28), transparent 36%),
-    linear-gradient(135deg, #050816 0%, #0b1741 42%, #31105f 72%, #14091f 100%);
-  background-attachment: fixed;
-}
 
-.project-page::before {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  content: "";
-  background-image:
-    linear-gradient(rgba(102, 220, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(102, 220, 255, 0.08) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 88%);
-}
-
-.project-page::after {
-  position: fixed;
-  inset: -20%;
-  z-index: 0;
-  pointer-events: none;
-  content: "";
-  background:
-    conic-gradient(from 120deg at 30% 50%, transparent, rgba(0, 238, 255, 0.14), transparent 28%),
-    conic-gradient(from 280deg at 72% 48%, transparent, rgba(177, 91, 255, 0.18), transparent 30%);
-  filter: blur(18px);
-  animation: auroraFloat 16s ease-in-out infinite alternate;
-}
-
-.project-shell {
-  position: relative;
-  z-index: 1;
+<style scoped lang="scss">
+.commerce-terminal {
   display: grid;
-  gap: 1.5rem;
-  width: min(1480px, 100%);
-  margin: 0 auto;
-}
-
-
-.back-button,
-.demo-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0.75rem 1.25rem;
-  color: white;
-  font-size: 1rem;
-  font-weight: 800;
-  cursor: pointer;
-  border: 1px solid rgba(215, 250, 255, 0.38);
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(0, 217, 255, 0.9), rgba(143, 92, 255, 0.92));
-  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.back-button:hover,
-.demo-action:hover {
-  box-shadow: 0 10px 28px rgba(0, 217, 255, 0.34);
-  transform: translateY(-2px);
-}
-
-.project-hero,
-.content-card,
-.feature-card,
-.tech-card,
-.demo-card {
-  contain: layout paint;
-  border: 1px solid rgba(136, 220, 255, 0.24);
-  box-shadow:
-    0 24px 80px rgba(3, 9, 34, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 0 36px rgba(94, 178, 255, 0.14);
-  backdrop-filter: blur(18px);
-}
-
-.project-hero {
-  display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.72fr);
-  gap: 1.5rem;
-  min-height: 320px;
+  gap: 1.4rem;
+  width: min(440px, 100%);
+  min-height: 340px;
   padding: 1.5rem;
-  border-radius: 28px;
+  border: 1px solid rgba(255, 212, 174, 0.22);
   background:
-    linear-gradient(135deg, rgba(22, 42, 92, 0.72), rgba(74, 32, 128, 0.7)),
-    linear-gradient(90deg, rgba(0, 238, 255, 0.2), rgba(174, 94, 255, 0.22));
+    linear-gradient(145deg, rgba(255, 179, 95, 0.1), transparent 46%),
+    rgba(255, 245, 235, 0.025);
+  clip-path: polygon(10% 0, 100% 0, 100% 88%, 88% 100%, 0 100%, 0 10%);
+  box-shadow: 28px 28px 0 rgba(255, 112, 81, 0.055);
 }
 
-.hero-copy,
-.hero-panel,
-.content-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(9, 24, 58, 0.68), rgba(44, 25, 88, 0.58));
-}
-
-.hero-copy,
-.hero-panel {
+.terminal-header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 2.2rem;
-  border: 1px solid rgba(138, 220, 255, 0.18);
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(255, 235, 218, 0.62);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.terminal-header i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a7ef9d;
+  box-shadow: 0 0 14px rgba(167, 239, 157, 0.7);
+}
+
+.terminal-value {
+  display: grid;
+  gap: 0.3rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid rgba(255, 212, 174, 0.2);
+}
+
+.terminal-value span,
+.terminal-value small {
+  color: rgba(255, 235, 218, 0.56);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.terminal-value strong {
+  font-family: Georgia, serif;
+  font-size: 3.7rem;
+  font-weight: 500;
+}
+
+.terminal-value small {
+  color: #72d8cf;
+}
+
+.terminal-orders {
+  display: grid;
+}
+
+.terminal-orders div {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  gap: 0.8rem;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid rgba(255, 212, 174, 0.14);
+  font-size: 0.78rem;
+}
+
+.terminal-orders span,
+.terminal-orders i {
+  color: rgba(255, 235, 218, 0.52);
+  font-style: normal;
+}
+
+.commerce-content {
+  display: grid;
+}
+
+.overview-section {
+  display: grid;
+  grid-template-columns: 70px minmax(240px, 0.7fr) minmax(360px, 1.3fr);
+  gap: 3rem;
+  align-items: end;
+  padding: 6.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 212, 174, 0.2);
+}
+
+.overview-section > p,
+.analytics-copy > p:last-child {
+  margin: 0;
+  color: rgba(255, 235, 218, 0.68);
+  line-height: 1.95;
+}
+
+.section-number,
+.section-heading > span {
+  color: rgba(255, 215, 181, 0.44);
+  font-family: "Fira Code", monospace;
+  font-size: 0.74rem;
+  text-transform: uppercase;
 }
 
 .section-kicker {
-  display: inline-flex;
-  margin-bottom: 0.7rem;
-  color: #6ff0ff;
-  font-size: 0.78rem;
+  margin: 0 0 0.65rem;
+  color: #ffb45f;
+  font-size: 0.74rem;
   font-weight: 900;
-  letter-spacing: 0.16em;
   text-transform: uppercase;
-  text-shadow: 0 0 16px rgba(0, 238, 255, 0.46);
 }
 
-.project-hero h1 {
+.overview-section h2,
+.section-heading h2,
+.analytics-copy h2 {
   margin: 0;
-  color: #f7fbff;
-  font-family: "Times New Roman", Times, serif;
-  font-size: clamp(3rem, 5vw, 5rem);
-  line-height: 1.02;
-  text-shadow: 0 0 24px rgba(172, 128, 255, 0.36);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3.4rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.project-subtitle,
-.content-card p,
-.action-copy p {
-  color: rgba(237, 247, 255, 0.78);
-  line-height: 1.85;
+.feature-section,
+.tech-section,
+.analytics-section,
+.api-section {
+  padding: 6.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 212, 174, 0.2);
 }
 
-.project-subtitle {
-  max-width: 760px;
-  margin: 1rem 0 0;
-  font-size: 1.15rem;
-}
-
-.hero-panel {
-  gap: 1rem;
-}
-
-.hero-stat {
-  display: grid;
-  gap: 0.35rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(138, 220, 255, 0.18);
-  border-radius: 16px;
-  background: rgba(0, 217, 255, 0.08);
-}
-
-.hero-stat strong {
-  color: #f4fbff;
-  font-size: 1.35rem;
-}
-
-.hero-stat span {
-  color: rgba(237, 247, 255, 0.68);
-  font-size: 0.9rem;
-}
-
-.content-grid,
-.demo-grid {
-  display: grid;
-  grid-template-columns: minmax(360px, 0.85fr) minmax(560px, 1.15fr);
-  gap: 1.5rem;
-}
-
-.content-card {
-  padding: 2rem;
-}
-
-.section-heading-row {
+.section-heading {
   display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+  gap: 2rem;
+  align-items: end;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.3rem;
 }
 
-.content-card h2,
-.section-heading-row h2 {
-  margin: 0;
-  color: #c7f6ff;
-  font-size: 1.75rem;
-  text-shadow: 0 0 18px rgba(0, 238, 255, 0.42);
-}
-
-.section-count {
-  flex: 0 0 auto;
-  padding: 0.42rem 0.8rem;
-  color: #dffaff;
-  font-size: 0.88rem;
-  font-weight: 800;
-  border: 1px solid rgba(138, 220, 255, 0.22);
-  border-radius: 999px;
-  background: rgba(0, 217, 255, 0.08);
-}
-
-.features-grid,
-.tech-grid {
+.feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid rgba(255, 212, 174, 0.2);
+  border-left: 1px solid rgba(255, 212, 174, 0.2);
 }
 
-.feature-card,
-.tech-card {
+.feature-tile {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  min-width: 0;
+  min-height: 250px;
+  padding: 1.25rem;
+  color: #fff8ee;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 0;
+  border-right: 1px solid rgba(255, 212, 174, 0.2);
+  border-bottom: 1px solid rgba(255, 212, 174, 0.2);
+  background: rgba(255, 245, 235, 0.025);
+  transition: background-color 200ms ease, transform 200ms ease;
+}
+
+.feature-tile:hover {
+  z-index: 1;
+  background: rgba(255, 145, 86, 0.1);
+  transform: translateY(-5px);
+}
+
+.feature-tile > span,
+.feature-tile small {
+  color: rgba(255, 235, 218, 0.52);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.feature-tile strong {
+  align-self: center;
+  color: #ffb45f;
+  font-family: Georgia, serif;
+  font-size: 2.7rem;
+}
+
+.feature-tile h3 {
+  margin: 0 0 0.45rem;
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.tech-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid rgba(255, 212, 174, 0.2);
+  border-bottom: 1px solid rgba(255, 212, 174, 0.2);
+}
+
+.tech-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.8rem;
+  align-items: center;
+  min-height: 84px;
+  padding: 1rem;
+}
+
+.tech-item + .tech-item {
+  border-left: 1px solid rgba(255, 212, 174, 0.2);
+}
+
+.tech-item span {
+  color: rgba(255, 235, 218, 0.46);
+  font-family: "Fira Code", monospace;
+  font-size: 0.68rem;
+}
+
+.tech-item i {
+  color: #ffb45f;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.analytics-section {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.7fr) minmax(480px, 1.3fr);
+  gap: 4rem;
+  align-items: center;
+  background: linear-gradient(100deg, rgba(255, 173, 95, 0.05), rgba(207, 55, 91, 0.045));
+}
+
+.analytics-copy {
   display: grid;
   gap: 0.8rem;
-  min-height: 150px;
-  padding: 1.35rem;
-  color: #f4fbff;
-  cursor: pointer;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(12, 31, 72, 0.78), rgba(53, 27, 101, 0.72));
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.tech-card {
-  cursor: default;
-}
-
-.feature-card:hover,
-.tech-card:hover {
-  border-color: rgba(122, 232, 255, 0.48);
-  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.32), 0 0 32px rgba(0, 238, 255, 0.2);
-  transform: translateY(-6px);
-}
-
-.feature-icon,
-.tech-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  font-size: 1.7rem;
-  border: 1px solid rgba(203, 246, 255, 0.28);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(0, 194, 255, 0.22), rgba(143, 92, 255, 0.3));
-}
-
-.feature-card h3,
-.tech-card h3 {
-  margin: 0;
-  font-size: 1.08rem;
-  line-height: 1.45;
-}
-
-.chart-section,
-.api-demo-section {
-  display: grid;
-  gap: 1.25rem;
 }
 
 .ring-chart {
@@ -754,132 +675,219 @@ onBeforeUnmount(() => {
   height: 440px;
 }
 
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .demo-card {
-  overflow: hidden;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(12, 31, 72, 0.72), rgba(53, 27, 101, 0.68));
+  min-width: 0;
+  border-radius: 4px;
 }
 
 :deep(.n-card) {
-  color: #f4fbff;
-  border: 1px solid rgba(138, 220, 255, 0.18);
-  background: transparent;
+  color: #fff8ee;
+  border: 1px solid rgba(255, 212, 174, 0.2);
+  background: rgba(255, 245, 235, 0.035);
 }
 
 :deep(.n-card-header) {
-  color: #c7f6ff;
-  font-weight: 900;
+  color: #fff0df;
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 212, 174, 0.14);
 }
 
-.form-group {
-  margin-bottom: 1.2rem;
+.login-form,
+.form-field {
+  display: grid;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: rgba(237, 247, 255, 0.78);
+.login-form {
+  gap: 1rem;
+}
+
+.form-field {
+  gap: 0.45rem;
+}
+
+.form-field span {
+  color: rgba(255, 235, 218, 0.66);
+  font-size: 0.75rem;
   font-weight: 800;
+  text-transform: uppercase;
 }
 
-.form-input {
+.form-field input {
   width: 100%;
-  padding: 0.8rem 0.9rem;
-  color: #f4fbff;
-  border: 1px solid rgba(138, 220, 255, 0.22);
-  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  color: #fff8ee;
+  border: 1px solid rgba(255, 212, 174, 0.2);
+  border-radius: 3px;
   outline: none;
-  background: rgba(5, 8, 22, 0.46);
+  background: rgba(22, 9, 13, 0.56);
 }
 
-.form-input:focus {
-  border-color: rgba(111, 240, 255, 0.62);
-  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.12);
+.form-field input:focus {
+  border-color: rgba(255, 180, 95, 0.72);
+  box-shadow: 0 0 0 3px rgba(255, 180, 95, 0.1);
+}
+
+.demo-action {
+  min-height: 44px;
+  padding: 0 1rem;
+  color: #261014;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  border: 1px solid #ffbd7a;
+  border-radius: 3px;
+  background: linear-gradient(120deg, #ffc17f, #ff765f);
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.demo-action:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+}
+
+.demo-action:disabled {
+  cursor: wait;
+  opacity: 0.58;
 }
 
 .error-message,
-.product-item,
-.loading-container {
-  padding: 1rem;
-  margin-top: 1rem;
-  border: 1px solid rgba(138, 220, 255, 0.16);
-  border-radius: 14px;
-  background: rgba(5, 8, 22, 0.36);
+.loading-message,
+.empty-message,
+.product-item {
+  padding: 0.9rem;
+  margin: 0.9rem 0 0;
+  border: 1px solid rgba(255, 212, 174, 0.14);
+  background: rgba(22, 9, 13, 0.42);
 }
 
 .error-message {
-  color: #ffb4ad;
-  border-color: rgba(255, 124, 124, 0.28);
+  color: #ffaaa1;
+  border-color: rgba(255, 107, 89, 0.3);
+}
+
+.loading-message,
+.empty-message {
+  color: rgba(255, 235, 218, 0.58);
 }
 
 .products-list {
   display: grid;
-  gap: 1rem;
-  max-height: 420px;
-  margin-top: 1rem;
+  gap: 0.7rem;
+  max-height: 360px;
+  margin-top: 0.9rem;
   overflow: auto;
 }
 
-.product-info h4 {
-  margin: 0 0 0.5rem;
-  color: #f4fbff;
+.product-item {
+  margin: 0;
 }
 
-.product-info p {
+.product-item h4 {
+  margin: 0 0 0.4rem;
+}
+
+.product-item p {
   margin: 0;
-  color: rgba(237, 247, 255, 0.72);
+  color: rgba(255, 235, 218, 0.62);
+  line-height: 1.6;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.preview-carousel,
+.carousel-img {
+  width: 100%;
+  height: min(520px, 58vh);
 }
 
 .carousel-img {
-  width: 100%;
-  height: 440px;
+  display: block;
   object-fit: cover;
-  border-radius: 18px;
 }
 
-.drawer-content {
-  height: 100%;
-}
-
-@keyframes auroraFloat {
-  0% { transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1); }
-  100% { transform: translate3d(2%, 1%, 0) rotate(8deg) scale(1.08); }
-}
-
-@media (max-width: 1280px) {
-  .project-page {
-    min-width: 0;
-    padding: 1.5rem;
+@media (max-width: 980px) {
+  .feature-grid,
+  .tech-rail,
+  .demo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .project-hero,
-  .content-grid,
+  .analytics-section {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-item:nth-child(3) {
+    border-left: 0;
+  }
+
+  .tech-item:nth-child(n + 3) {
+    border-top: 1px solid rgba(255, 212, 174, 0.2);
+  }
+}
+
+@media (max-width: 720px) {
+  .overview-section {
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+    padding: 5rem 0.4rem;
+  }
+
+  .feature-section,
+  .tech-section,
+  .analytics-section,
+  .api-section {
+    padding: 5rem 0.4rem;
+  }
+
+  .overview-section h2,
+  .section-heading h2,
+  .analytics-copy h2 {
+    font-size: 2.5rem;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .feature-grid,
+  .tech-rail,
   .demo-grid {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 760px) {
-  .project-page {
-    padding: 1rem;
+  .feature-tile {
+    min-height: 220px;
   }
 
-  .hero-copy,
-  .hero-panel,
-  .content-card {
-    padding: 1.25rem;
+  .tech-item + .tech-item,
+  .tech-item:nth-child(3) {
+    border-top: 1px solid rgba(255, 212, 174, 0.2);
+    border-left: 0;
   }
 
-  .project-hero h1 {
+  .terminal-value strong {
     font-size: 3rem;
   }
 
-  .section-heading-row {
-    flex-direction: column;
+  .ring-chart {
+    height: 360px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-tile,
+  .demo-action {
+    transition: none;
   }
 }
 </style>
-
-

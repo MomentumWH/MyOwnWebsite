@@ -27,6 +27,8 @@ declare module 'vue' {
     SoybeanHero: typeof import('./src/components/soybeanDemo/SoybeanHero.vue')['default']
     SoybeanShowcase: typeof import('./src/components/soybeanDemo/SoybeanShowcase.vue')['default']
     UploadByNaviUI: typeof import('./src/components/uploadByNaviUI/index.vue')['default']
+    WarmProjectLayout: typeof import('./src/components/projectShowcase/WarmProjectLayout.vue')['default']
+    WarmProjectShowcase: typeof import('./src/components/projectShowcase/WarmProjectShowcase.vue')['default']
     WebBackgroundColorful: typeof import('./src/components/webBackgroundColorful/index.vue')['default']
   }
 }
