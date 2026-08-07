@@ -1,4 +1,5 @@
 import type { RouteLocationNormalized, RouteLocationRaw } from "vue-router";
+import { StorageKeys } from "@/constants/storage";
 
 /** 应用级路由路径 */
 export const PermissionPaths = {
@@ -11,8 +12,8 @@ export const PermissionPaths = {
 
 /** localStorage 中认证相关键名 */
 export const AuthStorageKeys = {
-  TOKEN: "auth_token",
-  USER: "auth_user",
+  TOKEN: StorageKeys.authToken,
+  USER: StorageKeys.authUser,
 } as const;
 
 /** 无需登录即可访问的路由 path（与 router 中 record.path 一致） */
@@ -28,6 +29,7 @@ export const ROUTE_WHITE_LIST = new Set<string>([
   "/data-visualization",
   "/drag-box",
   "/about",
+  "/:pathMatch(.*)*",
 ]);
 
 export type UserRole = "admin" | "user";
@@ -144,10 +146,13 @@ export function resolvePostLoginRedirect(
   redirect: unknown,
   fallback: string = PermissionPaths.HOME,
 ): string {
-  if (typeof redirect === "string" && redirect && redirect !== PermissionPaths.LOGIN) {
+  if (
+    typeof redirect === "string"
+    && redirect.startsWith("/")
+    && !redirect.startsWith("//")
+    && redirect !== PermissionPaths.LOGIN
+  ) {
     return redirect;
   }
   return fallback;
 }
-
-

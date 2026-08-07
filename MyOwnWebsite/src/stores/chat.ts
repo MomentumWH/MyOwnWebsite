@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { StorageKeys } from '@/constants/storage'
 
 interface Message {
   id: string
@@ -11,7 +12,7 @@ interface Message {
   isSelf: boolean
 }
 
-const STORAGE_KEY = 'chat-messages'
+const STORAGE_KEY = StorageKeys.chatMessages
 
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<Message[]>([])

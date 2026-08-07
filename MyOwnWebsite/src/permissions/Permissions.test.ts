@@ -115,6 +115,8 @@ describe("permissions", () => {
 
     it("falls back when redirect is login or invalid", () => {
       expect(resolvePostLoginRedirect("/login")).toBe(PermissionPaths.HOME);
+      expect(resolvePostLoginRedirect("https://example.com")).toBe(PermissionPaths.HOME);
+      expect(resolvePostLoginRedirect("//example.com")).toBe(PermissionPaths.HOME);
       expect(resolvePostLoginRedirect(undefined)).toBe(PermissionPaths.HOME);
       expect(resolvePostLoginRedirect(["/profile"])).toBe(PermissionPaths.HOME);
     });

@@ -1,5 +1,7 @@
 import CSQaQAPI from "./CSQAQAPI";
 
+export type CsqaqParams = Record<string, unknown>;
+
 //绑定本机白名单IP
 export const bindLocalIp = () => {
   return CSQaQAPI.post("/api/v1/sys/bind_local_ip");
@@ -15,14 +17,14 @@ export const getCurrentData = (type: string) => {
 };
 
 //获取指数K线图
-export const getKline = (data?: any) => {
+export const getKline = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/sub/kline", {
     params: data || {},
   });
 };
 
 //获取指数详情数据
-export const getSubData = (data?: any) => {
+export const getSubData = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/sub_data", {
     params: data || {},
   });
@@ -31,48 +33,48 @@ export const getSubData = (data?: any) => {
 //实时成交量数据
 
 //获取成交量数据信息
-export const getVolDataInfo = (data?: any) => {
+export const getVolDataInfo = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/vol_data_info", data);
 };
 
 //获取成交量图表/磨损信息
-export const getVolDataDetail = (data?: any) => {
+export const getVolDataDetail = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/vol_data_detail", data);
 };
 
 //武器箱数据
 
 //获取武器箱开箱数量统计
-export const getCase = (data?: any) => {
+export const getCase = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/stat/case", {
     params: data || {},
   });
 };
 
 //获取武器箱开箱回报率列表
-export const getRoi = (data?: any) => {
+export const getRoi = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/roi", data);
 };
 
 //获取单个武器箱开箱回报率走势
-export const getRoiDetail = (data?: any) => {
+export const getRoiDetail = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/info/roi_detail", {
     params: data || {},
   });
 };
 
 //获取单个武器箱历史开箱量
-export const getChart = (data?: any) => {
+export const getChart = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/stat/case/chart", data);
 };
 
 //获取所有收藏品列表
-export const getContainerDataInfo = (data?: any) => {
+export const getContainerDataInfo = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/container_data_info", data);
 };
 
 //获取单个收藏品的包含物
-export const getContainerDetail = (data?: any) => {
+export const getContainerDetail = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/info/good/container_detail", {
     params: data || {},
   });
@@ -80,76 +82,76 @@ export const getContainerDetail = (data?: any) => {
 
 //库存监控
 //获取库存监控最新动态
-export const getTaskTrends = (data?: any) => {
+export const getTaskTrends = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/monitor/get_task_trends", data);
 };
 
 //获取库存监控任务列表
-export const getTaskList = (data?: any) => {
+export const getTaskList = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/monitor/get_task_list", data);
 };
 
 //获取库存监控持有量排行榜
-export const getRank = (data?: any) => {
+export const getRank = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/monitor/rank", data);
 };
 
 //获取监控单个用户信息
-export const getTaskInfo = (data?: any) => {
+export const getTaskInfo = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/task/get_task_info", data);
 };
 
 //获取监控单个用户库存动态
-export const getTaskBusiness = (data?: any) => {
+export const getTaskBusiness = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/task/get_task_business", data);
 };
 
 //获取监控单个用户全部库存
-export const getTaskAll = (data?: any) => {
+export const getTaskAll = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/task/get_task_all", data);
 };
 
 //获取监控单个用户库存快照列表
-export const getTaskRecent = (data?: any) => {
+export const getTaskRecent = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/task/get_task_recent", data);
 };
 
 //饰品详情
 
 //获取饰品的ID信息
-export const getGoodId = (data?: any) => {
+export const getGoodId = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/get_good_id", data);
 };
 
 //联想查询饰品的ID信息
-export const suggest = (data?: any) => {
+export const suggest = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/search/suggest", {
     params: data || {},
   });
 };
 
 //获取单件饰品详情
-export const good = (data?: any) => {
+export const good = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/info/good", {
     params: data || {},
   });
 };
 
 //获取单件饰品存世量走势
-export const statistic = (data?: any) => {
+export const statistic = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/info/good/statistic", {
     params: data || {},
   });
 };
 
 //批量获取饰品出售价格数据
-export const getPriceByMarketHashName = (data?: any) => {
+export const getPriceByMarketHashName = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/goods/getPriceByMarketHashName", data);
 };
 
 //获取单件饰品图表数据
 
-export const getOneChart = (data?: any) => {
+export const getOneChart = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/chart", data);
 };
 
@@ -209,17 +211,17 @@ export const getRankListByDefaultSort = (
 };
 
 //获取饰品列表信息
-export const getPageList = (data?: any) => {
+export const getPageList = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/get_page_list", data);
 };
 
 //获取热门系列饰品列表
-export const getSeriesList = (data?: any) => {
+export const getSeriesList = (data?: CsqaqParams) => {
   return CSQaQAPI.post("/api/v1/info/get_series_list", data);
 };
 
 //获取单件热门系列饰品详情
-export const getSeriesDetail = (data?: any) => {
+export const getSeriesDetail = (data?: CsqaqParams) => {
   return CSQaQAPI.get("/api/v1/info/get_series_detail", {
     params: data || {},
   });

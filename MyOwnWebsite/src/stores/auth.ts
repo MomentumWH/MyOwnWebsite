@@ -5,10 +5,11 @@ import {
   canAccessChatRoom as checkCanAccessChatRoom,
   type AuthUser,
 } from "@/permissions";
+import { StorageKeys } from "@/constants/storage";
 
 const TOKEN_KEY = AuthStorageKeys.TOKEN;
 const USER_KEY = AuthStorageKeys.USER;
-export const RegisteredAccountStorageKey = "registered_accounts";
+export const RegisteredAccountStorageKey = StorageKeys.registeredAccounts;
 
 export interface RegisteredAccount {
   username: string;
@@ -49,8 +50,6 @@ export const useAuthStore = defineStore("auth", () => {
     { username: "Chonny", password: "obj96OBJ", role: "user" },
   ];
 
-  const CSQAQKey = "ESNLB1A7B4K6V5H4P0J6P3U4";
-
   const canAccessChatRoom = computed(() => checkCanAccessChatRoom(user.value));
 
   const initAuth = () => {
@@ -82,6 +81,7 @@ export const useAuthStore = defineStore("auth", () => {
     initialized.value = true;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(StorageKeys.apiToken);
   };
 
   const login = (username: string, password: string) => {
@@ -120,7 +120,5 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     logout,
     initAuth,
-    CSQAQKey,
   };
 });
-

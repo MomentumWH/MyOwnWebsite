@@ -33,7 +33,7 @@ const finishRouteTransition = () => {
           @enter-cancelled="finishRouteTransition"
           @leave-cancelled="finishRouteTransition"
         >
-          <div :key="route.path" class="route-frame">
+          <div :key="route.fullPath" class="route-frame">
             <component :is="Component" />
           </div>
         </Transition>
@@ -44,10 +44,10 @@ const finishRouteTransition = () => {
 
 <style>
 :root {
-  --route-enter-duration: 360ms;
-  --route-leave-duration: 160ms;
+  --route-enter-duration: 440ms;
+  --route-leave-duration: 220ms;
   --route-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --route-leave-ease: cubic-bezier(0.4, 0, 1, 1);
+  --route-leave-ease: cubic-bezier(0.4, 0, 0.8, 1);
 }
 
 #app,
@@ -58,6 +58,7 @@ const finishRouteTransition = () => {
 .route-frame {
   position: relative;
   isolation: isolate;
+  backface-visibility: hidden;
 }
 
 .route-page-enter-active {
@@ -79,12 +80,14 @@ const finishRouteTransition = () => {
 
 .route-page-enter-from {
   opacity: 0;
-  transform: translate3d(0, 16px, 0);
+  transform: translate3d(0, 18px, 0) scale(0.985);
+  transform-origin: center top;
 }
 
 .route-page-leave-to {
   opacity: 0;
-  transform: translate3d(0, -6px, 0);
+  transform: translate3d(0, -8px, 0) scale(0.995);
+  transform-origin: center top;
 }
 
 .route-progress {

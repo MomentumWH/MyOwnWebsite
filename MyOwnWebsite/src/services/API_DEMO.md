@@ -1,7 +1,8 @@
 # API调用Demo说明
 
 ## 概述
-本项目已经配置好axios和拦截器，并在Ecommerce.vue页面中创建了API调用演示。
+本项目已经配置好 Axios 客户端和拦截器，并在 Ecommerce.vue 页面中创建了 API 调用演示。
+远程接口 Token 使用 `api_token`，不会覆盖作品集本地登录使用的 `auth_token`。
 
 ## 配置文件
 
@@ -24,6 +25,7 @@
 ### 3. 环境变量 (`.env`)
 ```
 VITE_API_BASE_URL=http://localhost:3000
+VITE_CSQAQ_API_TOKEN=
 ```
 
 ## 使用示例
@@ -52,7 +54,7 @@ const handleLogin = async () => {
   try {
     const result = await login('username', 'password')
     if (result.token) {
-      localStorage.setItem('token', result.token)
+      localStorage.setItem('api_token', result.token)
     }
   } catch (error) {
     console.error('登录失败:', error)
@@ -88,11 +90,8 @@ onMounted(() => {
 - 添加到请求头的Authorization字段
 
 ### 响应拦截器
-- 401错误：清除token并跳转到登录页
-- 403错误：显示无权限访问提示
-- 404错误：显示资源不存在提示
-- 500错误：显示服务器内部错误提示
-- 网络错误：显示网络连接错误提示
+- 401 错误：清除远程 API Token 并将错误交给页面处理
+- 其他错误：保留 Axios 错误对象，由页面展示合适的提示
 
 ## 注意事项
 

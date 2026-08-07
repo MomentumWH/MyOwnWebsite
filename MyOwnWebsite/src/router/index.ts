@@ -113,6 +113,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/csgo/ItemList.vue"),
     meta: { title: "Item List" },
   },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: () => import("@/views/base/NotFound.vue"),
+    meta: { title: "Not Found" },
+  },
 ];
 
 export const router = createRouter({

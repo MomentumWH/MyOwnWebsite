@@ -33,7 +33,9 @@ import {
   suggest,
 } from "@/services/CSQaQ";
 import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
+import MarketInsightPanel from "@/components/csgo/MarketInsightPanel.vue";
 import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
+import { useMarketInsight } from "@/composables/csgo/useMarketInsight";
 import dayjs from "dayjs";
 use([
   CanvasRenderer,
@@ -418,6 +420,11 @@ const handleNavClick = (item: any) => {
     router.push("/inventory-monitor");
   } else if (item.key === "knife") {
     router.push("/knife-market");
+  } else if (item.key === "series") {
+    router.push({
+      path: "/cs-items",
+      query: { section: "series" },
+    });
   }
 };
 
@@ -569,6 +576,73 @@ const riseFallData = ref({
   rise: 4008,
   flat: 11751,
   fall: 9589,
+});
+
+interface MarketBreadthData {
+  rise: number;
+  flat: number;
+  fall: number;
+  sourceLabel: string;
+}
+
+const reportBreadthData = ref<MarketBreadthData | null>(null);
+
+const parseFiniteNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseBreadthValue = (value: unknown) => {
+  const parsed = parseFiniteNumber(value);
+  return parsed !== null && parsed >= 0 ? parsed : null;
+};
+
+const getReportBreadth = (data: Record<string, unknown>) => {
+  const responseBreadth = data.rise_fall ?? data.riseFall ?? data.rise_fall_data;
+
+  if (responseBreadth && typeof responseBreadth === "object") {
+    const breadth = responseBreadth as Record<string, unknown>;
+    const rise = parseBreadthValue(breadth.rise ?? breadth.up);
+    const flat = parseBreadthValue(breadth.flat ?? breadth.unchanged);
+    const fall = parseBreadthValue(breadth.fall ?? breadth.down);
+
+    if (rise !== null && flat !== null && fall !== null && rise + flat + fall > 0) {
+      return { rise, flat, fall, sourceLabel: "全市场涨跌分布" };
+    }
+  }
+
+  if (!Array.isArray(data.sub_index_data)) {
+    return null;
+  }
+
+  const rates = data.sub_index_data
+    .map((item) => parseFiniteNumber(
+      (item as Record<string, unknown>)?.chg_rate,
+    ))
+    .filter((rate): rate is number => rate !== null);
+
+  if (!rates.length) {
+    return null;
+  }
+
+  return {
+    rise: rates.filter((rate) => rate > 0).length,
+    flat: rates.filter((rate) => rate === 0).length,
+    fall: rates.filter((rate) => rate < 0).length,
+    sourceLabel: "子指数涨跌分布",
+  };
+};
+
+const { report: marketInsightReport } = useMarketInsight({
+  currentTab,
+  heatLineData,
+  kLineData,
+  onlineData,
+  riseFallData: reportBreadthData,
 });
 
 let priceChartInstance: ECharts | null = null;
@@ -858,6 +932,7 @@ onMounted(() => {
       currentTab.value = indexTabs.value[0];
       heatLineData.value = res.data.greedy;
       heatObjectData.value = res.data.view_count;
+      reportBreadthData.value = getReportBreadth(res.data);
       initOnlineChart();
     })
     .catch((err) => {
@@ -1626,6 +1701,7 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
+            <MarketInsightPanel :report="marketInsightReport" />
             <div
               class="hot-items-section fade-in-section"
               style="animation-delay: 1.2s"

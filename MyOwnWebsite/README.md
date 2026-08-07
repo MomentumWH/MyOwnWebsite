@@ -228,6 +228,9 @@ src
 
 主要用于电商演示页中的登录、商品获取等接口调用。
 
+电商演示的远程 API Token 使用 `api_token` 存储键，与本地作品集登录态的
+`auth_token` 分开，避免演示接口登录影响页面权限守卫。
+
 ### CSQAQ 数据接口
 
 CS 饰品模块使用了独立的接口封装：
@@ -235,18 +238,23 @@ CS 饰品模块使用了独立的接口封装：
 - [`src/services/CSQAQAPI.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/services/CSQAQAPI.ts)
 - [`src/services/CSQaQ.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/services/CSQaQ.ts)
 
-从源码看，项目通过 `VITE_CSQAQ_API_BASE_URL` 配置接口前缀：
+项目通过 `VITE_CSQAQ_API_BASE_URL` 配置接口前缀，并通过
+`VITE_CSQAQ_API_TOKEN` 注入开发环境的请求 Token。可复制
+[`.env.example`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/.env.example)
+为本地环境配置文件。
 
 开发环境 `.env`
 
 ```env
 VITE_CSQAQ_API_BASE_URL=/api/csqaq
+VITE_CSQAQ_API_TOKEN=your-development-token
 ```
 
 生产环境 `.env.production`
 
 ```env
 VITE_CSQAQ_API_BASE_URL=https://api.csqaq.com
+VITE_CSQAQ_API_TOKEN=your-production-token
 ```
 
 Vite 开发服务器中还配置了代理：
@@ -254,6 +262,8 @@ Vite 开发服务器中还配置了代理：
 - `/api/csqaq` -> `https://api.csqaq.com`
 
 配置文件位于 [`vite.config.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/vite.config.ts)。
+
+> `VITE_*` 变量会被打包到浏览器端，不能视为真正的秘密。生产环境应通过服务端代理保护 CSQAQ Token；这里的变量主要用于本地开发和接口联调。
 
 ## 本地启动
 

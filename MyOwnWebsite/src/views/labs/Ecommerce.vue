@@ -8,21 +8,10 @@ import { PieChart } from "echarts/charts";
 import { LegendComponent, TooltipComponent } from "echarts/components";
 import { animate, stagger } from "animejs";
 import VChart from "vue-echarts";
-import { fetchProducts, login } from "@/services/apiCalls";
+import { fetchProducts, login, type ApiProduct, type LoginResponse } from "@/services/apiCalls";
+import { StorageKeys } from "@/constants/storage";
 
 use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent]);
-
-interface ProductRecord {
-  description?: string;
-  id?: number | string;
-  name?: string;
-  title?: string;
-  [key: string]: unknown;
-}
-
-interface LoginResponse {
-  token?: string;
-}
 
 const message = useMessage();
 
@@ -57,7 +46,7 @@ const chartData = [
 
 const showDrawer = shallowRef(false);
 const selectedFeature = shallowRef("");
-const products = shallowRef<ProductRecord[]>([]);
+const products = shallowRef<ApiProduct[]>([]);
 const loading = shallowRef(false);
 const apiError = shallowRef<string | null>(null);
 const loginLoading = shallowRef(false);
@@ -123,14 +112,14 @@ const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: r
 const readErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
-const normalizeProducts = (result: unknown): ProductRecord[] => {
+const normalizeProducts = (result: unknown): ApiProduct[] => {
   if (Array.isArray(result)) {
-    return result as ProductRecord[];
+    return result as ApiProduct[];
   }
 
   if (result && typeof result === "object" && "data" in result) {
     const data = (result as { data?: unknown }).data;
-    return Array.isArray(data) ? data as ProductRecord[] : [];
+    return Array.isArray(data) ? data as ApiProduct[] : [];
   }
 
   return [];
@@ -148,13 +137,13 @@ const normalizeLoginResponse = (result: unknown): LoginResponse => {
   return result as LoginResponse;
 };
 
-const productKey = (product: ProductRecord, index: number) =>
+const productKey = (product: ApiProduct, index: number) =>
   product.id ?? product.name ?? product.title ?? `product-${index}`;
 
-const productTitle = (product: ProductRecord) =>
+const productTitle = (product: ApiProduct) =>
   product.name ?? product.title ?? "Product Item";
 
-const productDescription = (product: ProductRecord) =>
+const productDescription = (product: ApiProduct) =>
   product.description ?? JSON.stringify(product, null, 2);
 
 const openFeature = (featureName: string) => {
@@ -192,7 +181,7 @@ const handleLogin = async () => {
     ));
 
     if (result.token) {
-      localStorage.setItem("token", result.token);
+      localStorage.setItem(StorageKeys.apiToken, result.token);
       message.success("Login success");
       loginData.value = { username: "", password: "" };
     } else {

@@ -624,6 +624,11 @@ const handleNavClick = (item: any) => {
     router.push("/inventory-monitor");
   } else if (item.key === "knife") {
     router.push("/knife-market");
+  } else if (item.key === "series") {
+    router.push({
+      path: "/cs-items",
+      query: { section: "series" },
+    });
   }
 };
 
