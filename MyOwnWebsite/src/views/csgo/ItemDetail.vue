@@ -300,6 +300,8 @@
             </div>
             <div ref="detailChartRef" class="detail-chart"></div>
           </div>
+
+          <ItemTrendInsightPanel :insight="itemTrendInsight" />
         </div>
       </div>
     </n-layout-content>
@@ -319,9 +321,11 @@ import {
   Repeat,
 } from "@vicons/ionicons5";
 import CsgoLightParticles from "@/components/csgo/CsgoLightParticles.vue";
+import ItemTrendInsightPanel from "@/components/csgo/ItemTrendInsightPanel.vue";
 import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 import { useItemDetail } from "@/composables/csgo/useItemDetail";
 import { useItemDetailChart } from "@/composables/csgo/useItemDetailChart";
+import { useItemTrendInsight } from "@/composables/csgo/useItemTrendInsight";
 
 const router = useRouter();
 const route = useRoute();
@@ -339,12 +343,18 @@ const {
   detailChartRef,
   timeTabs,
   activeTimeTab,
+  lineData,
   fetchChart,
   changeLineTime,
 } = useItemDetailChart(currentId);
 
 const { item, isLoading, wearTabs, activeWearTab, isStatTrak, chooseWearTab } =
   useItemDetail(route, fetchChart, currentId);
+const { insight: itemTrendInsight } = useItemTrendInsight({
+  item,
+  lineData,
+  activeTimeTab,
+});
 
 const animateDetailEntry = async () => {
   clearMotions();

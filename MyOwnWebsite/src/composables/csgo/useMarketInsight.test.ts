@@ -20,6 +20,15 @@ describe("useMarketInsight", () => {
     expect(report.value.stance).toBe("偏强观察");
     expect(report.value.coverage).toBe(100);
     expect(report.value.metrics[0]?.value).toBe("+1.20%");
+    expect(report.value.distribution).toEqual([
+      { name: "上涨", value: 70, percent: 70, color: "#55d6b0" },
+      { name: "持平", value: 20, percent: 20, color: "#f5b74f" },
+      { name: "下跌", value: 10, percent: 10, color: "#ff7767" },
+    ]);
+    expect(report.value.trends[0]?.points).toHaveLength(2);
+    expect(report.value.trends[0]?.change).toBeCloseTo(4);
+    expect(report.value.trends[1]?.change).toBeCloseTo(20);
+    expect(report.value.signals.every((signal) => signal.description.length >= 80)).toBe(true);
     expect(report.value.sources).toEqual([
       "指数快照",
       "在线人数",
@@ -42,5 +51,8 @@ describe("useMarketInsight", () => {
     expect(report.value.confidence).toBe("低");
     expect(report.value.coverage).toBe(0);
     expect(report.value.summary).toContain("数据覆盖度 0%");
+    expect(report.value.distribution).toEqual([]);
+    expect(report.value.trends.every((trend) => trend.points.length === 0)).toBe(true);
+    expect(report.value.signals.every((signal) => signal.description.length >= 80)).toBe(true);
   });
 });

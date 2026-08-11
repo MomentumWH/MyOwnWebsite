@@ -2,6 +2,7 @@
 import { CopyOutline, DownloadOutline } from "@vicons/ionicons5";
 import { useMessage } from "naive-ui";
 import type { MarketInsightReport } from "@/composables/csgo/useMarketInsight";
+import MarketInsightCharts from "@/components/csgo/MarketInsightCharts.vue";
 
 const props = defineProps<{
   report: MarketInsightReport;
@@ -91,6 +92,11 @@ const downloadReport = () => {
         <span class="metric-detail">{{ metric.detail }}</span>
       </article>
     </div>
+
+    <MarketInsightCharts
+      :distribution="report.distribution"
+      :trends="report.trends"
+    />
 
     <div class="insight-body">
       <div class="signal-list">

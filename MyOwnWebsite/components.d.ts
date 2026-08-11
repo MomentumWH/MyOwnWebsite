@@ -19,6 +19,8 @@ declare module 'vue' {
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     HumanVerify: typeof import('./src/components/humanVerify/index.vue')['default']
     ItemCardBox: typeof import('./src/components/ItemCardBox/index.vue')['default']
+    ItemTrendInsightPanel: typeof import('./src/components/csgo/ItemTrendInsightPanel.vue')['default']
+    MarketInsightCharts: typeof import('./src/components/csgo/MarketInsightCharts.vue')['default']
     MarketInsightPanel: typeof import('./src/components/csgo/MarketInsightPanel.vue')['default']
     Printer: typeof import('./src/components/printer/index.vue')['default']
     ProjectNav: typeof import('./src/components/projectNav/index.vue')['default']

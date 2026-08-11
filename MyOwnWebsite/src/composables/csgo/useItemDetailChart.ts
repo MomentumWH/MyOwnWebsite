@@ -285,15 +285,20 @@ export function useItemDetailChart(currentId: Ref<MaybeId>) {
       return;
     }
 
-    const { data } = await getOneChart({
-      good_id: id,
-      key: "sell_price",
-      platform: 2,
-      period: activeTimeTab.value,
-      style: "all_style",
-    });
+    try {
+      const { data } = await getOneChart({
+        good_id: id,
+        key: "sell_price",
+        platform: 2,
+        period: activeTimeTab.value,
+        style: "all_style",
+      });
 
-    lineData.value = data;
+      lineData.value = data;
+    } catch {
+      // Keep the detail page usable when the chart endpoint is rate-limited.
+      lineData.value = null;
+    }
   };
 
   const changeLineTime = async (tab: ChartTab) => {
