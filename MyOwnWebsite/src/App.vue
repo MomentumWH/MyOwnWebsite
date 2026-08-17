@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NMessageProvider, NDialogProvider } from "naive-ui";
 import { shallowRef } from "vue";
+import PageAgent from "@/features/page-agent/PageAgent.vue";
 
 const isRouteChanging = shallowRef(false);
 
@@ -38,6 +39,8 @@ const finishRouteTransition = () => {
           </div>
         </Transition>
       </RouterView>
+
+      <PageAgent />
     </n-dialog-provider>
   </n-message-provider>
 </template>

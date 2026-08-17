@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "dev:agent": "node --env-file-if-exists=.env.agent.local --watch server/page-agent-server.mjs",
+    "start:agent": "node --env-file-if-exists=.env.agent.local server/page-agent-server.mjs",
     "build": "vite build",
     "build:check": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
