@@ -32,6 +32,11 @@ export const PAGE_AGENT_DESTINATIONS: readonly PageAgentDestination[] = [
   { label: "博客", path: "/blog", keywords: ["博客", "blog"] },
   { label: "电商实验", path: "/ecommerce", keywords: ["电商", "商城", "ecommerce"] },
   { label: "数据可视化", path: "/data-visualization", keywords: ["数据可视化", "可视化"] },
+  {
+    label: "阿森纳赛季走势",
+    path: "/arsenal-season",
+    keywords: ["阿森纳", "英超", "赛季走势", "比赛预测"],
+  },
   { label: "拖拽实验", path: "/drag-box", keywords: ["拖拽", "drag box"] },
   { label: "Pretext Demo", path: "/pretext-demo", keywords: ["pretext"] },
   { label: "SoybeanUI Demo", path: "/soybean-ui-demo", keywords: ["soybean", "soybeanui"] },

@@ -27,6 +27,7 @@ export const ROUTE_WHITE_LIST = new Set<string>([
   "/blog",
   "/ecommerce",
   "/data-visualization",
+  "/arsenal-season",
   "/drag-box",
   "/about",
   "/:pathMatch(.*)*",

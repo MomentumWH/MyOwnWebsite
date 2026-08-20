@@ -46,12 +46,17 @@ const profile = {
       label: "Market Intelligence",
       description: "CS饰品行情数据展示和分析平台",
     },
+    {
+      name: "阿森纳赛季走势",
+      label: "Football Intelligence",
+      description: "英超赛果记录、积分走势和比赛概率预测模块",
+    },
   ],
 } as const;
 
 const stats = [
   { value: "05", label: "Core skills" },
-  { value: "04", label: "Selected works" },
+  { value: "05", label: "Selected works" },
   { value: "01", label: "Live data lab" },
 ] as const;
 
@@ -64,6 +69,7 @@ const goToCheckProjectRoute = (name: string) => {
     电商平台: "/ecommerce",
     数据可视化: "/data-visualization",
     CS饰品数据: "/cs-items",
+    阿森纳赛季走势: "/arsenal-season",
   };
 
   router.push(projectRoutes[name] || "/");

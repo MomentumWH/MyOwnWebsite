@@ -60,6 +60,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Data Visualization" },
   },
   {
+    path: "/arsenal-season",
+    name: "arsenal-season",
+    component: () => import("@/views/football/ArsenalSeason.vue"),
+    meta: { title: "阿森纳赛季走势" },
+  },
+  {
     path: "/drag-box",
     name: "drag-box",
     component: () => import("@/views/labs/DragBox.vue"),

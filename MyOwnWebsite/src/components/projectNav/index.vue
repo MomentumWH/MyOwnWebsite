@@ -17,6 +17,7 @@ const navItems = [
   { label: "个人博客", path: "/blog" },
   { label: "电商平台", path: "/ecommerce" },
   { label: "数据可视化", path: "/data-visualization" },
+  { label: "阿森纳赛季", path: "/arsenal-season" },
   { label: "CS饰品数据", path: "/cs-items" },
 ];
 

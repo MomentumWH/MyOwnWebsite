@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import process from "node:process";
+import { getArsenalSeasonData } from "./arsenal-season-service.mjs";
 
 const apiBaseUrl = process.env.AGENT_API_BASE_URL?.replace(/\/$/, "");
 const apiKey = process.env.AGENT_API_KEY;
@@ -99,10 +100,10 @@ Only use provided tools. Never invent routes, tools, credentials, or destructive
 For general questions, answer directly and concisely without calling a tool.
 Do not request, reveal, or repeat secrets.`;
 
-const sendJson = (response, statusCode, value) => {
+const sendJson = (response, statusCode, value, cacheControl = "no-store") => {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
+    "Cache-Control": cacheControl,
     "X-Content-Type-Options": "nosniff",
   });
   response.end(JSON.stringify(value));
@@ -394,6 +395,23 @@ const server = createServer(async (request, response) => {
       model,
       status: "ok",
     });
+    return;
+  }
+
+  if (request.method === "GET" && request.url === "/api/football/arsenal-season") {
+    try {
+      const result = await getArsenalSeasonData();
+      sendJson(response, 200, result, "public, max-age=60, stale-if-error=86400");
+    }
+    catch (error) {
+      console.error(`[arsenal-season] ${error.message}`);
+      sendJson(response, 502, {
+        error: {
+          code: "ARSENAL_DATA_UNAVAILABLE",
+          message: "阿森纳赛程数据暂时不可用。",
+        },
+      });
+    }
     return;
   }
 

@@ -23,6 +23,10 @@ export default defineConfig({
         target: "http://127.0.0.1:8787",
         changeOrigin: false,
       },
+      "/api/football": {
+        target: "http://127.0.0.1:8787",
+        changeOrigin: false,
+      },
       "/api/csqaq": {
         target: "https://api.csqaq.com",
         changeOrigin: true,
