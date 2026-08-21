@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const props = withDefaults(defineProps<{
@@ -12,6 +12,7 @@ const props = withDefaults(defineProps<{
 
 const route = useRoute();
 const router = useRouter();
+const navLinksRef = useTemplateRef<HTMLElement>("navLinks");
 
 const navItems = [
   { label: "个人博客", path: "/blog" },
@@ -21,23 +22,85 @@ const navItems = [
   { label: "CS饰品数据", path: "/cs-items" },
 ];
 
-const activePath = computed(() => route.path);
+const pendingPath = shallowRef<string | null>(null);
+const activePath = computed(() => pendingPath.value ?? route.path);
+const indicatorGeometry = shallowRef({ left: 0, visible: false, width: 0 });
+const indicatorStyle = computed(() => ({
+  opacity: indicatorGeometry.value.visible ? "1" : "0",
+  transform: `translate3d(${indicatorGeometry.value.left}px, 0, 0)`,
+  width: `${indicatorGeometry.value.width}px`,
+}));
+
+let navigationTimer: number | undefined;
+let resizeObserver: ResizeObserver | undefined;
+
+const syncIndicator = () => {
+  const navLinks = navLinksRef.value;
+  const activeLink = Array.from(navLinks?.querySelectorAll<HTMLButtonElement>(".nav-link") ?? [])
+    .find(link => link.dataset.path === activePath.value);
+
+  if (!activeLink) {
+    indicatorGeometry.value = { left: 0, visible: false, width: 0 };
+    return;
+  }
+
+  indicatorGeometry.value = {
+    left: activeLink.offsetLeft,
+    visible: true,
+    width: activeLink.offsetWidth,
+  };
+};
 
 const goHome = () => {
   router.push("/");
 };
 
 const goToRoute = (path: string) => {
-  if (path === route.path) {
+  if (path === activePath.value) {
     return;
   }
 
-  router.push(path);
+  pendingPath.value = path;
+
+  if (navigationTimer !== undefined) {
+    window.clearTimeout(navigationTimer);
+  }
+
+  const transitionDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 160 : 260;
+  navigationTimer = window.setTimeout(() => {
+    navigationTimer = undefined;
+    void router.push(path).catch(() => {
+      pendingPath.value = null;
+    });
+  }, transitionDelay);
 };
 
 const goBack = () => {
   router.back();
 };
+
+watch(activePath, async () => {
+  await nextTick();
+  syncIndicator();
+});
+
+onMounted(async () => {
+  await nextTick();
+  syncIndicator();
+
+  if (navLinksRef.value) {
+    resizeObserver = new ResizeObserver(syncIndicator);
+    resizeObserver.observe(navLinksRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (navigationTimer !== undefined) {
+    window.clearTimeout(navigationTimer);
+  }
+
+  resizeObserver?.disconnect();
+});
 </script>
 
 <template>
@@ -54,16 +117,23 @@ const goBack = () => {
       </span>
     </button>
 
-    <div class="nav-links">
+    <div ref="navLinks" class="nav-links">
+      <span
+        class="nav-active-track"
+        :style="indicatorStyle"
+        aria-hidden="true"
+      ></span>
       <button
         v-for="item in navItems"
         :key="item.path"
         class="nav-link"
         :class="{ 'nav-link--active': item.path === activePath }"
+        :aria-current="item.path === activePath ? 'page' : undefined"
+        :data-path="item.path"
         type="button"
         @click="goToRoute(item.path)"
       >
-        {{ item.label }}
+        <span class="nav-link__label">{{ item.label }}</span>
       </button>
     </div>
 
@@ -167,14 +237,35 @@ const goBack = () => {
 }
 
 .nav-links {
+  position: relative;
   display: flex;
   gap: 0.35rem;
   justify-content: center;
   min-width: 0;
 }
 
+.nav-active-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  background: rgba(0, 217, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.12);
+  transition:
+    width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: width, transform;
+}
+
 .nav-link {
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  z-index: 1;
   flex: 0 0 auto;
   padding: 0.62rem 0.95rem;
   color: rgba(237, 247, 255, 0.72);
@@ -183,28 +274,83 @@ const goBack = () => {
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  transition: color 0.25s ease, transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  transition: color 280ms ease, transform 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
 }
 
-.nav-link:hover,
+.nav-link::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  border-radius: inherit;
+  background: rgba(0, 217, 255, 0.1);
+  opacity: 0;
+  transform: scale(0.72, 0.68);
+  transform-origin: center;
+  transition: opacity 220ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link__label {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  transform: translateY(0);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link:hover {
+  color: #ffffff;
+  border-color: rgba(138, 220, 255, 0.32);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid rgba(95, 231, 255, 0.72);
+  outline-offset: 2px;
+}
+
+.nav-link:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .nav-link--active {
   color: #ffffff;
   border-color: rgba(138, 220, 255, 0.32);
-  background: rgba(0, 217, 255, 0.1);
   box-shadow: 0 0 20px rgba(0, 217, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.nav-link--active .nav-link__label {
   transform: translateY(-1px);
 }
 
 .nav-link--active::after {
   position: absolute;
-  right: 30%;
+  right: 22%;
   bottom: 0.28rem;
-  left: 30%;
+  left: 22%;
   height: 2px;
   content: "";
   border-radius: 999px;
   background: linear-gradient(90deg, #5fe7ff, #b994ff);
   box-shadow: 0 0 10px rgba(95, 231, 255, 0.72);
+  transform: scaleX(1);
+  transform-origin: center;
+  animation: nav-indicator-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes nav-indicator-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }
 
 .nav-action-wrap {
@@ -269,8 +415,21 @@ const goBack = () => {
 .project-nav--warm .nav-link--active {
   color: #fff8ee;
   border-color: rgba(255, 190, 132, 0.28);
-  background: rgba(255, 145, 86, 0.09);
   box-shadow: none;
+}
+
+.project-nav--warm .nav-link:focus-visible {
+  outline-color: rgba(255, 189, 115, 0.72);
+}
+
+.project-nav--warm .nav-link::before {
+  background: rgba(255, 145, 86, 0.09);
+}
+
+.project-nav--warm .nav-active-track {
+  border-radius: 3px;
+  background: rgba(255, 145, 86, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 190, 132, 0.18);
 }
 
 .project-nav--warm .nav-link--active::after {
@@ -331,6 +490,22 @@ const goBack = () => {
 .nav-action {
     min-height: 38px;
     padding: 0.62rem 0.95rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .nav-link::before,
+  .nav-link__label {
+    transition-duration: 120ms;
+  }
+
+  .nav-active-track {
+    transition-duration: 160ms;
+  }
+
+  .nav-link--active::after {
+    animation-duration: 160ms;
   }
 }
 </style>

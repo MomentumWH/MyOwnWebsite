@@ -6,6 +6,7 @@ export const StorageKeys = {
   authToken: "auth_token",
   authUser: "auth_user",
   apiToken: "api_token",
+  arsenalSeasonCache: "arsenal-season-cache",
   registeredAccounts: "registered_accounts",
   chatMessages: "chat-messages",
 } as const;

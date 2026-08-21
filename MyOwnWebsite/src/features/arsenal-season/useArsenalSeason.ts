@@ -1,19 +1,25 @@
+import { storeToRefs } from "pinia";
 import { computed, onMounted, onUnmounted, readonly, shallowRef } from "vue";
+import { useArsenalSeasonStore } from "@/stores/arsenalSeason";
 import { fetchArsenalSeason } from "./arsenalSeasonApi";
 import {
   addUpcomingPredictions,
   buildSeasonTrend,
   calculateSeasonSummary,
   getMatchResult,
-  type ArsenalFixture,
-  type ArsenalSeasonMeta,
   type FixtureFilter,
 } from "./arsenalSeason";
 
+const minimumLoadingDurationMs = 600;
+
 export function useArsenalSeason() {
+  const seasonStore = useArsenalSeasonStore();
+  const {
+    fixturesWithPersonalPredictions: fixtures,
+    meta,
+  } = storeToRefs(seasonStore);
+  const { replaceSeasonPayload, savePersonalPrediction } = seasonStore;
   const activeFilter = shallowRef<FixtureFilter>("all");
-  const fixtures = shallowRef<readonly ArsenalFixture[]>([]);
-  const meta = shallowRef<ArsenalSeasonMeta | null>(null);
   const isLoading = shallowRef(true);
   const error = shallowRef<string | null>(null);
   let activeController: AbortController | null = null;
@@ -56,6 +62,7 @@ export function useArsenalSeason() {
     activeController?.abort();
     const controller = new AbortController();
     const version = ++requestVersion;
+    const loadingStartedAt = performance.now();
     activeController = controller;
     isLoading.value = true;
     error.value = null;
@@ -65,8 +72,7 @@ export function useArsenalSeason() {
       if (version !== requestVersion) {
         return;
       }
-      fixtures.value = payload.fixtures;
-      meta.value = payload.meta;
+      replaceSeasonPayload(payload);
     }
     catch (cause) {
       if (version !== requestVersion || (cause instanceof DOMException && cause.name === "AbortError")) {
@@ -75,6 +81,13 @@ export function useArsenalSeason() {
       error.value = "赛程数据加载失败，请稍后重试。";
     }
     finally {
+      if (version === requestVersion) {
+        const remainingDuration = minimumLoadingDurationMs - (performance.now() - loadingStartedAt);
+        if (remainingDuration > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remainingDuration));
+        }
+      }
+
       if (version === requestVersion) {
         isLoading.value = false;
       }
@@ -101,6 +114,7 @@ export function useArsenalSeason() {
     latestActual,
     nextFixture,
     refresh,
+    savePersonalPrediction,
     season,
     setFilter,
     summary,

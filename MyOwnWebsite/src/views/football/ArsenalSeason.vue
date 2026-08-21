@@ -24,6 +24,7 @@ const {
   latestActual,
   nextFixture,
   refresh,
+  savePersonalPrediction,
   season,
   setFilter,
   summary,
@@ -80,8 +81,27 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
 </script>
 
 <template>
-  <div class="arsenal-page">
+  <div class="arsenal-page" :aria-busy="isLoading">
     <div class="pitch-lines" aria-hidden="true"></div>
+
+    <Transition name="data-fetch-cover">
+      <div
+        v-if="isLoading"
+        class="data-fetch-cover"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="data-fetch-panel">
+          <div class="data-fetch-heading">
+            <i aria-hidden="true"></i>
+            <span>正在获取数据</span>
+          </div>
+          <strong>阿森纳赛季数据同步中</strong>
+          <p>正在读取官方赛程、赛果与积分走势</p>
+          <div class="data-fetch-track" aria-hidden="true"><span></span></div>
+        </div>
+      </div>
+    </Transition>
 
     <div class="page-shell">
       <ProjectNav tone="warm" :show-default-action="false" />
@@ -203,6 +223,7 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
           :fixtures="visibleFixtures"
           :loading="isLoading"
           @filter-change="setFilter"
+          @prediction-save="savePersonalPrediction"
         />
       </main>
 
@@ -246,6 +267,106 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
     linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: linear-gradient(to bottom, #000, transparent 88%);
+}
+
+.data-fetch-cover {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: auto;
+  background: rgba(10, 12, 15, 0.72);
+  backdrop-filter: blur(7px) saturate(0.8);
+}
+
+.data-fetch-panel {
+  width: min(100%, 360px);
+  padding: 22px 24px 20px;
+  border-top: 1px solid rgba(232, 255, 100, 0.5);
+  border-bottom: 1px solid rgba(232, 255, 100, 0.2);
+  background: rgba(16, 18, 22, 0.84);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.36);
+}
+
+.data-fetch-heading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--signal);
+  font-family: "Fira Code", monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.data-fetch-heading i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 14px rgba(232, 255, 100, 0.85);
+  animation: data-fetch-pulse 1.1s ease-in-out infinite;
+}
+
+.data-fetch-panel strong {
+  display: block;
+  margin-top: 18px;
+  color: #ffffff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+}
+
+.data-fetch-panel p {
+  margin: 8px 0 18px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.72rem;
+}
+
+.data-fetch-track {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(232, 255, 100, 0.12);
+}
+
+.data-fetch-track span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  background: var(--signal);
+  box-shadow: 0 0 16px rgba(232, 255, 100, 0.8);
+  animation: data-fetch-scan 1.35s ease-in-out infinite;
+}
+
+.data-fetch-cover-enter-active,
+.data-fetch-cover-leave-active {
+  transition: opacity 220ms ease;
+}
+
+.data-fetch-cover-enter-from,
+.data-fetch-cover-leave-to {
+  opacity: 0;
+}
+
+@keyframes data-fetch-pulse {
+  50% {
+    opacity: 0.42;
+    transform: scale(0.72);
+  }
+}
+
+@keyframes data-fetch-scan {
+  0% {
+    transform: translateX(-115%);
+  }
+
+  55%,
+  100% {
+    transform: translateX(285%);
+  }
 }
 
 .pitch-lines {
@@ -814,6 +935,16 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .data-fetch-cover-enter-active,
+  .data-fetch-cover-leave-active {
+    transition-duration: 1ms;
+  }
+
+  .data-fetch-heading i,
+  .data-fetch-track span {
+    animation: none;
+  }
+
   .hero-copy,
   .hero-identity,
   .data-notice i {

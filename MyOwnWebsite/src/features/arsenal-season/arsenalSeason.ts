@@ -21,6 +21,17 @@ export interface MatchActual {
   opponentScore: number;
 }
 
+export interface PersonalScorePrediction {
+  arsenalScore: number;
+  opponentScore: number;
+  updatedAt: string;
+}
+
+export type PersonalScorePredictionDraft = Pick<
+  PersonalScorePrediction,
+  "arsenalScore" | "opponentScore"
+>;
+
 export interface HeadToHeadMeeting {
   arsenalScore: number;
   date: string;
@@ -55,6 +66,7 @@ export interface ArsenalFixture {
   matchweek: number | null;
   opponent: string;
   opponentCode: string;
+  personalPrediction?: PersonalScorePrediction;
   prediction?: MatchPrediction;
   status: FixtureStatus;
   venue: FixtureVenue;

@@ -1,44 +1,20 @@
 <script setup lang="ts">
 import { NMessageProvider, NDialogProvider } from "naive-ui";
-import { shallowRef } from "vue";
 import PageAgent from "@/features/page-agent/PageAgent.vue";
-
-const isRouteChanging = shallowRef(false);
-
-const startRouteTransition = () => {
-  isRouteChanging.value = true;
-};
-
-const finishRouteTransition = () => {
-  isRouteChanging.value = false;
-};
 </script>
 
 <template>
   <n-message-provider>
     <n-dialog-provider>
-      <div
-        class="route-progress"
-        :class="{ 'route-progress--active': isRouteChanging }"
-        aria-hidden="true"
-      >
-        <span></span>
+      <div class="route-stage">
+        <RouterView v-slot="{ Component, route }">
+          <Transition name="route-fade" mode="out-in">
+            <div :key="route.path" class="route-frame">
+              <component :is="Component" />
+            </div>
+          </Transition>
+        </RouterView>
       </div>
-
-      <RouterView v-slot="{ Component, route }">
-        <Transition
-          name="route-page"
-          mode="out-in"
-          @before-leave="startRouteTransition"
-          @after-enter="finishRouteTransition"
-          @enter-cancelled="finishRouteTransition"
-          @leave-cancelled="finishRouteTransition"
-        >
-          <div :key="route.fullPath" class="route-frame">
-            <component :is="Component" />
-          </div>
-        </Transition>
-      </RouterView>
 
       <PageAgent />
     </n-dialog-provider>
@@ -47,110 +23,119 @@ const finishRouteTransition = () => {
 
 <style>
 :root {
-  --route-enter-duration: 440ms;
-  --route-leave-duration: 220ms;
-  --route-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --route-leave-ease: cubic-bezier(0.4, 0, 0.8, 1);
+  --route-fade-enter-duration: 620ms;
+  --route-fade-leave-duration: 380ms;
+  --route-fade-enter-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --route-fade-leave-ease: cubic-bezier(0.4, 0, 1, 1);
 }
 
 #app,
+.route-stage,
 .route-frame {
   min-height: 100vh;
 }
 
+#app {
+  background: #16090d;
+}
+
+.route-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 88px, rgba(255, 177, 118, 0.04) 89px 90px),
+    repeating-linear-gradient(0deg, transparent 0 88px, rgba(207, 55, 91, 0.035) 89px 90px),
+    linear-gradient(118deg, #16090d 0%, #2a1015 38%, #4f1d20 62%, #1b0a0e 100%);
+}
+
+.route-stage::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(132deg, transparent 0 34%, rgba(255, 173, 95, 0.075) 47%, transparent 61%),
+    linear-gradient(308deg, transparent 0 52%, rgba(207, 55, 91, 0.1) 66%, transparent 78%);
+  background-size: 180% 180%, 160% 160%;
+  animation: route-backdrop-shimmer 6s ease-in-out infinite alternate;
+}
+
+@keyframes route-backdrop-shimmer {
+  from {
+    background-position: 0% 50%, 100% 50%;
+  }
+
+  to {
+    background-position: 100% 50%, 0% 50%;
+  }
+}
+
 .route-frame {
   position: relative;
+  z-index: 1;
   isolation: isolate;
   backface-visibility: hidden;
 }
 
-.route-page-enter-active {
-  z-index: 1;
+.route-fade-enter-active {
   transition:
-    opacity var(--route-enter-duration) var(--route-enter-ease),
-    transform var(--route-enter-duration) var(--route-enter-ease);
-  will-change: opacity, transform;
+    opacity var(--route-fade-enter-duration) var(--route-fade-enter-ease),
+    transform var(--route-fade-enter-duration) var(--route-fade-enter-ease),
+    filter var(--route-fade-enter-duration) var(--route-fade-enter-ease);
+  will-change: opacity, transform, filter;
 }
 
-.route-page-leave-active {
-  z-index: 0;
+.route-fade-leave-active {
   pointer-events: none;
   transition:
-    opacity var(--route-leave-duration) var(--route-leave-ease),
-    transform var(--route-leave-duration) var(--route-leave-ease);
-  will-change: opacity, transform;
+    opacity var(--route-fade-leave-duration) var(--route-fade-leave-ease),
+    transform var(--route-fade-leave-duration) var(--route-fade-leave-ease),
+    filter var(--route-fade-leave-duration) var(--route-fade-leave-ease);
+  will-change: opacity, transform, filter;
 }
 
-.route-page-enter-from {
+.route-fade-enter-from {
   opacity: 0;
-  transform: translate3d(0, 18px, 0) scale(0.985);
-  transform-origin: center top;
+  transform: translate3d(0, 18px, 0) scale(0.995);
+  filter: blur(4px);
 }
 
-.route-page-leave-to {
-  opacity: 0;
-  transform: translate3d(0, -8px, 0) scale(0.995);
-  transform-origin: center top;
-}
-
-.route-progress {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 10000;
-  height: 2px;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-.route-progress span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, #ffb45f 0%, #ff6b59 48%, #72d8cf 100%);
-  box-shadow: 0 0 14px rgba(255, 107, 89, 0.58);
-  transform: scaleX(1);
-  transform-origin: left;
-}
-
-.route-progress--active {
+.route-fade-enter-to {
   opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
 }
 
-.route-progress--active span {
-  animation: routeProgress 520ms var(--route-enter-ease) forwards;
+.route-fade-leave-from {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
 }
 
-@keyframes routeProgress {
-  0% {
-    transform: scaleX(0.04);
-  }
-
-  62% {
-    transform: scaleX(0.72);
-  }
-
-  100% {
-    transform: scaleX(1);
-  }
+.route-fade-leave-to {
+  opacity: 0;
+  transform: translate3d(0, -10px, 0) scale(0.998);
+  filter: blur(2px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-page-enter-active,
-  .route-page-leave-active {
-    transition-duration: 1ms;
+  :root {
+    --route-fade-enter-duration: 580ms;
+    --route-fade-leave-duration: 360ms;
   }
 
-  .route-page-enter-from,
-  .route-page-leave-to {
+  .route-fade-enter-from,
+  .route-fade-enter-to,
+  .route-fade-leave-from,
+  .route-fade-leave-to {
     transform: none;
+    filter: none;
   }
 
-  .route-progress {
-    display: none;
+  .route-stage::before {
+    animation-duration: 12s;
   }
 }
 </style>

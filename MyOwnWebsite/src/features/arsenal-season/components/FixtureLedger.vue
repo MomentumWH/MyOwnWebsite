@@ -9,6 +9,7 @@ import {
 } from "@vicons/ionicons5";
 import { NIcon } from "naive-ui";
 import FixtureAnalysisPanel from "./FixtureAnalysisPanel.vue";
+import PersonalPredictionEditor from "./PersonalPredictionEditor.vue";
 import {
   buildFixtureAnalysis,
   formatMatchDate,
@@ -16,6 +17,7 @@ import {
   type ArsenalFixture,
   type FixtureAnalysis,
   type FixtureFilter,
+  type PersonalScorePredictionDraft,
 } from "../arsenalSeason";
 
 const props = defineProps<{
@@ -26,6 +28,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   filterChange: [filter: FixtureFilter];
+  predictionSave: [fixtureId: string, prediction: PersonalScorePredictionDraft];
 }>();
 
 const filters: readonly { key: FixtureFilter; label: string }[] = [
@@ -158,7 +161,8 @@ const statusTone = (fixture: ArsenalFixture) => (
         <span>轮次 / 日期</span>
         <span>场地</span>
         <span>对手</span>
-        <span>比分 / 预测</span>
+        <span class="model-score-heading">比分 / 预测</span>
+        <span class="personal-score-heading">个人预测</span>
         <span>难度 / 胜率</span>
         <span>状态 / 分析</span>
       </div>
@@ -179,12 +183,9 @@ const statusTone = (fixture: ArsenalFixture) => (
         </div>
 
         <article v-for="fixture in paginatedFixtures" :key="fixture.id" class="fixture-entry">
-          <button
-            type="button"
+          <div
             class="ledger-row ledger-row--fixture"
             :class="{ 'is-expanded': expandedFixtureId === fixture.id }"
-            :aria-expanded="expandedFixtureId === fixture.id"
-            :aria-controls="`fixture-analysis-${fixture.id}`"
             @click="toggleFixture(fixture.id)"
           >
             <span class="round-cell">
@@ -205,7 +206,18 @@ const statusTone = (fixture: ArsenalFixture) => (
               <strong>{{ fixture.opponent }}</strong>
             </span>
 
-            <strong class="score-cell">{{ scoreLabel(fixture) }}</strong>
+            <strong
+              class="score-cell"
+              :class="{ 'score-cell--forecast': !fixture.actual && !!fixture.prediction }"
+            >
+              {{ scoreLabel(fixture) }}
+            </strong>
+
+            <PersonalPredictionEditor
+              :locked="fixture.status !== 'upcoming'"
+              :prediction="fixture.personalPrediction"
+              @save="emit('predictionSave', fixture.id, $event)"
+            />
 
             <span class="win-cell">
               <template v-if="fixture.prediction">
@@ -222,11 +234,21 @@ const statusTone = (fixture: ArsenalFixture) => (
               >
                 {{ resultLabel(fixture) }}
               </span>
-              <NIcon class="analysis-toggle" aria-hidden="true">
-                <ChevronDownOutline />
-              </NIcon>
+              <button
+                type="button"
+                class="analysis-toggle-button"
+                :aria-expanded="expandedFixtureId === fixture.id"
+                :aria-controls="`fixture-analysis-${fixture.id}`"
+                :aria-label="expandedFixtureId === fixture.id ? '收起比赛分析' : '展开比赛分析'"
+                :title="expandedFixtureId === fixture.id ? '收起比赛分析' : '展开比赛分析'"
+                @click.stop="toggleFixture(fixture.id)"
+              >
+                <NIcon class="analysis-toggle" aria-hidden="true">
+                  <ChevronDownOutline />
+                </NIcon>
+              </button>
             </span>
-          </button>
+          </div>
 
           <Transition name="analysis-reveal">
             <FixtureAnalysisPanel
@@ -401,8 +423,8 @@ const statusTone = (fixture: ArsenalFixture) => (
 
 .ledger-row {
   display: grid;
-  grid-template-columns: 116px 90px minmax(220px, 1fr) 90px minmax(140px, 0.55fr) 70px;
-  gap: 18px;
+  grid-template-columns: 108px 76px minmax(190px, 1fr) 86px 124px minmax(118px, 0.45fr) 74px;
+  gap: 14px;
   align-items: center;
   min-height: 84px;
   padding: 12px 14px;
@@ -412,13 +434,11 @@ const statusTone = (fixture: ArsenalFixture) => (
 
 .ledger-row--fixture {
   width: 100%;
+  box-sizing: border-box;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  border-top: 0;
-  border-right: 0;
-  border-left: 0;
   background: transparent;
 }
 
@@ -427,18 +447,20 @@ const statusTone = (fixture: ArsenalFixture) => (
   background: rgba(255, 255, 255, 0.035);
 }
 
-.ledger-row--fixture:focus-visible {
-  z-index: 1;
-  outline: 2px solid #e8ff64;
-  outline-offset: -2px;
-}
-
 .ledger-row--head {
   min-height: 42px;
   color: rgba(255, 255, 255, 0.34);
   font-family: "Fira Code", monospace;
   font-size: 0.62rem;
   text-transform: uppercase;
+}
+
+.model-score-heading {
+  color: rgba(126, 215, 232, 0.78);
+}
+
+.personal-score-heading {
+  color: rgba(232, 255, 100, 0.82);
 }
 
 .round-cell,
@@ -497,6 +519,11 @@ const statusTone = (fixture: ArsenalFixture) => (
   font-size: 1rem;
 }
 
+.score-cell--forecast {
+  color: #7ed7e8;
+  text-shadow: 0 0 14px rgba(126, 215, 232, 0.18);
+}
+
 .win-cell i {
   width: 72px;
   height: 4px;
@@ -535,6 +562,22 @@ const statusTone = (fixture: ArsenalFixture) => (
   color: rgba(255, 255, 255, 0.48);
   font-size: 1rem;
   transition: color 180ms ease, transform 220ms ease;
+}
+
+.analysis-toggle-button {
+  display: grid;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+
+.analysis-toggle-button:focus-visible {
+  outline: 2px solid #e8ff64;
+  outline-offset: 2px;
 }
 
 .ledger-row--fixture:hover .analysis-toggle,
@@ -686,7 +729,7 @@ const statusTone = (fixture: ArsenalFixture) => (
 
 @media (max-width: 980px) {
   .ledger-row {
-    grid-template-columns: 90px 72px minmax(180px, 1fr) 70px 110px 62px;
+    grid-template-columns: 90px 68px minmax(170px, 1fr) 76px 124px 108px 66px;
     gap: 12px;
   }
 
@@ -695,11 +738,11 @@ const statusTone = (fixture: ArsenalFixture) => (
   }
 
   .ledger-row {
-    min-width: 820px;
+    min-width: 920px;
   }
 
   .fixture-entry {
-    min-width: 820px;
+    min-width: 920px;
   }
 }
 
