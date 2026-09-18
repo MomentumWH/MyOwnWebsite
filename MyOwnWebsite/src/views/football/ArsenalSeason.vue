@@ -40,6 +40,14 @@ const heroStats = computed(() => [
     value: `${summary.value.goalDifference >= 0 ? "+" : ""}${summary.value.goalDifference}`,
   },
   { label: "赛季预测", value: summary.value.forecastPoints?.toString() ?? "--" },
+  { label: "黄牌", tone: "yellow", value: summary.value.yellowCards.toString() },
+  { label: "红牌", tone: "red", value: summary.value.redCards.toString() },
+  {
+    help: "红牌 -3 分，黄牌 -1 分",
+    label: "比赛行为分",
+    tone: "behavior",
+    value: summary.value.behaviorScore.toString(),
+  },
 ]);
 
 const formItems = computed(() => form.value.length > 0 ? form.value : ["-"]);
@@ -73,7 +81,7 @@ const notice = computed(() => {
 
   return {
     label: "FPL 官方数据",
-    message: "当前赛季赛程与赛果已接入 Fantasy Premier League 数据源。",
+    message: "当前赛季赛程、赛果与纪律数据已接入 Fantasy Premier League 数据源。",
     tone: "ready",
   } as const;
 });
@@ -157,7 +165,13 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
         </div>
 
         <div class="hero-stats" aria-label="赛季核心指标">
-          <div v-for="stat in heroStats" :key="stat.label" class="hero-stat">
+          <div
+            v-for="stat in heroStats"
+            :key="stat.label"
+            class="hero-stat"
+            :class="stat.tone ? `hero-stat--${stat.tone}` : undefined"
+            :title="stat.help"
+          >
             <strong>{{ stat.value }}</strong>
             <span>{{ stat.label }}</span>
           </div>
@@ -634,16 +648,17 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
 .hero-stats {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-top: 1px solid var(--arsenal-line);
 }
 
 .hero-stat {
   display: flex;
-  gap: 12px;
+  gap: 9px;
   align-items: baseline;
   min-height: 74px;
-  padding: 14px 18px;
+  min-width: 0;
+  padding: 14px 15px;
 }
 
 .hero-stat + .hero-stat {
@@ -653,10 +668,18 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
 .hero-stat strong {
   color: #ffffff;
   font-family: Georgia, serif;
-  font-size: 2rem;
+  font-size: 1.8rem;
 }
 
-.hero-stat:last-child strong {
+.hero-stat--yellow strong {
+  color: #f4c84a;
+}
+
+.hero-stat--red strong {
+  color: #ff6570;
+}
+
+.hero-stat--behavior strong {
   color: var(--signal);
 }
 
@@ -794,6 +817,18 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
 }
 
 @media (max-width: 1120px) {
+  .hero-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .hero-stat:nth-child(4n + 1) {
+    border-left: 0;
+  }
+
+  .hero-stat:nth-child(n + 5) {
+    border-top: 1px solid var(--arsenal-line);
+  }
+
   .analysis-grid {
     grid-template-columns: 1fr;
   }
@@ -842,13 +877,16 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .hero-stat:nth-child(3) {
-    border-top: 1px solid var(--arsenal-line);
+  .hero-stat:nth-child(odd) {
     border-left: 0;
   }
 
-  .hero-stat:nth-child(4) {
+  .hero-stat:nth-child(n + 3) {
     border-top: 1px solid var(--arsenal-line);
+  }
+
+  .hero-stat--behavior {
+    grid-column: 1 / -1;
   }
 
   .analysis-intro {

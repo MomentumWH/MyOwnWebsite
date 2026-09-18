@@ -19,6 +19,10 @@ const isNullableNumber = (value: unknown): value is number | null => (
   value === null || (typeof value === "number" && Number.isFinite(value))
 );
 
+const isCardCount = (value: unknown): value is number => (
+  typeof value === "number" && Number.isInteger(value) && value >= 0
+);
+
 const isMatchActual = (value: unknown): value is MatchActual => (
   isRecord(value)
   && typeof value.arsenalScore === "number"
@@ -62,11 +66,18 @@ const isFixture = (value: unknown): value is ArsenalFixture => (
 );
 
 export const isArsenalSeasonPayload = (value: unknown): value is ArsenalSeasonPayload => {
-  if (!isRecord(value) || !isRecord(value.meta) || !Array.isArray(value.fixtures)) {
+  if (
+    !isRecord(value)
+    || !isRecord(value.discipline)
+    || !isRecord(value.meta)
+    || !Array.isArray(value.fixtures)
+  ) {
     return false;
   }
 
-  return value.meta.source === "fpl"
+  return isCardCount(value.discipline.yellowCards)
+    && isCardCount(value.discipline.redCards)
+    && value.meta.source === "fpl"
     && typeof value.meta.fetchedAt === "string"
     && typeof value.meta.season === "string"
     && typeof value.meta.stale === "boolean"

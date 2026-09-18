@@ -27,6 +27,10 @@ import PageAgent from "@/features/page-agent/PageAgent.vue";
   --route-fade-leave-duration: 380ms;
   --route-fade-enter-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --route-fade-leave-ease: cubic-bezier(0.4, 0, 1, 1);
+  --page-reveal-duration: 880ms;
+  --page-reveal-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --tab-motion-duration: 620ms;
+  --tab-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #app,
@@ -77,6 +81,65 @@ import PageAgent from "@/features/page-agent/PageAgent.vue";
   z-index: 1;
   isolation: isolate;
   backface-visibility: hidden;
+}
+
+.page-motion-ready [data-scroll-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 44px, 0);
+  transition:
+    opacity var(--page-reveal-duration) var(--page-reveal-ease),
+    transform var(--page-reveal-duration) var(--page-reveal-ease);
+  transition-delay: var(--page-reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.page-motion-ready [data-scroll-reveal="left"] {
+  transform: translate3d(-40px, 0, 0);
+}
+
+.page-motion-ready [data-scroll-reveal="right"] {
+  transform: translate3d(40px, 0, 0);
+}
+
+.page-motion-ready [data-scroll-reveal="scale"] {
+  transform: translate3d(0, 24px, 0) scale(0.975);
+}
+
+.page-motion-ready [data-scroll-reveal].is-revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  will-change: auto;
+}
+
+[data-motion-tabs] {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-motion-tab] {
+  position: relative;
+  z-index: 1;
+}
+
+.motion-tab-indicator {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, #ffb14e 0%, #ff536b 52%, #6f8cff 100%);
+  box-shadow: 0 0 16px rgba(255, 111, 104, 0.58);
+  transform-origin: left center;
+  transition:
+    width var(--tab-motion-duration) var(--tab-motion-ease),
+    transform var(--tab-motion-duration) var(--tab-motion-ease),
+    opacity 180ms ease;
+}
+
+[data-motion-tabs][data-motion-tabs-ready="true"] > .motion-tab-indicator {
+  opacity: 1;
 }
 
 .route-fade-enter-active {
@@ -136,6 +199,19 @@ import PageAgent from "@/features/page-agent/PageAgent.vue";
 
   .route-stage::before {
     animation-duration: 12s;
+  }
+
+  .page-motion-ready [data-scroll-reveal],
+  .page-motion-ready [data-scroll-reveal="left"],
+  .page-motion-ready [data-scroll-reveal="right"],
+  .page-motion-ready [data-scroll-reveal="scale"] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .motion-tab-indicator {
+    transition: none;
   }
 }
 </style>

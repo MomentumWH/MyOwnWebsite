@@ -3,10 +3,16 @@ import { computed, shallowRef } from "vue";
 import { StorageKeys } from "@/constants/storage";
 import { isArsenalSeasonPayload } from "@/features/arsenal-season/arsenalSeasonApi";
 import type {
+  ArsenalDiscipline,
   ArsenalSeasonPayload,
   PersonalScorePrediction,
   PersonalScorePredictionDraft,
 } from "@/features/arsenal-season/arsenalSeason";
+
+const emptyDiscipline: ArsenalDiscipline = {
+  redCards: 0,
+  yellowCards: 0,
+};
 
 export const ArsenalSeasonStorageKey = StorageKeys.arsenalSeasonCache;
 
@@ -82,6 +88,7 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
   );
 
   const fixtures = computed(() => payload.value?.fixtures ?? []);
+  const discipline = computed(() => payload.value?.discipline ?? emptyDiscipline);
   const meta = computed(() => payload.value?.meta ?? null);
   const fixturesWithPersonalPredictions = computed(() => {
     const season = payload.value?.meta.season;
@@ -140,6 +147,7 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
   };
 
   return {
+    discipline,
     fixtures,
     fixturesWithPersonalPredictions,
     meta,

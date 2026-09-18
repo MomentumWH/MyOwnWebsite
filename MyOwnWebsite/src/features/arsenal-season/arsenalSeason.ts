@@ -79,12 +79,19 @@ export interface ArsenalSeasonMeta {
   stale: boolean;
 }
 
+export interface ArsenalDiscipline {
+  redCards: number;
+  yellowCards: number;
+}
+
 export interface ArsenalSeasonPayload {
+  discipline: ArsenalDiscipline;
   fixtures: readonly ArsenalFixture[];
   meta: ArsenalSeasonMeta;
 }
 
 export interface SeasonSummary {
+  behaviorScore: number;
   draws: number;
   forecastPoints: number | null;
   goalDifference: number;
@@ -94,7 +101,9 @@ export interface SeasonSummary {
   played: number;
   points: number;
   pointsPerGame: number;
+  redCards: number;
   wins: number;
+  yellowCards: number;
 }
 
 export interface SeasonTrendPoint {
@@ -325,6 +334,7 @@ export const buildFixtureAnalysis = (fixture: ArsenalFixture): FixtureAnalysis =
 
 export const calculateSeasonSummary = (
   fixtures: readonly ArsenalFixture[],
+  discipline: ArsenalDiscipline = { redCards: 0, yellowCards: 0 },
 ): SeasonSummary => {
   const completed = fixtures.filter((fixture) => fixture.status === "completed" && fixture.actual);
   const results = completed.map(getMatchResult);
@@ -343,6 +353,7 @@ export const calculateSeasonSummary = (
     : null;
 
   return {
+    behaviorScore: -(discipline.yellowCards + discipline.redCards * 3),
     played: completed.length,
     points,
     wins: results.filter((result) => result === "W").length,
@@ -352,9 +363,11 @@ export const calculateSeasonSummary = (
     goalsAgainst,
     goalDifference: goalsFor - goalsAgainst,
     pointsPerGame: completed.length > 0 ? points / completed.length : 0,
+    redCards: discipline.redCards,
     forecastPoints: expectedPoints === null
       ? null
       : Math.round((expectedPoints / fixtures.length) * 38),
+    yellowCards: discipline.yellowCards,
   };
 };
 

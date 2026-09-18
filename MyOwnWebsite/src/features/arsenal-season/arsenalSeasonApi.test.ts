@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { fetchArsenalSeason, isArsenalSeasonPayload } from "./arsenalSeasonApi";
 
 const payload = {
+  discipline: {
+    redCards: 1,
+    yellowCards: 7,
+  },
   meta: {
     fetchedAt: "2026-08-18T03:00:00.000Z",
     season: "2026/27",
@@ -40,6 +44,7 @@ const payload = {
 describe("arsenal season API", () => {
   it("accepts the normalized server payload", () => {
     expect(isArsenalSeasonPayload(payload)).toBe(true);
+    expect(isArsenalSeasonPayload({ ...payload, discipline: { redCards: -1, yellowCards: 7 } })).toBe(false);
     expect(isArsenalSeasonPayload({ ...payload, fixtures: [{ id: 1 }] })).toBe(false);
   });
 

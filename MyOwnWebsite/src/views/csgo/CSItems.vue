@@ -57,7 +57,7 @@ const KLINE_REQUEST_DELAY = 3000;
 const router = useRouter();
 const route = useRoute();
 const pageRef = useTemplateRef<HTMLElement>("pageRef");
-const { clearMotions, playStaggerIn, playTimeline, pulse } =
+const { clearMotions, playStaggerIn, playTabTransition, playTimeline } =
   useCsgoPageMotion(pageRef);
 const isPageLoading = ref(true);
 const currentTime = ref();
@@ -767,14 +767,6 @@ const animateDashboardIntro = async () => {
       },
       position: "-=480",
     },
-    {
-      targets: ".hot-items-section",
-      params: {
-        opacity: { from: 0 },
-        y: { from: 32 },
-      },
-      position: "-=420",
-    },
   ]);
 
   await playStaggerIn({
@@ -848,8 +840,15 @@ watch(activeRankingTab, (tab) => {
     });
   }
 
-  void pulse(".ranking-tab.active", { scale: 1.05, duration: 240 });
-  void animateRankingContent();
+  void playTabTransition({
+    key: "overview-ranking",
+    activeTarget: ".ranking-tabs .ranking-tab.active",
+    panelTarget: ".ranking-content",
+    itemTargets:
+      tab === "type"
+        ? ".ranking-content .ranking-item"
+        : ".ranking-content .price-label-item",
+  });
 });
 
 watch(showAllRanking, () => {
@@ -857,15 +856,27 @@ watch(showAllRanking, () => {
 });
 
 watch(showHistoryChart, () => {
-  void pulse(".market-card", { scale: 1.008, duration: 260 });
+  void playTabTransition({
+    key: "market-history",
+    activeTarget: ".market-time",
+    panelTarget: ".market-card > div:last-child",
+  });
 });
 
 watch(activeIndexTab, () => {
-  void pulse(".tab-item.active", { scale: 1.04, duration: 220 });
+  void playTabTransition({
+    key: "market-index",
+    activeTarget: ".index-tabs .tab-item.active",
+    panelTarget: ".index-data",
+  });
 });
 
 watch(activeChartTab, () => {
-  void pulse(".chart-tab.active", { scale: 1.04, duration: 220 });
+  void playTabTransition({
+    key: "market-range",
+    activeTarget: ".chart-tabs .chart-tab.active",
+    panelTarget: "#price-chart",
+  });
 });
 
 watch(
@@ -1232,11 +1243,16 @@ onUnmounted(() => {
                       class="index-tabs-scroll-wrapper"
                       ref="tabsScrollWrapper"
                     >
-                      <div class="index-tabs" ref="tabsContainer">
+                      <div
+                        ref="tabsContainer"
+                        class="index-tabs"
+                        data-motion-tabs
+                      >
                         <div
                           v-for="(tab, index) in indexTabs"
                           :key="tab.id"
                           class="tab-item"
+                          data-motion-tab
                           :class="{ active: activeIndexTab === index }"
                           @click="selectIndexObjectTab(index, tab)"
                         >
@@ -1276,7 +1292,7 @@ onUnmounted(() => {
                 >
                   <div class="chart-header">
                     <div class="chart-tabs-scroll-wrapper">
-                      <div class="chart-tabs">
+                      <div class="chart-tabs" data-motion-tabs>
                         <div
                           style="
                             padding: 0px 0px;
@@ -1290,6 +1306,7 @@ onUnmounted(() => {
                           v-for="(tab, index) in chartTabs"
                           :key="tab.id"
                           class="chart-tab"
+                          data-motion-tab
                           :class="{ active: activeChartTab === index }"
                           @click="selectChartTimeTab(index, tab)"
                         >
@@ -1561,12 +1578,13 @@ onUnmounted(() => {
                   </div>
                 </div> -->
 
-                    <div class="ranking-section">
+                    <div class="ranking-section" data-scroll-reveal="left">
                       <div class="ranking-header">
                         <h4>涨跌分布</h4>
-                        <div class="ranking-tabs">
+                        <div class="ranking-tabs" data-motion-tabs>
                           <span
                             class="ranking-tab"
+                            data-motion-tab
                             :class="{ active: activeRankingTab === 'type' }"
                             @click="activeRankingTab = 'type'"
                           >
@@ -1574,6 +1592,7 @@ onUnmounted(() => {
                           </span>
                           <span
                             class="ranking-tab"
+                            data-motion-tab
                             :class="{ active: activeRankingTab === 'price' }"
                             @click="activeRankingTab = 'price'"
                           >
@@ -1704,6 +1723,7 @@ onUnmounted(() => {
             <MarketInsightPanel :report="marketInsightReport" />
             <div
               class="hot-items-section fade-in-section"
+              data-scroll-reveal="scale"
               style="animation-delay: 1.2s"
             >
               <div

@@ -78,11 +78,13 @@
                 </div>
               </div>
 
-              <div class="wear-tabs">
+              <div class="wear-tabs" data-motion-tabs>
                 <button
                   v-for="tab in wearTabs"
                   :key="tab.id"
+                  type="button"
                   class="wear-tab"
+                  data-motion-tab
                   :class="{ active: activeWearTab === tab.id }"
                   @click="chooseWearTab(tab)"
                   v-if="!isStatTrak"
@@ -273,12 +275,14 @@
             </div>
           </div>
 
-          <div class="chart-section">
+          <div class="chart-section" data-scroll-reveal>
             <div class="chart-header">
-              <div class="time-tabs">
+              <div class="time-tabs" data-motion-tabs>
                 <n-button
                   v-for="tab in timeTabs"
                   :key="tab.value"
+                  data-motion-tab
+                  :class="{ active: activeTimeTab === tab.value }"
                   :type="activeTimeTab === tab.value ? 'primary' : 'default'"
                   @click="changeLineTime(tab)"
                   size="small"
@@ -301,7 +305,10 @@
             <div ref="detailChartRef" class="detail-chart"></div>
           </div>
 
-          <ItemTrendInsightPanel :insight="itemTrendInsight" />
+          <ItemTrendInsightPanel
+            :insight="itemTrendInsight"
+            data-scroll-reveal="scale"
+          />
         </div>
       </div>
     </n-layout-content>
@@ -330,7 +337,7 @@ import { useItemTrendInsight } from "@/composables/csgo/useItemTrendInsight";
 const router = useRouter();
 const route = useRoute();
 const pageRef = useTemplateRef<HTMLElement>("pageRef");
-const { clearMotions, playStaggerIn, playTimeline, pulse } =
+const { clearMotions, playStaggerIn, playTabTransition, playTimeline } =
   useCsgoPageMotion(pageRef);
 
 const goBack = () => {
@@ -375,14 +382,6 @@ const animateDetailEntry = async () => {
       },
       position: "-=460",
     },
-    {
-      targets: ".chart-section",
-      params: {
-        opacity: { from: 0 },
-        y: { from: 24 },
-      },
-      position: "-=420",
-    },
   ]);
 
   await playStaggerIn({
@@ -414,19 +413,20 @@ watch(
 );
 
 watch(activeWearTab, () => {
-  void pulse(".wear-tab.active", { scale: 1.04, duration: 220 });
-  void playStaggerIn({
-    targets: ".price-card, .platform-item",
-    fromY: 14,
-    fromScale: 0.985,
-    delay: 40,
-    duration: 280,
-    ease: "outQuad",
+  void playTabTransition({
+    key: "wear",
+    activeTarget: ".wear-tabs .wear-tab.active",
+    panelTarget: ".price-section, .market-platforms",
+    itemTargets: ".price-card, .platform-item",
   });
 });
 
 watch(activeTimeTab, () => {
-  void pulse(".chart-section", { scale: 1.008, duration: 260 });
+  void playTabTransition({
+    key: "price-range",
+    activeTarget: ".time-tabs [data-motion-tab].active",
+    panelTarget: ".detail-chart",
+  });
 });
 </script>
 

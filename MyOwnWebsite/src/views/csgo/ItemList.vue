@@ -97,11 +97,12 @@
           </div>
         </div>
 
-        <div class="category-tabs">
+        <div class="category-tabs" data-motion-tabs>
           <div
             v-for="(tab, index) in categoryTabs"
             :key="tab.key"
             class="category-tab"
+            data-motion-tab
             :class="{ active: activeCategoryTab === tab.key }"
             @click="activeCategoryTab = tab.key"
           >
@@ -137,7 +138,7 @@
           </div>
         </div>
 
-        <div class="load-more">
+        <div class="load-more" data-scroll-reveal>
           <n-button type="primary" ghost> 加载更多 </n-button>
         </div>
       </div>
@@ -187,7 +188,7 @@ import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 
 const router = useRouter();
 const pageRef = useTemplateRef<HTMLElement>("pageRef");
-const { clearMotions, playStaggerIn, playTimeline, pulse } =
+const { clearMotions, playStaggerIn, playTabTransition, playTimeline, pulse } =
   useCsgoPageMotion(pageRef);
 
 const activeNavItem = ref("items");
@@ -674,15 +675,6 @@ const animatePageIntro = async () => {
       },
       position: "-=520",
     },
-    {
-      targets: ".load-more",
-      params: {
-        opacity: { from: 0 },
-        y: { from: 16 },
-        duration: 520,
-      },
-      position: "-=340",
-    },
   ]);
 
   await playStaggerIn({
@@ -739,7 +731,11 @@ watch(
 );
 
 watch(activeCategoryTab, () => {
-  void pulse(".category-tab.active", { scale: 1.05, duration: 240 });
+  void playTabTransition({
+    key: "item-category",
+    activeTarget: ".category-tabs .category-tab.active",
+    panelTarget: ".items-grid",
+  });
 });
 </script>
 

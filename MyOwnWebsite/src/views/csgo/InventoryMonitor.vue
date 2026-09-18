@@ -12,8 +12,17 @@ import {
   TrashOutline,
   TrophyOutline,
 } from "@vicons/ionicons5";
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  useTemplateRef,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
+import { useCsgoPageMotion } from "@/composables/csgo/useCsgoPageMotion";
 import { getTaskAll, getTaskBusiness, getTaskList, suggest } from "@/services/CSQaQ";
 
 interface NavItem {
@@ -149,6 +158,8 @@ const navItems: NavItem[] = [
 
 const activeNav = shallowRef("inventory");
 const router = useRouter();
+const pageRef = useTemplateRef<HTMLElement>("pageRef");
+const { playTabTransition } = useCsgoPageMotion(pageRef);
 const globalSearchKeyword = ref("");
 const globalSearchInput = ref<HTMLInputElement | null>(null);
 const showGlobalSearchDropdown = ref(false);
@@ -662,6 +673,13 @@ const handleActiveTabChange = async (tab: "dynamic" | "all") => {
   if (tab === "all") {
     await loadTaskAll();
   }
+
+  await playTabTransition({
+    key: "inventory-view",
+    activeTarget: ".tab-buttons [data-motion-tab].active",
+    panelTarget: ".filter-bar, .inventory-dynamic-section, .inventory-cards-section",
+    itemTargets: ".inventory-row, .inventory-card",
+  });
 };
 
 const loadTaskBusiness = async (task: MonitorTask, pageIndex = 1) => {
@@ -782,7 +800,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="inventory-monitor-page">
+  <main ref="pageRef" class="inventory-monitor-page">
     <nav class="top-nav">
       <button
         v-for="item in navItems"
@@ -913,7 +931,11 @@ onUnmounted(() => {
 
     </section>
 
-    <section v-if="selectedMonitorTask" class="dashboard-grid">
+    <section
+      v-if="selectedMonitorTask"
+      class="dashboard-grid"
+      data-scroll-reveal="scale"
+    >
       <section class="inventory-panel panel-card">
         <div class="task-business-head inventory-business-head">
           <div>
@@ -936,11 +958,21 @@ onUnmounted(() => {
         <div v-else-if="activeTab === 'all' && !taskAllItems.length" class="task-search-message">该任务暂无全部库存数据。</div>
 
         <div class="panel-tabs">
-          <div class="tab-buttons">
-            <button :class="{ active: activeTab === 'dynamic' }" @click="handleActiveTabChange('dynamic')">
+          <div class="tab-buttons" data-motion-tabs>
+            <button
+              type="button"
+              data-motion-tab
+              :class="{ active: activeTab === 'dynamic' }"
+              @click="handleActiveTabChange('dynamic')"
+            >
               库存动态
             </button>
-            <button :class="{ active: activeTab === 'all' }" @click="handleActiveTabChange('all')">
+            <button
+              type="button"
+              data-motion-tab
+              :class="{ active: activeTab === 'all' }"
+              @click="handleActiveTabChange('all')"
+            >
               全部库存 <span>{{ taskAllTotal || inventoryStats.visibleCount }}</span>
             </button>
           </div>

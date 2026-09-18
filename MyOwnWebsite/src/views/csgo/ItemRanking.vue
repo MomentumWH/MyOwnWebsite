@@ -88,7 +88,8 @@ interface RankingItem {
 
 const router = useRouter();
 const pageRef = useTemplateRef<HTMLElement>("pageRef");
-const { clearMotions, playStaggerIn, playTimeline, pulse } = useCsgoPageMotion(pageRef);
+const { clearMotions, playStaggerIn, playTabTransition, playTimeline } =
+  useCsgoPageMotion(pageRef);
 
 const navItems: NavItem[] = [
   { label: "首页", key: "home", icon: HomeOutline, path: "/cs-items" },
@@ -444,8 +445,22 @@ onMounted(async () => {
   void animatePageIntro();
 });
 
-watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
-  void pulse(".ranking-tab.active, .metric-chip.active", { scale: 1.04, duration: 220 });
+watch(activeRankingTab, () => {
+  void playTabTransition({
+    key: "ranking-category",
+    activeTarget: ".ranking-tabs .ranking-tab.active",
+    panelTarget: ".ranking-list",
+    itemTargets: ".ranking-row",
+  });
+});
+
+watch([activeMetricChip, selectedTimeRange], () => {
+  void playTabTransition({
+    key: "ranking-metric",
+    activeTarget: ".metric-chips .metric-chip.active",
+    panelTarget: ".ranking-list",
+    itemTargets: ".ranking-row",
+  });
 });
 </script>
 
@@ -568,12 +583,13 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
               </div>
             </div>
 
-            <div class="ranking-tabs">
+            <div class="ranking-tabs" data-motion-tabs>
               <button
                 v-for="tab in rankingTabs"
                 :key="tab"
                 type="button"
                 class="ranking-tab"
+                data-motion-tab
                 :class="{ active: activeRankingTab === tab }"
                 @click="activeRankingTab = tab"
               >
@@ -582,12 +598,13 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
             </div>
 
             <div class="metric-row">
-              <div class="metric-chips">
+              <div class="metric-chips" data-motion-tabs>
                 <button
                   v-for="chip in metricChips"
                   :key="chip"
                   type="button"
                   class="metric-chip"
+                  data-motion-tab
                   :class="{ active: activeMetricChip === chip }"
                   @click="activeMetricChip = chip"
                 >
@@ -597,7 +614,7 @@ watch([activeRankingTab, activeMetricChip, selectedTimeRange], () => {
               <div class="updated-at">{{ rankingLoading ? "榜单加载中..." : "榜单数据已更新" }}</div>
             </div>
 
-            <div class="ranking-table-card">
+            <div class="ranking-table-card" data-scroll-reveal="scale">
               <div class="table-header">
                 <span>排行</span>
                 <span>饰品名称</span>

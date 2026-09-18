@@ -12,7 +12,7 @@ import FixtureAnalysisPanel from "./FixtureAnalysisPanel.vue";
 import PersonalPredictionEditor from "./PersonalPredictionEditor.vue";
 import {
   buildFixtureAnalysis,
-  formatMatchDate,
+  formatKickoffTime,
   getMatchResult,
   type ArsenalFixture,
   type FixtureAnalysis,
@@ -158,7 +158,7 @@ const statusTone = (fixture: ArsenalFixture) => (
 
     <div class="ledger-table">
       <div class="ledger-row ledger-row--head" aria-hidden="true">
-        <span>轮次 / 日期</span>
+        <span>轮次 / 北京时间</span>
         <span>场地</span>
         <span>对手</span>
         <span class="model-score-heading">比分 / 预测</span>
@@ -190,7 +190,12 @@ const statusTone = (fixture: ArsenalFixture) => (
           >
             <span class="round-cell">
               <strong>{{ fixture.matchweek === null ? "MW --" : `MW ${fixture.matchweek}` }}</strong>
-              <span>{{ formatMatchDate(fixture.kickoffTime) }}</span>
+              <time
+                class="kickoff-time"
+                :datetime="fixture.kickoffTime ?? undefined"
+              >
+                {{ formatKickoffTime(fixture.kickoffTime) }}
+              </time>
             </span>
 
             <span class="venue-cell">
@@ -475,10 +480,15 @@ const statusTone = (fixture: ArsenalFixture) => (
   font-family: "Fira Code", monospace;
 }
 
-.round-cell span,
+.kickoff-time,
 .venue-cell span {
   color: rgba(255, 255, 255, 0.42);
   font-size: 0.68rem;
+}
+
+.kickoff-time {
+  font-family: "Fira Code", monospace;
+  white-space: nowrap;
 }
 
 .venue-cell,

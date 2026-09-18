@@ -197,8 +197,25 @@ const getFixtureStatus = (fixture) => {
   return "upcoming";
 };
 
+export const normalizeArsenalDiscipline = (elements, arsenalTeamId) => {
+  if (!Array.isArray(elements)) {
+    throw new TypeError("FPL player data has an unexpected response shape.");
+  }
+
+  return elements
+    .filter((player) => player?.team === arsenalTeamId)
+    .reduce((totals, player) => ({
+      redCards: totals.redCards + (Number(player?.red_cards) || 0),
+      yellowCards: totals.yellowCards + (Number(player?.yellow_cards) || 0),
+    }), { redCards: 0, yellowCards: 0 });
+};
+
 export const normalizeArsenalSeason = (bootstrap, fixtures, fetchedAt = new Date().toISOString()) => {
-  if (!Array.isArray(bootstrap?.teams) || !Array.isArray(fixtures)) {
+  if (
+    !Array.isArray(bootstrap?.teams)
+    || !Array.isArray(bootstrap?.elements)
+    || !Array.isArray(fixtures)
+  ) {
     throw new TypeError("FPL returned an unexpected response shape.");
   }
 
@@ -250,6 +267,7 @@ export const normalizeArsenalSeason = (bootstrap, fixtures, fetchedAt = new Date
   }
 
   return {
+    discipline: normalizeArsenalDiscipline(bootstrap.elements, arsenal.id),
     meta: {
       fetchedAt,
       season: getSeasonLabel(arsenalFixtures.map((fixture) => ({ kickoff_time: fixture.kickoffTime }))),

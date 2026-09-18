@@ -26,6 +26,10 @@ const createPayload = (
   season = "2026/27",
   difficulty = 2,
 ): ArsenalSeasonPayload => ({
+  discipline: {
+    redCards: 0,
+    yellowCards: 3,
+  },
   fixtures: [{
     difficulty,
     id: "fixture-1",

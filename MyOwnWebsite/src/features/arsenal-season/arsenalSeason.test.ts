@@ -33,7 +33,10 @@ describe("arsenal season analytics", () => {
       }),
       createFixture({ id: "upcoming-2", matchweek: 2 }),
     ];
-    const summary = calculateSeasonSummary(fixtures);
+    const summary = calculateSeasonSummary(fixtures, {
+      redCards: 2,
+      yellowCards: 10,
+    });
 
     expect(getMatchResult(fixtures[0]!)).toBe("W");
     expect(summary).toMatchObject({
@@ -44,6 +47,9 @@ describe("arsenal season analytics", () => {
       goalsAgainst: 1,
       goalDifference: 1,
       forecastPoints: null,
+      yellowCards: 10,
+      redCards: 2,
+      behaviorScore: -16,
     });
   });
 

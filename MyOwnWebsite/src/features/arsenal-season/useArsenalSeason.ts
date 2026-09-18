@@ -15,6 +15,7 @@ const minimumLoadingDurationMs = 600;
 export function useArsenalSeason() {
   const seasonStore = useArsenalSeasonStore();
   const {
+    discipline,
     fixturesWithPersonalPredictions: fixtures,
     meta,
   } = storeToRefs(seasonStore);
@@ -26,7 +27,10 @@ export function useArsenalSeason() {
   let requestVersion = 0;
 
   const modeledFixtures = computed(() => addUpcomingPredictions(fixtures.value));
-  const summary = computed(() => calculateSeasonSummary(modeledFixtures.value));
+  const summary = computed(() => calculateSeasonSummary(
+    modeledFixtures.value,
+    discipline.value,
+  ));
   const trend = computed(() => buildSeasonTrend(modeledFixtures.value));
   const nextFixture = computed(() => modeledFixtures.value.find((fixture) => (
     fixture.status === "live" || fixture.status === "upcoming"
