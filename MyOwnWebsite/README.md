@@ -1,487 +1,253 @@
 # MyOwnWebsite
 
-一个基于 Vue 3 + TypeScript + Vite 的个人前端练习与展示项目。项目不是单一业务站点，而是把个人主页、登录与聊天、实验性页面、以及 CS 饰品数据看板等内容整合在一个单页应用中，用来集中练习界面开发、路由组织、状态管理、图表可视化和接口联调。
+一个基于 Vue 3、TypeScript 和 Vite 的个人作品集与前端实验项目。仓库目前包含全局页面助手、阿森纳赛季数据看板、CS 饰品行情、账户与聊天演示，以及若干 UI / 可视化实验页面。
 
-## 项目定位
+项目不是单一业务产品。它更接近一个持续迭代的应用集合，用来验证页面设计、路由权限、状态持久化、第三方数据接入、图表展示和 AI 页面交互。
 
-这个项目当前更接近一个“个人作品集合 + 前端实验场”，主要包含四类内容：
+## 当前功能
 
-- 个人主页与项目导航
-- 账号登录、个人中心、聊天房间等交互页面
-- Blog / Ecommerce / Data Visualization / Drag Box / Pretext Demo 等实验页面
-- 以 CS 饰品行情为主题的数据展示与详情分析页面
+### 全局 Page Agent
+
+页面右下角的 AI 助手挂载在应用顶层，可在不同路由中使用。
+
+- 对接 OpenAI 兼容的 Responses API
+- 支持站内导航、页面滚动、返回上一页和读取当前页面概况
+- 支持 JPG、PNG、WEBP、GIF 图片输入，单张上限 4 MB
+- 服务不可用时，可用本地规则完成常见导航和滚动指令
+- 浏览器只执行白名单工具，不允许模型调用任意命令
+
+### 阿森纳赛季看板
+
+路由：`/arsenal-season`
+
+- 从 FPL 官方接口读取本赛季赛程、赛果、难度、Bonus 和 BPS
+- 汇总球员黄牌与红牌数据
+- 计算比赛行为分：`黄牌数 × -1 + 红牌数 × -3`
+- 将开球时间统一显示为北京时间（`Asia/Shanghai`）
+- 使用 Football-Data 历史数据补充近三季交锋信息
+- 提供赛季走势、比赛分析、下一场预测和赛季积分预测
+- 支持在本地保存个人比分预测
+- 服务端缓存有效期为 5 分钟；上游失败时可回退到 24 小时内的旧缓存
+
+> 比赛与赛季预测来自本地启发式模型，只用于页面演示，不代表阿森纳、FPL 或数据源的官方观点。
+
+### CS 饰品模块
+
+- `/cs-items`：行情总览、市场指标、趋势图、搜索和热门饰品
+- `/item-list`：饰品列表与筛选
+- `/CsItemDetail`：饰品详情、磨损切换、多平台价格和历史趋势
+- `/inventory-monitor`：库存监控
+- `/knife-market`：挂刀行情演示
+- `/item-ranking`：饰品排行榜
+
+行情页和详情页通过 CSQAQ 接口读取数据，并包含加载、错误、洞察计算与图表展示。当前挂刀行情页面主要使用静态演示数据，并非实时交易系统。
+
+### 账户与权限
+
+- 本地注册和模拟登录
+- Pinia 管理认证状态
+- 登录态、注册账户和聊天记录写入 `localStorage`
+- 路由守卫支持登录重定向和登录后回跳
+- 聊天室在登录之外还校验 `chat-room:access` 权限
+- 未匹配路由进入 404 页面
+
+当前认证仅用于前端功能演示，不具备生产环境所需的服务端会话、密码加密与授权能力。
+
+### 实验与展示页面
+
+- Blog：内容型项目展示
+- Ecommerce：接口调用、Anime.js 动效和 ECharts 图表演示
+- Data Visualization：数据可视化项目展示
+- Drag Box：拖拽交互实验
+- Pretext Demo：`@chenglou/pretext` 文本测量与排版实验
+- SoybeanUI Demo：SoybeanUI 组件与交互演示
+
+Blog 和 Data Visualization 当前是展示页面，不是完整的内容管理或数据平台。
 
 ## 技术栈
 
-### 核心框架
+| 分类 | 主要技术 |
+| --- | --- |
+| 应用框架 | Vue 3、TypeScript、Vite |
+| 路由与状态 | Vue Router、Pinia、localStorage |
+| UI 与样式 | Naive UI、SoybeanUI、Sass、vfonts |
+| 数据请求 | Axios、vue-request、原生 Fetch |
+| 图表与动效 | ECharts、vue-echarts、Anime.js、TypeIt |
+| 交互与工具 | VueUse、Lodash、Day.js、Pretext |
+| 服务端 | Node.js 原生 HTTP 服务 |
+| 质量保障 | Vitest、vue-tsc、ESLint、simple-git-hooks |
 
-- Vue 3
-- TypeScript
-- Vite
-- Vue Router
-- Pinia
+仓库还保留 Three.js、VChart 和 Vue VTable 等依赖，用于后续图形与表格实验；它们不一定已在主要页面中完整使用。
 
-### UI 与样式
+## 路由与访问权限
 
-- Naive UI
-- Sass
-- vfonts
-- vfit
+权限由 [src/permissions/Permissions.ts](./src/permissions/Permissions.ts) 统一计算，路由定义位于 [src/router/index.ts](./src/router/index.ts)。
 
-### 数据请求与状态
+| 访问条件 | 路由 |
+| --- | --- |
+| 公开 | `/`、`/about`、`/login`、`/register` |
+| 公开展示 | `/blog`、`/ecommerce`、`/data-visualization`、`/drag-box` |
+| 公开数据页 | `/arsenal-season`、`/cs-items`、`/item-list`、`/CsItemDetail` |
+| 需要登录 | `/profile`、`/pretext-demo`、`/soybean-ui-demo` |
+| 需要登录 | `/inventory-monitor`、`/knife-market`、`/item-ranking` |
+| 登录并需要权限 | `/chat-room` |
+| 公开兜底 | 404 页面 |
 
-- Axios
-- vue-request
-- localStorage 持久化
-
-### 可视化与交互
-
-- ECharts
-- vue-echarts
-- TypeIt
-- @chenglou/pretext
-- lodash
-- dayjs
-- @vueuse/core
-
-### 其他已安装依赖
-
-项目中还安装了 `three`、`@visactor/vchart`、`@visactor/vue-vtable`、`vue3-border-beam` 等依赖，当前源码里主要使用的是 ECharts、Naive UI、Pretext、TypeIt、VueUse 这一组能力，其他依赖更偏后续扩展或试验用途。
+聊天室权限目前授予 `admin` 角色，以及用户名为 `admin` 或 `Chonny` 的本地账户。
 
 ## 项目结构
 
 ```text
-src
-├─ components       通用组件与页面局部组件
-├─ composables      可复用业务逻辑，当前主要用于 CS 饰品详情模块
-├─ router           路由配置
-├─ services         Axios 实例与接口封装
-├─ stores           Pinia 状态管理
-├─ views
-│  ├─ account       登录、个人中心、聊天房间
-│  ├─ base          首页、About
-│  ├─ csgo          CS 饰品数据页面
-│  └─ labs          实验页面与效果演示
-└─ main.ts          应用入口
+.
+|-- server/
+|   |-- page-agent-server.mjs       # Page Agent 与足球数据 HTTP 服务
+|   |-- arsenal-season-service.mjs  # FPL 聚合、历史数据与缓存
+|   `-- arsenal-season-service.test.mjs
+|-- src/
+|   |-- components/                 # 通用和业务组件
+|   |-- composables/                # CS、图表和页面交互逻辑
+|   |-- constants/                  # 统一存储键等常量
+|   |-- features/
+|   |   |-- arsenal-season/         # 阿森纳数据、预测、组件与测试
+|   |   `-- page-agent/             # 页面助手、客户端、工具执行与测试
+|   |-- permissions/                # 权限规则与单元测试
+|   |-- router/                     # 路由配置
+|   |-- services/                   # 通用、Ecommerce 与 CSQAQ 请求层
+|   |-- stores/                     # Pinia stores
+|   |-- views/                      # account、base、csgo、football、labs
+|   `-- main.ts
+|-- docs/                           # 规范与历史路线图
+|-- .env.example
+|-- nginx.conf.example
+|-- vite.config.ts
+`-- vitest.config.ts
 ```
 
-## 主要页面与功能
+## 数据源与接口
 
-### 1. 首页 `Home`
+| 模块 | 数据源 | 本地入口 | 说明 |
+| --- | --- | --- | --- |
+| Page Agent | OpenAI 兼容 Responses API | `/api/agent` | API Key 只保存在 Node 服务环境变量中 |
+| 阿森纳赛季 | FPL `bootstrap-static`、`fixtures` | `/api/football/arsenal-season` | 无需浏览器直连 FPL |
+| 历史交锋 | Football-Data 英超 CSV | 同上 | 由 Node 服务聚合 |
+| CS 饰品 | CSQAQ API | `/api/csqaq` | 开发环境由 Vite 代理 |
+| Ecommerce Demo | `VITE_API_BASE_URL` | 由环境变量决定 | 示例接口，详见 [API_DEMO.md](./src/services/API_DEMO.md) |
 
-首页是整个项目的入口页，包含：
+## 环境配置
 
-- 个人资料卡片、技能标签、项目经验展示
-- `TypeIt` 打字机标题效果
-- 雪花粒子背景动画
-- 基于 Naive UI 的下拉菜单和按钮交互
-- 上传建议入口
-- 跳转到各个子页面的导航入口
+以 [.env.example](./.env.example) 为模板，根据运行端分别配置。
 
-从源码看，首页承担了“作品集首页 + 子项目导航”的角色。
-
-### 2. 账号系统 `account`
-
-包含以下页面：
-
-- `Login.vue`
-  - 本地模拟登录
-  - 内置测试账号
-  - 登录状态写入 Pinia 与 localStorage
-  - 路由守卫支持未登录跳转与重定向
-- `Profile.vue`
-  - 个人资料展示
-  - 基础编辑态 UI
-  - 退出登录入口
-- `ChatRoom.vue`
-  - 聊天消息列表展示
-  - 文本、表情、图片消息类型
-  - 发送消息
-  - 聊天记录持久化到 localStorage
-
-权限控制在 [`src/permission.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/permission.ts) 中实现，`/chat-room` 还带有额外访问控制逻辑。
-
-### 3. 实验页面 `labs`
-
-#### Blog
-
-一个博客项目展示页，主要用于展示：
-
-- 博客系统功能卡片
-- 技术栈说明
-- Drawer + Carousel 交互效果
-
-#### Ecommerce
-
-一个电商项目展示与接口演示页，包含：
-
-- 电商功能模块展示
-- `vue-echarts` 环形图
-- 登录请求示例
-- 商品列表请求示例
-- Naive UI 卡片、列表、抽屉等组件组合
-
-这里更偏“前端页面 + API 调用演示”，并不是完整电商系统。
-
-#### Data Visualization
-
-一个数据可视化项目展示页，主要展示：
-
-- 可视化平台介绍
-- 功能模块卡片
-- 技术栈卡片
-- Drawer + Carousel 展示交互
-
-#### Drag Box
-
-一个简洁的拖拽交互示例，演示：
-
-- 鼠标按下开始拖动
-- 监听 `mousemove` / `mouseup`
-- 自定义可拖拽面板
-
-#### Pretext Demo
-
-基于 `@chenglou/pretext` 的文本测量演示页，主要展示：
-
-- `prepare()` 与 `layout()` 的基础用法
-- 动态调整文本、宽度、行高、字号、字间距
-- 对比 DOM 文本预览与预计算结果
-- 统计 `prepare` / `layout` 调用次数
-
-这一页是项目里比较明确的“底层排版能力实验”页面。
-
-### 4. CS 饰品数据模块 `csgo`
-
-这是当前项目里内容最完整、业务感最强的一部分。
-
-#### `CSItems.vue`
-
-主要功能包括：
-
-- CS 饰品行情首页布局
-- 指数卡片、涨跌信息、市场摘要
-- K 线图与趋势图
-- 搜索建议
-- 排行榜与价格分段展示
-- 热门饰品卡片列表
-- 自适应缩放布局
-
-这一页综合使用了：
-
-- ECharts
-- VueUse
-- lodash 防抖
-- dayjs
-- Naive UI
-- 封装后的 CSQAQ 接口
-
-#### `ItemDetail.vue`
-
-详情页提供：
-
-- 饰品基础信息展示
-- 多平台价格对比
-- 磨损切换
-- 不同时间粒度图表切换
-- 详情图表渲染
-
-相关逻辑拆分到了：
-
-- [`src/composables/csgo/useItemDetail.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/composables/csgo/useItemDetail.ts)
-- [`src/composables/csgo/useItemDetailChart.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/composables/csgo/useItemDetailChart.ts)
-
-#### `ItemList.vue`
-
-该模块还包含饰品列表页，用于承接从首页和搜索进入的列表浏览需求。
-
-## 路由概览
-
-当前路由主要分为 4 组：
-
-- 基础页面：`/`、`/about`
-- 账号页面：`/login`、`/profile`、`/chat-room`
-- 实验页面：`/blog`、`/ecommerce`、`/data-visualization`、`/drag-box`、`/pretext-demo`
-- CS 饰品页面：`/cs-items`、`/item-list`、`/CsItemDetail`
-
-路由定义位于 [`src/router/index.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/router/index.ts)。
-
-## 状态管理
-
-项目当前主要有两个 Pinia Store：
-
-- [`src/stores/auth.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/stores/auth.ts)
-  - 管理登录态
-  - 保存用户信息和 token
-  - 提供聊天房间访问权限判断
-- [`src/stores/chat.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/stores/chat.ts)
-  - 管理聊天消息
-  - 自动同步到 localStorage
-
-## 接口与环境配置
-
-### 通用接口
-
-项目封装了一个通用 Axios 实例：
-
-- [`src/services/api.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/services/api.ts)
-
-主要用于电商演示页中的登录、商品获取等接口调用。
-
-电商演示的远程 API Token 使用 `api_token` 存储键，与本地作品集登录态的
-`auth_token` 分开，避免演示接口登录影响页面权限守卫。
-
-### CSQAQ 数据接口
-
-CS 饰品模块使用了独立的接口封装：
-
-- [`src/services/CSQAQAPI.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/services/CSQAQAPI.ts)
-- [`src/services/CSQaQ.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/src/services/CSQaQ.ts)
-
-项目通过 `VITE_CSQAQ_API_BASE_URL` 配置接口前缀，并通过
-`VITE_CSQAQ_API_TOKEN` 注入开发环境的请求 Token。可复制
-[`.env.example`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/.env.example)
-为本地环境配置文件。
-
-开发环境 `.env`
+前端配置可放在 `.env.local`：
 
 ```env
+VITE_API_BASE_URL=http://localhost:3000
 VITE_CSQAQ_API_BASE_URL=/api/csqaq
-VITE_CSQAQ_API_TOKEN=your-development-token
+VITE_CSQAQ_API_TOKEN=
 ```
 
-生产环境 `.env.production`
+Page Agent 服务配置放在 `.env.agent.local`：
 
 ```env
-VITE_CSQAQ_API_BASE_URL=https://api.csqaq.com
-VITE_CSQAQ_API_TOKEN=your-production-token
+AGENT_API_BASE_URL=https://your-openai-compatible-provider.example/v1
+AGENT_API_KEY=
+AGENT_MODEL=gpt-5.6-sol
+AGENT_SERVER_HOST=127.0.0.1
+AGENT_SERVER_PORT=8787
 ```
 
-Vite 开发服务器中还配置了代理：
+`VITE_*` 变量会被打包到浏览器代码中，不能视为秘密。生产环境中的 CSQAQ Token 应由服务端代理保护；`AGENT_API_KEY` 不应写入任何 Vite 环境变量。
 
-- `/api/csqaq` -> `https://api.csqaq.com`
+## 本地开发
 
-配置文件位于 [`vite.config.ts`](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/vite.config.ts)。
-
-> `VITE_*` 变量会被打包到浏览器端，不能视为真正的秘密。生产环境应通过服务端代理保护 CSQAQ Token；这里的变量主要用于本地开发和接口联调。
-
-## 本地启动
-
-### 安装依赖
-
-项目仓库中同时存在 `pnpm-lock.yaml` 和 `bun.lock`，但脚本配置与钩子更偏向 `pnpm` 使用方式，推荐优先使用 `pnpm`：
+准备可运行 Vite 8 的 Node.js 环境，并安装 pnpm。
 
 ```bash
 pnpm install
 ```
 
-### 启动开发环境
+完整功能需要同时启动 Node 服务和 Vite。终端一：
+
+```bash
+pnpm dev:agent
+```
+
+终端二：
 
 ```bash
 pnpm dev
 ```
 
-### 构建
+默认地址：
 
-```bash
-pnpm build
-```
+- Web 应用：`http://localhost:5999`
+- Node 服务：`http://127.0.0.1:8787`
 
-### 类型检查
+即使未配置 AI 提供商，Node 服务仍用于阿森纳赛季接口；Page Agent 则会在可处理的指令上回退到本地规则。
 
-```bash
-pnpm typecheck
-```
+## 常用命令
 
-### Lint
+| 命令 | 用途 |
+| --- | --- |
+| `pnpm dev` | 启动 Vite 开发服务器 |
+| `pnpm dev:agent` | 监听模式启动 Node 服务 |
+| `pnpm start:agent` | 非监听模式启动 Node 服务 |
+| `pnpm build` | 构建前端 |
+| `pnpm build:check` | 类型检查后构建 |
+| `pnpm typecheck` | 运行 vue-tsc |
+| `pnpm lint` | 检查代码规范 |
+| `pnpm lint:fix` | 自动修复可修复的规范问题 |
+| `pnpm test` | 运行 Vitest 测试 |
+| `pnpm test:watch` | 监听模式运行测试 |
+| `pnpm preview` | 预览生产构建 |
 
-```bash
-pnpm lint
-```
+## 测试覆盖
 
-## 当前项目特点总结
+当前自动化测试主要覆盖：
 
-这个项目的特点不是“单一完整业务闭环”，而是把多个前端练习方向放在同一个 Vue 应用里持续迭代，尤其集中在：
+- 路由白名单、登录跳转和聊天室权限
+- Page Agent 意图解析、客户端协议、图片请求和工具白名单
+- 阿森纳赛季数据校验、北京时间转换、积分与行为分计算
+- 比赛预测、赛季趋势、个人预测持久化
+- Node 端 FPL 数据标准化、缓存与旧数据回退
+- CS 市场洞察和单品趋势计算
 
-- 动效与视觉表达
-- 页面路由组织
-- 本地状态与权限控制
-- 图表可视化
-- 第三方接口联调
-- 文本排版与交互实验
+测试集中在纯逻辑和服务层，尚未覆盖所有 Vue 页面交互，也没有完整的端到端测试。
 
-## 页面预览
+## 本地持久化
 
-当前仓库还没有提交页面截图，这里先预留展示位置。后续你只需要把截图放到 `docs/screenshots/` 目录，并保持下面的文件名一致，README 就可以直接展示。
+浏览器数据键统一定义在 [src/constants/storage.ts](./src/constants/storage.ts)：
 
-### 首页
+- `auth_token`、`auth_user`：模拟登录状态
+- `registered_accounts`：本地注册账户
+- `chat-messages`：聊天记录
+- `api_token`：Ecommerce 示例接口 Token
+- `arsenal-season-cache`：赛季数据与个人预测缓存
 
-![首页截图](./docs/screenshots/home.png)
+清理站点的 localStorage 会同时重置这些本地状态。
 
-### 登录页
+## 生产部署
 
-![登录页截图](./docs/screenshots/login.png)
+前端构建产物位于 `dist/`，Node 服务可通过 `pnpm start:agent` 单独运行。生产反向代理至少需要：
 
-### 聊天室
+- 将 `/api/agent` 和 `/api/agent/continue` 转发到 `127.0.0.1:8787`
+- 将 `/api/football/` 转发到 `127.0.0.1:8787`
+- 在服务端代理 `/api/csqaq` 并安全注入第三方 Token
+- 为 Vue Router History 模式保留 `try_files ... /index.html`
 
-![聊天室截图](./docs/screenshots/chat-room.png)
+[nginx.conf.example](./nginx.conf.example) 已包含静态站点和足球接口的基础配置，但还未完整覆盖 Page Agent 与生产级 CSQAQ 鉴权，部署前需要补齐。
 
-### Blog 展示页
+## 当前限制
 
-![Blog 展示页截图](./docs/screenshots/blog.png)
-
-### Ecommerce 页面
-
-![Ecommerce 页面截图](./docs/screenshots/ecommerce.png)
-
-### Data Visualization 页面
-
-![Data Visualization 页面截图](./docs/screenshots/data-visualization.png)
-
-### Drag Box 页面
-
-![Drag Box 页面截图](./docs/screenshots/drag-box.png)
-
-### Pretext Demo 页面
-
-![Pretext Demo 页面截图](./docs/screenshots/pretext-demo.png)
-
-### CS 饰品行情页
-
-![CS 饰品行情页截图](./docs/screenshots/cs-items.png)
-
-### CS 饰品详情页
-
-![CS 饰品详情页截图](./docs/screenshots/item-detail.png)
-
-## 页面截图建议
-
-当前 README 还没有配图。结合现有页面结构，建议后续至少补下面这几类截图，这样仓库首页会更容易让别人快速理解项目内容：
-
-### 建议优先补充的截图
-
-1. 首页总览
-   - 展示个人资料头图、技能区、项目卡片区
-2. 登录页
-   - 展示星空背景、测试账号区、登录表单
-3. 聊天室
-   - 展示消息列表、输入框、气泡样式
-4. Blog 展示页
-   - 展示功能卡片与 Drawer/Carousel 效果
-5. Ecommerce 页面
-   - 展示电商功能区、环形图、API Demo 区
-6. Data Visualization 页面
-   - 展示数据平台介绍卡片
-7. Drag Box 页面
-   - 展示拖拽盒子交互效果
-8. Pretext Demo 页面
-   - 展示参数面板、统计卡片、文本预览区
-9. CS 饰品首页
-   - 展示行情总览、K 线图、排行榜、热门饰品区
-10. CS 饰品详情页
-   - 展示饰品大图、平台价格对比、详情图表
-
-### README 中推荐的截图组织方式
-
-可以在 README 里按下面这种顺序放图：
-
-```md
-## 页面预览
-
-### 首页
-![首页截图](./docs/screenshots/home.png)
-
-### 登录页
-![登录页截图](./docs/screenshots/login.png)
-
-### 聊天室
-![聊天室截图](./docs/screenshots/chat-room.png)
-
-### Pretext Demo
-![Pretext Demo 截图](./docs/screenshots/pretext-demo.png)
-
-### CS 饰品行情页
-![CS 饰品行情页截图](./docs/screenshots/cs-items.png)
-```
-
-如果你准备长期维护这个仓库，建议新建一个统一目录：
-
-```text
-docs/
-└─ screenshots/
-   ├─ home.png
-   ├─ login.png
-   ├─ chat-room.png
-   ├─ blog.png
-   ├─ ecommerce.png
-   ├─ data-visualization.png
-   ├─ drag-box.png
-   ├─ pretext-demo.png
-   ├─ cs-items.png
-   └─ item-detail.png
-```
-
-## 后续迭代建议
-
-如果后续继续完善，比较自然的方向包括：
-
-- 补全 README 中各页面的截图
-- 增加统一导航与模块说明
-- 梳理实验页和正式业务页的边界
-- 统一编码与文案字符集
-- 为账号和 CS 饰品模块补测试与错误处理
-
-### 更具体的迭代方向
-
-#### 1. 工程结构整理
-
-- 将“展示页”和“真实业务页”拆得更清晰
-- 把 `labs` 中偏演示的页面统一归档
-- 为 `csgo` 模块继续细分组件、composables 和 types
-
-#### 2. 文案与编码统一
-
-- 修复当前部分页面中的乱码和字符编码问题
-- 统一中英文文案风格
-- 清理不一致的按钮文案、标题文案和占位文本
-
-#### 3. 路由与导航体验
-
-- 增加统一顶层导航或侧边导航
-- 为每个实验页增加返回入口和模块说明
-- 增加 404 页面和更完整的路由兜底策略
-
-#### 4. 状态与权限体系
-
-- 统一 token 存储 key，避免不同接口层使用不同字段
-- 把 mock 登录和真实接口登录做更明确的隔离
-- 细化角色权限控制，而不只是简单白名单与特定用户名判断
-
-#### 5. 接口与错误处理
-
-- 为 API 请求增加更统一的错误提示和空态处理
-- 为 CS 饰品相关接口补 loading、error、retry 机制
-- 将接口类型声明补全，减少 `any`
-
-#### 6. 可视化与性能
-
-- 为大图表组件增加销毁与重建边界检查
-- 统一图表主题和色彩体系
-- 对搜索建议、图表刷新、页面缩放做进一步性能梳理
-
-#### 7. 测试与质量保障
-
-- 为 store、composables、权限守卫增加单元测试
-- 为登录流程、聊天室、CS 饰品主流程补充端到端测试
-- 将 `pnpm build:check` 纳入提交前检查流程
-
-#### 8. README 与文档建设
-
-- 增加页面截图
-- 增加接口来源和环境说明
-- 为 `pretext demo`、`csgo` 模块分别写独立说明文档
-- 增加“已完成 / 进行中 / 待完成”开发记录
+- 账户、权限和聊天室是浏览器端演示，不适合直接用于生产
+- AI 页面助手依赖兼容 Responses API 的模型服务
+- FPL、Football-Data 和 CSQAQ 等外部数据源可能受网络、限流或字段变化影响
+- 预测结果是启发式估算，不包含完整伤停、临场阵容等实时因素
+- 部分实验页面仍以能力展示为主，尚未形成完整业务闭环
+- 自动化测试尚未覆盖浏览器端到端流程
 
 ## 补充文档
 
-- 项目迭代路线图：[docs/ROADMAP.md](/C:/Users/Administrator/Desktop/MyWebsite/MyOwnWebsite/MyOwnWebsite/docs/ROADMAP.md)
+- [代码生成与修改规则](./docs/CODE_GENERATION_RULES.md)
+- [项目迭代路线图](./docs/ROADMAP.md)
+
+> 路线图创建较早，其中部分事项已经在当前代码中实现；后续维护时应以源码和本 README 的现状说明为准。
