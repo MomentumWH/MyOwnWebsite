@@ -5,6 +5,7 @@ import { isArsenalSeasonPayload } from "@/features/arsenal-season/arsenalSeasonA
 import type {
   ArsenalDiscipline,
   ArsenalSeasonPayload,
+  Competition,
   PersonalScorePrediction,
   PersonalScorePredictionDraft,
 } from "@/features/arsenal-season/arsenalSeason";
@@ -18,14 +19,18 @@ export const ArsenalSeasonStorageKey = StorageKeys.arsenalSeasonCache;
 
 interface ArsenalSeasonCache {
   payload: ArsenalSeasonPayload | null;
+  payloads?: Partial<Record<Competition, ArsenalSeasonPayload>>;
+  activeCompetition?: Competition;
   personalPredictions: Record<string, PersonalScorePrediction>;
-  version: 1;
+  version: 2;
 }
 
 const emptyCache = (): ArsenalSeasonCache => ({
+  activeCompetition: "premier-league",
   payload: null,
+  payloads: {},
   personalPredictions: {},
-  version: 1,
+  version: 2,
 });
 
 const isScore = (value: unknown): value is number => (
@@ -66,11 +71,20 @@ const readCache = (): ArsenalSeasonCache => {
           isPersonalPrediction(value)
         )))
       : {};
+    const cachedPayloads = candidate.payloads && typeof candidate.payloads === "object"
+      ? Object.fromEntries(Object.entries(candidate.payloads).filter(([key, value]) => (
+          isCompetition(key) && isArsenalSeasonPayload(value)
+        ))) as Partial<Record<Competition, ArsenalSeasonPayload>>
+      : {};
 
     return {
       payload: isArsenalSeasonPayload(candidate.payload) ? candidate.payload : null,
+      payloads: cachedPayloads,
+      activeCompetition: isCompetition(candidate.activeCompetition)
+        ? candidate.activeCompetition
+        : undefined,
       personalPredictions: validPredictions,
-      version: 1,
+      version: 2,
     };
   }
   catch {
@@ -79,10 +93,31 @@ const readCache = (): ArsenalSeasonCache => {
 };
 
 const predictionKey = (season: string, fixtureId: string) => `${season}::${fixtureId}`;
+const competitionKey = (competition: Competition, season: string, fixtureId: string) => (
+  `${competition}::${season}::${fixtureId}`
+);
+
+const isCompetition = (value: unknown): value is Competition => (
+  value === "premier-league" || value === "champions-league"
+);
 
 export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
   const initialCache = readCache();
-  const payload = shallowRef<ArsenalSeasonPayload | null>(initialCache.payload);
+  const initialPayload = initialCache.payload;
+  const initialCompetition = isCompetition(initialCache.activeCompetition)
+    ? initialCache.activeCompetition
+    : (initialPayload?.meta.competition ?? "premier-league");
+  const cachedPayloads: Partial<Record<Competition, ArsenalSeasonPayload>> = {
+    ...(initialCache.payloads ?? {}),
+    ...(initialPayload && !initialCache.payloads?.[initialCompetition]
+      ? { [initialCompetition]: initialPayload }
+      : {}),
+  };
+  const activeCompetition = shallowRef<Competition>(initialCompetition);
+  const payload = shallowRef<ArsenalSeasonPayload | null>(
+    cachedPayloads[initialCompetition] ?? null,
+  );
+  const payloads = shallowRef(cachedPayloads);
   const personalPredictions = shallowRef<Record<string, PersonalScorePrediction>>(
     initialCache.personalPredictions,
   );
@@ -97,7 +132,10 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
     }
 
     return fixtures.value.map((fixture) => {
-      const personalPrediction = personalPredictions.value[predictionKey(season, fixture.id)];
+      const competition = payload.value?.meta.competition ?? "premier-league";
+      const personalPrediction = personalPredictions.value[
+        competitionKey(competition, season, fixture.id)
+      ] ?? personalPredictions.value[predictionKey(season, fixture.id)];
       return personalPrediction ? { ...fixture, personalPrediction } : fixture;
     });
   });
@@ -109,9 +147,11 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
 
     try {
       localStorage.setItem(ArsenalSeasonStorageKey, JSON.stringify({
+        activeCompetition: activeCompetition.value,
         payload: payload.value,
+        payloads: payloads.value,
         personalPredictions: personalPredictions.value,
-        version: 1,
+        version: 2,
       } satisfies ArsenalSeasonCache));
     }
     catch {
@@ -120,7 +160,27 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
   };
 
   const replaceSeasonPayload = (nextPayload: ArsenalSeasonPayload) => {
+    const competition = nextPayload.meta.competition ?? "premier-league";
+    nextPayload = {
+      ...nextPayload,
+      meta: {
+        ...nextPayload.meta,
+        competition,
+      },
+      fixtures: nextPayload.fixtures.map((fixture) => ({
+        ...fixture,
+        competition: fixture.competition ?? competition,
+      })),
+    };
+    payloads.value = { ...payloads.value, [competition]: nextPayload };
+    activeCompetition.value = competition;
     payload.value = nextPayload;
+    persist();
+  };
+
+  const selectCompetition = (competition: Competition) => {
+    activeCompetition.value = competition;
+    payload.value = payloads.value[competition] ?? null;
     persist();
   };
 
@@ -129,6 +189,7 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
     draft: PersonalScorePredictionDraft,
   ) => {
     const season = payload.value?.meta.season;
+    const competition = payload.value?.meta.competition ?? "premier-league";
     const fixtureExists = payload.value?.fixtures.some((fixture) => fixture.id === fixtureId);
     if (!season || !fixtureExists || !isScore(draft.arsenalScore) || !isScore(draft.opponentScore)) {
       return false;
@@ -136,7 +197,7 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
 
     personalPredictions.value = {
       ...personalPredictions.value,
-      [predictionKey(season, fixtureId)]: {
+      [competitionKey(competition, season, fixtureId)]: {
         arsenalScore: draft.arsenalScore,
         opponentScore: draft.opponentScore,
         updatedAt: new Date().toISOString(),
@@ -148,13 +209,16 @@ export const useArsenalSeasonStore = defineStore("arsenal-season", () => {
 
   return {
     discipline,
+    activeCompetition,
     fixtures,
     fixturesWithPersonalPredictions,
     meta,
     payload,
     personalPredictions,
+    payloads,
     replaceSeasonPayload,
     savePersonalPrediction,
+    selectCompetition,
   };
 });
 

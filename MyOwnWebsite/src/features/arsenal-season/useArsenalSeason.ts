@@ -7,6 +7,7 @@ import {
   buildSeasonTrend,
   calculateSeasonSummary,
   getMatchResult,
+  type Competition,
   type FixtureFilter,
 } from "./arsenalSeason";
 
@@ -16,10 +17,11 @@ export function useArsenalSeason() {
   const seasonStore = useArsenalSeasonStore();
   const {
     discipline,
+    activeCompetition,
     fixturesWithPersonalPredictions: fixtures,
     meta,
   } = storeToRefs(seasonStore);
-  const { replaceSeasonPayload, savePersonalPrediction } = seasonStore;
+  const { replaceSeasonPayload, savePersonalPrediction, selectCompetition } = seasonStore;
   const activeFilter = shallowRef<FixtureFilter>("all");
   const isLoading = shallowRef(true);
   const error = shallowRef<string | null>(null);
@@ -30,6 +32,7 @@ export function useArsenalSeason() {
   const summary = computed(() => calculateSeasonSummary(
     modeledFixtures.value,
     discipline.value,
+    meta.value?.matchCount ?? 38,
   ));
   const trend = computed(() => buildSeasonTrend(modeledFixtures.value));
   const nextFixture = computed(() => modeledFixtures.value.find((fixture) => (
@@ -62,7 +65,7 @@ export function useArsenalSeason() {
     activeFilter.value = filter;
   };
 
-  const refresh = async () => {
+  const refresh = async (requestedCompetition: Competition = activeCompetition.value) => {
     activeController?.abort();
     const controller = new AbortController();
     const version = ++requestVersion;
@@ -72,7 +75,10 @@ export function useArsenalSeason() {
     error.value = null;
 
     try {
-      const payload = await fetchArsenalSeason({ signal: controller.signal });
+      const payload = await fetchArsenalSeason({
+        competition: requestedCompetition,
+        signal: controller.signal,
+      });
       if (version !== requestVersion) {
         return;
       }
@@ -98,8 +104,18 @@ export function useArsenalSeason() {
     }
   };
 
+  const switchCompetition = async (competition: Competition) => {
+    if (competition === activeCompetition.value && !error.value) {
+      return;
+    }
+
+    activeFilter.value = "all";
+    selectCompetition(competition);
+    await refresh(competition);
+  };
+
   onMounted(() => {
-    void refresh();
+    void refresh(activeCompetition.value);
   });
 
   onUnmounted(() => {
@@ -109,6 +125,7 @@ export function useArsenalSeason() {
 
   return {
     activeFilter: readonly(activeFilter),
+    activeCompetition: readonly(activeCompetition),
     error: readonly(error),
     fixtures: readonly(fixtures),
     form,
@@ -121,6 +138,7 @@ export function useArsenalSeason() {
     savePersonalPrediction,
     season,
     setFilter,
+    switchCompetition,
     summary,
     trend,
     visibleFixtures,

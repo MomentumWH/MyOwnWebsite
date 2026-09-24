@@ -64,4 +64,26 @@ describe("arsenal season API", () => {
     expect(result.fixtures).toHaveLength(1);
     expect(result.fixtures[0]?.opponent).toBe("Coventry City");
   });
+
+  it("adds the competition query only for Champions League requests", async () => {
+    let requestedUrl = "";
+    const fetchImpl: typeof fetch = async (input) => {
+      requestedUrl = String(input);
+      return new Response(JSON.stringify({
+        ...payload,
+        meta: { ...payload.meta, source: "thesportsdb", competition: "champions-league" },
+        fixtures: payload.fixtures.map((fixture) => ({
+          ...fixture,
+          competition: "champions-league",
+        })),
+      }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      });
+    };
+
+    await fetchArsenalSeason({ competition: "champions-league", fetchImpl });
+
+    expect(requestedUrl).toBe("/api/football/arsenal-season?competition=champions-league");
+  });
 });

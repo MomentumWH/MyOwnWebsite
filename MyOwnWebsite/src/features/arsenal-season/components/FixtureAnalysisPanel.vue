@@ -31,7 +31,7 @@ const goalsRecord = computed(() => {
     <div class="analysis-copy">
       <span class="analysis-tendency">{{ analysis.tendency }}</span>
       <p>{{ analysis.summary }}</p>
-      <small>基于公开赛程、FPL 难度及可用历史赛果生成，不代表俱乐部或数据源官方观点。</small>
+      <small>基于公开赛程、赛事强度及可用历史赛果生成，不代表俱乐部或数据源官方观点。</small>
     </div>
 
     <dl class="analysis-evidence">

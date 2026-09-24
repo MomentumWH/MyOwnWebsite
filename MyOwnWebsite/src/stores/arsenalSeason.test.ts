@@ -25,6 +25,7 @@ const createPayload = (
   fetchedAt: string,
   season = "2026/27",
   difficulty = 2,
+  competition: "premier-league" | "champions-league" = "premier-league",
 ): ArsenalSeasonPayload => ({
   discipline: {
     redCards: 0,
@@ -41,6 +42,7 @@ const createPayload = (
     venue: "home",
   }],
   meta: {
+    competition,
     fetchedAt,
     season,
     source: "fpl",
@@ -110,5 +112,30 @@ describe("arsenal season store", () => {
 
     expect(store.fixturesWithPersonalPredictions[0]?.personalPrediction).toBeUndefined();
     expect(Object.values(store.personalPredictions)).toHaveLength(1);
+  });
+
+  it("keeps competition snapshots and personal predictions isolated", () => {
+    const store = useArsenalSeasonStore();
+    store.replaceSeasonPayload(createPayload("2026-08-20T03:00:00.000Z"));
+    store.savePersonalPrediction("fixture-1", { arsenalScore: 1, opponentScore: 0 });
+
+    store.replaceSeasonPayload(createPayload(
+      "2026-09-20T03:00:00.000Z",
+      "2026/27",
+      3,
+      "champions-league",
+    ));
+    store.savePersonalPrediction("fixture-1", { arsenalScore: 2, opponentScore: 1 });
+
+    expect(store.fixturesWithPersonalPredictions[0]?.personalPrediction).toMatchObject({
+      arsenalScore: 2,
+      opponentScore: 1,
+    });
+
+    store.selectCompetition("premier-league");
+    expect(store.fixturesWithPersonalPredictions[0]?.personalPrediction).toMatchObject({
+      arsenalScore: 1,
+      opponentScore: 0,
+    });
   });
 });

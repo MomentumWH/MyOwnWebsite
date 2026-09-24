@@ -2,11 +2,13 @@ import { parse } from "csv-parse/sync";
 
 const fplBaseUrl = "https://fantasy.premierleague.com/api";
 const historyBaseUrl = "https://www.football-data.co.uk/mmz4281";
+const espnChampionsLeagueBaseUrl = "https://site.web.api.espn.com/apis/site/v2/sports/soccer/uefa.champions";
+const espnArsenalTeamId = "359";
 const cacheTtlMs = 5 * 60 * 1000;
 const staleTtlMs = 24 * 60 * 60 * 1000;
 const historySeasonCount = 3;
 
-let cachedSeason = null;
+const cachedSeasons = new Map();
 
 const fetchJson = async (url, source, fetchImpl) => {
   const response = await fetchImpl(url, {
@@ -197,6 +199,191 @@ const getFixtureStatus = (fixture) => {
   return "upcoming";
 };
 
+const getCompetitionSeason = (now = Date.now()) => {
+  const year = new Date(now).getUTCFullYear();
+  const month = new Date(now).getUTCMonth();
+  const startYear = month >= 6 ? year : year - 1;
+  return `${startYear}-${startYear + 1}`;
+};
+
+const toSeasonLabel = (season) => {
+  const [startYear, endYear] = season.split("-");
+  return startYear && endYear ? `${startYear}/${endYear.slice(-2)}` : season;
+};
+
+const parseScore = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const score = Number(value);
+  return Number.isFinite(score) ? score : null;
+};
+
+const getTeamCode = (team) => {
+  const words = String(team || "TBD")
+    .replace(/[^a-z0-9 ]/gi, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) {
+    return "TBD";
+  }
+  if (words.length === 1) {
+    return words[0].slice(0, 3).toUpperCase();
+  }
+  return words.map((word) => word[0]).join("").slice(0, 3).toUpperCase();
+};
+
+const getCompetitionMonths = (season) => {
+  const startYear = Number(String(season).split("-")[0]);
+  if (!Number.isInteger(startYear)) {
+    return [];
+  }
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const monthDate = new Date(Date.UTC(startYear, 6 + index, 1));
+    return `${monthDate.getUTCFullYear()}${String(monthDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+};
+
+const getEspnTeam = (competitor) => competitor?.team ?? competitor ?? {};
+
+const getEspnTeamName = (competitor) => (
+  getEspnTeam(competitor).displayName
+    || getEspnTeam(competitor).name
+    || "Opponent TBD"
+);
+
+const getEspnTeamCode = (competitor) => (
+  getEspnTeam(competitor).abbreviation
+    || getTeamCode(getEspnTeamName(competitor))
+);
+
+const getEspnFixtureStatus = (event) => {
+  const status = event?.competitions?.[0]?.status?.type;
+  if (status?.completed || status?.state === "post") {
+    return "completed";
+  }
+  if (status?.state === "in") {
+    return "live";
+  }
+  return "upcoming";
+};
+
+const getEspnScore = (competitor) => parseScore(
+  competitor?.score?.displayValue
+    ?? competitor?.score?.value
+    ?? competitor?.score,
+);
+
+export const normalizeChampionsLeagueEvents = (
+  events,
+  fetchedAt = new Date().toISOString(),
+  season = getCompetitionSeason(),
+) => {
+  if (!Array.isArray(events)) {
+    throw new TypeError("ESPN returned an unexpected response shape.");
+  }
+
+  const fixtures = events
+    .map((event) => {
+      const competition = event?.competitions?.[0];
+      const competitors = Array.isArray(competition?.competitors)
+        ? competition.competitors
+        : [];
+      const arsenal = competitors.find((competitor) => (
+        String(competitor?.id ?? competitor?.team?.id) === espnArsenalTeamId
+        || canonicalTeamName(getEspnTeamName(competitor)) === "arsenal"
+      ));
+
+      if (!arsenal || competitors.length < 2) {
+        return null;
+      }
+
+      const opponent = competitors.find((competitor) => competitor !== arsenal);
+      if (!opponent) {
+        return null;
+      }
+
+      const isHome = arsenal.homeAway === "home";
+      const arsenalScore = getEspnScore(arsenal);
+      const opponentScore = getEspnScore(opponent);
+      const status = getEspnFixtureStatus(event);
+      const kickoffTime = typeof event?.date === "string" ? event.date : null;
+      const stage = event?.season?.slug === "league-phase"
+        ? "联赛阶段"
+        : event?.seasonType?.name || event?.season?.slug || null;
+
+      return {
+        competition: "champions-league",
+        difficulty: null,
+        id: `ucl-${String(event.id)}`,
+        kickoffTime,
+        matchweek: Number.isInteger(Number(event?.week?.number))
+          ? Number(event.week.number)
+          : null,
+        opponent: getEspnTeamName(opponent),
+        opponentCode: getEspnTeamCode(opponent),
+        roundLabel: typeof stage === "string" && stage.trim() ? stage : null,
+        status,
+        venueName: competition?.venue?.fullName || null,
+        venue: isHome ? "home" : "away",
+        ...(status === "completed" && arsenalScore !== null && opponentScore !== null
+          ? {
+              actual: {
+                arsenalScore,
+                opponentScore,
+                fplBonus: null,
+                bps: null,
+              },
+            }
+          : {}),
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => (left.kickoffTime || "").localeCompare(right.kickoffTime || ""));
+
+  const uniqueFixtures = Array.from(
+    new Map(fixtures.map((fixture) => [fixture.id, fixture])).values(),
+  );
+
+  return {
+    discipline: { available: false, redCards: 0, yellowCards: 0 },
+    meta: {
+      competition: "champions-league",
+      competitionLabel: "UEFA Champions League",
+      fetchedAt,
+      matchCount: uniqueFixtures.length,
+      season: toSeasonLabel(season),
+      source: "espn",
+      stale: false,
+    },
+    fixtures: uniqueFixtures,
+  };
+};
+
+const fetchChampionsLeagueEvents = async (season, fetchImpl) => {
+  const months = getCompetitionMonths(season);
+  if (months.length === 0) {
+    throw new Error("Unable to determine the Champions League season months.");
+  }
+
+  const responses = await Promise.all(months.map((month) => (
+    fetchJson(
+      `${espnChampionsLeagueBaseUrl}/scoreboard?dates=${month}`,
+      "ESPN",
+      fetchImpl,
+    )
+  )));
+  const startYear = Number(String(season).split("-")[0]);
+  const events = responses.flatMap((payload) => (
+    Array.isArray(payload?.events) ? payload.events : []
+  )).filter((event) => Number(event?.season?.year) === startYear);
+
+  return Array.from(new Map(events.map((event) => [String(event.id), event])).values());
+};
+
 export const normalizeArsenalDiscipline = (elements, arsenalTeamId) => {
   if (!Array.isArray(elements)) {
     throw new TypeError("FPL player data has an unexpected response shape.");
@@ -235,6 +422,7 @@ export const normalizeArsenalSeason = (bootstrap, fixtures, fetchedAt = new Date
       const hasScore = Number.isFinite(arsenalScore) && Number.isFinite(opponentScore);
 
       return {
+        competition: "premier-league",
         id: String(fixture.id),
         matchweek: Number.isInteger(fixture.event) ? fixture.event : null,
         kickoffTime: typeof fixture.kickoff_time === "string" ? fixture.kickoff_time : null,
@@ -267,9 +455,15 @@ export const normalizeArsenalSeason = (bootstrap, fixtures, fetchedAt = new Date
   }
 
   return {
-    discipline: normalizeArsenalDiscipline(bootstrap.elements, arsenal.id),
+    discipline: {
+      ...normalizeArsenalDiscipline(bootstrap.elements, arsenal.id),
+      available: true,
+    },
     meta: {
+      competition: "premier-league",
+      competitionLabel: "Premier League",
       fetchedAt,
+      matchCount: 38,
       season: getSeasonLabel(arsenalFixtures.map((fixture) => ({ kickoff_time: fixture.kickoffTime }))),
       source: "fpl",
       stale: false,
@@ -279,14 +473,31 @@ export const normalizeArsenalSeason = (bootstrap, fixtures, fetchedAt = new Date
 };
 
 export const getArsenalSeasonData = async ({
+  competition = "premier-league",
   fetchImpl = fetch,
   now = Date.now(),
 } = {}) => {
+  const cachedSeason = cachedSeasons.get(competition);
   if (cachedSeason && now - cachedSeason.cachedAt < cacheTtlMs) {
     return cachedSeason.payload;
   }
 
   try {
+    if (competition === "champions-league") {
+      const season = getCompetitionSeason(now);
+      const events = await fetchChampionsLeagueEvents(season, fetchImpl);
+      const payload = normalizeChampionsLeagueEvents(
+        events,
+        new Date(now).toISOString(),
+        season,
+      );
+      if (payload.fixtures.length === 0) {
+        throw new Error("ESPN returned no Arsenal Champions League fixtures.");
+      }
+      cachedSeasons.set(competition, { cachedAt: now, payload });
+      return payload;
+    }
+
     const [bootstrap, fixtures] = await Promise.all([
       fetchJson(`${fplBaseUrl}/bootstrap-static/`, "FPL", fetchImpl),
       fetchJson(`${fplBaseUrl}/fixtures/`, "FPL", fetchImpl),
@@ -310,7 +521,7 @@ export const getArsenalSeasonData = async ({
         return headToHead ? { ...fixture, headToHead } : fixture;
       }),
     };
-    cachedSeason = { cachedAt: now, payload: enrichedPayload };
+    cachedSeasons.set(competition, { cachedAt: now, payload: enrichedPayload });
     return enrichedPayload;
   }
   catch (error) {
@@ -329,5 +540,5 @@ export const getArsenalSeasonData = async ({
 };
 
 export const clearArsenalSeasonCache = () => {
-  cachedSeason = null;
+  cachedSeasons.clear();
 };

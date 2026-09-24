@@ -189,7 +189,7 @@ const statusTone = (fixture: ArsenalFixture) => (
             @click="toggleFixture(fixture.id)"
           >
             <span class="round-cell">
-              <strong>{{ fixture.matchweek === null ? "MW --" : `MW ${fixture.matchweek}` }}</strong>
+              <strong>{{ fixture.roundLabel ?? (fixture.matchweek === null ? "MW --" : `MW ${fixture.matchweek}`) }}</strong>
               <time
                 class="kickoff-time"
                 :datetime="fixture.kickoffTime ?? undefined"

@@ -77,11 +77,63 @@ describe("arsenal season analytics", () => {
     ];
     const trend = buildSeasonTrend(fixtures);
     const summary = calculateSeasonSummary(fixtures);
+    const championsLeagueSummary = calculateSeasonSummary(
+      fixtures,
+      { redCards: 0, yellowCards: 0 },
+      8,
+    );
 
-    expect(trend[0]).toMatchObject({ actual: 1, projected: 1 });
+    expect(trend[0]).toMatchObject({ actual: 1 });
+    expect(trend[0]?.projected).toBe(1.8);
     expect(trend[1]?.actual).toBeNull();
-    expect(trend[1]?.projected).toBeGreaterThan(1);
+    expect(trend[1]?.projected).toBe(3.9);
     expect(summary.forecastPoints).not.toBeNull();
+    expect(championsLeagueSummary.forecastPoints).toBe(12);
+  });
+
+  it("keeps historical forecast points independent from actual results", () => {
+    const fixtures = [
+      createFixture({
+        actual: { arsenalScore: 2, bps: 62, fplBonus: 3, opponentScore: 0 },
+        id: "completed-1",
+        status: "completed",
+      }),
+      createFixture({
+        id: "upcoming-2",
+        matchweek: 2,
+        prediction: {
+          arsenalScore: 2,
+          confidence: 70,
+          drawProbability: 25,
+          factors: [],
+          lossProbability: 15,
+          opponentScore: 1,
+          summary: "",
+          winProbability: 60,
+        },
+      }),
+      createFixture({
+        id: "upcoming-3",
+        matchweek: 3,
+        prediction: {
+          arsenalScore: 1,
+          confidence: 60,
+          drawProbability: 25,
+          factors: [],
+          lossProbability: 45,
+          opponentScore: 1,
+          summary: "",
+          winProbability: 30,
+        },
+      }),
+    ];
+
+    const trend = buildSeasonTrend(fixtures);
+
+    expect(trend[0]?.actual).toBe(3);
+    expect(trend[0]?.projected).toBe(1.8);
+    expect(trend[1]?.projected).toBe(3.9);
+    expect(trend[2]?.projected).toBe(5);
   });
 
   it("formats UTC kickoffs in the dashboard timezone", () => {

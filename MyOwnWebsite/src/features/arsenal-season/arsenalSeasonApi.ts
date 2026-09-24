@@ -4,9 +4,11 @@ import type {
   HeadToHeadMeeting,
   HeadToHeadSummary,
   MatchActual,
+  Competition,
 } from "./arsenalSeason";
 
 interface FetchArsenalSeasonOptions {
+  competition?: Competition;
   fetchImpl?: typeof fetch;
   signal?: AbortSignal;
 }
@@ -41,7 +43,7 @@ const isHeadToHeadMeeting = (value: unknown): value is HeadToHeadMeeting => (
 
 const isHeadToHeadSummary = (value: unknown): value is HeadToHeadSummary => (
   isRecord(value)
-  && value.source === "football-data"
+  && (value.source === "football-data" || value.source === "thesportsdb")
   && typeof value.meetings === "number"
   && typeof value.arsenalWins === "number"
   && typeof value.draws === "number"
@@ -54,11 +56,16 @@ const isHeadToHeadSummary = (value: unknown): value is HeadToHeadSummary => (
 const isFixture = (value: unknown): value is ArsenalFixture => (
   isRecord(value)
   && typeof value.id === "string"
+  && (value.competition === undefined
+    || value.competition === "premier-league"
+    || value.competition === "champions-league")
   && (value.matchweek === null || typeof value.matchweek === "number")
   && (value.kickoffTime === null || typeof value.kickoffTime === "string")
+  && (value.roundLabel === undefined || value.roundLabel === null || typeof value.roundLabel === "string")
   && typeof value.opponent === "string"
   && typeof value.opponentCode === "string"
   && (value.venue === "home" || value.venue === "away")
+  && (value.venueName === undefined || value.venueName === null || typeof value.venueName === "string")
   && (value.status === "completed" || value.status === "live" || value.status === "upcoming")
   && isNullableNumber(value.difficulty)
   && (value.actual === undefined || isMatchActual(value.actual))
@@ -77,18 +84,26 @@ export const isArsenalSeasonPayload = (value: unknown): value is ArsenalSeasonPa
 
   return isCardCount(value.discipline.yellowCards)
     && isCardCount(value.discipline.redCards)
-    && value.meta.source === "fpl"
+    && (value.meta.source === "espn"
+      || value.meta.source === "fpl"
+      || value.meta.source === "thesportsdb")
     && typeof value.meta.fetchedAt === "string"
+    && (value.meta.matchCount === undefined
+      || (typeof value.meta.matchCount === "number" && value.meta.matchCount > 0))
     && typeof value.meta.season === "string"
     && typeof value.meta.stale === "boolean"
     && value.fixtures.every(isFixture);
 };
 
 export const fetchArsenalSeason = async ({
+  competition = "premier-league",
   fetchImpl = fetch,
   signal,
 }: FetchArsenalSeasonOptions = {}): Promise<ArsenalSeasonPayload> => {
-  const response = await fetchImpl("/api/football/arsenal-season", {
+  const endpoint = competition === "premier-league"
+    ? "/api/football/arsenal-season"
+    : `/api/football/arsenal-season?competition=${encodeURIComponent(competition)}`;
+  const response = await fetchImpl(endpoint, {
     headers: { Accept: "application/json" },
     signal,
   });

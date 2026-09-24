@@ -2,6 +2,7 @@ export type FixtureFilter = "all" | "completed" | "upcoming";
 export type FixtureStatus = "completed" | "live" | "upcoming";
 export type FixtureVenue = "home" | "away";
 export type MatchResult = "W" | "D" | "L";
+export type Competition = "premier-league" | "champions-league";
 
 export interface MatchPrediction {
   arsenalScore: number;
@@ -47,7 +48,7 @@ export interface HeadToHeadSummary {
   lastMeeting: HeadToHeadMeeting | null;
   meetings: number;
   opponentWins: number;
-  source: "football-data";
+  source: "football-data" | "thesportsdb";
 }
 
 export interface FixtureAnalysis {
@@ -59,6 +60,7 @@ export interface FixtureAnalysis {
 
 export interface ArsenalFixture {
   actual?: MatchActual;
+  competition?: Competition;
   difficulty: number | null;
   headToHead?: HeadToHeadSummary;
   id: string;
@@ -68,18 +70,24 @@ export interface ArsenalFixture {
   opponentCode: string;
   personalPrediction?: PersonalScorePrediction;
   prediction?: MatchPrediction;
+  roundLabel?: string | null;
   status: FixtureStatus;
+  venueName?: string | null;
   venue: FixtureVenue;
 }
 
 export interface ArsenalSeasonMeta {
+  competition?: Competition;
+  competitionLabel?: string;
   fetchedAt: string;
+  matchCount?: number;
   season: string;
-  source: "fpl";
+  source: "espn" | "fpl" | "thesportsdb";
   stale: boolean;
 }
 
 export interface ArsenalDiscipline {
+  available?: boolean;
   redCards: number;
   yellowCards: number;
 }
@@ -211,6 +219,11 @@ const predictionBaseline = {
   5: { arsenalGoals: 1, draw: 23, opponentGoals: 2, win: 22 },
 } as const;
 
+export const competitionLabels: Record<Competition, string> = {
+  "champions-league": "UEFA Champions League",
+  "premier-league": "Premier League",
+};
+
 const clamp = (value: number, minimum: number, maximum: number) => (
   Math.min(maximum, Math.max(minimum, value))
 );
@@ -242,7 +255,9 @@ export const buildMatchPrediction = (fixture: ArsenalFixture): MatchPrediction =
   const arsenalScore = clamp(Math.round(arsenalExpectedGoals), 0, 4);
   const opponentScore = clamp(Math.round(opponentExpectedGoals), 0, 4);
   const factors = [
-    `FPL 难度 ${difficulty}/5`,
+    fixture.competition === "champions-league"
+      ? "欧冠淘汰赛强度评估"
+      : `FPL 难度 ${difficulty}/5`,
     fixture.venue === "home" ? "阿森纳主场优势" : "阿森纳客场作战",
     history
       ? `近三季交锋 ${history.arsenalWins}胜${history.draws}平${history.opponentWins}负`
@@ -261,7 +276,7 @@ export const buildMatchPrediction = (fixture: ArsenalFixture): MatchPrediction =
     factors,
     lossProbability,
     opponentScore,
-    summary: `模型结合 FPL 赛程难度、${fixture.venue === "home" ? "主场" : "客场"}因素${history ? `及近三季 ${history.meetings} 次交锋数据` : "及当前可用公开数据"}，给出 ${arsenalScore}:${opponentScore} 的参考比分。该结果不包含临场首发与最新伤停变化。`,
+    summary: `模型结合${fixture.competition === "champions-league" ? "欧冠赛程强度" : "FPL 赛程难度"}、${fixture.venue === "home" ? "主场" : "客场"}因素${history ? `及近三季 ${history.meetings} 次交锋数据` : "及当前可用公开数据"}，给出 ${arsenalScore}:${opponentScore} 的参考比分。该结果不包含临场首发与最新伤停变化。`,
     winProbability,
   };
 };
@@ -296,7 +311,8 @@ const getHistorySentence = (fixture: ArsenalFixture) => {
   const history = fixture.headToHead;
 
   if (!history || history.meetings === 0) {
-    return `近三季公开英超赛果中没有找到双方有效交锋样本，因此历史对赛不会被强行纳入结论；对${fixture.opponent}的判断主要来自本场赛程难度与主客场环境。`;
+    const competitionLabel = fixture.competition === "champions-league" ? "欧冠" : "英超";
+    return `近三季公开${competitionLabel}赛果中没有找到双方有效交锋样本，因此历史对赛不会被强行纳入结论；对${fixture.opponent}的判断主要来自本场赛程难度与主客场环境。`;
   }
 
   const lastMeeting = history.lastMeeting;
@@ -304,7 +320,8 @@ const getHistorySentence = (fixture: ArsenalFixture) => {
     ? `最近一次交手阿森纳${lastMeeting.venue === "home" ? "主场" : "客场"}以 ${lastMeeting.arsenalScore}:${lastMeeting.opponentScore} ${lastMeeting.arsenalScore > lastMeeting.opponentScore ? "取胜" : lastMeeting.arsenalScore === lastMeeting.opponentScore ? "战平" : "告负"}。`
     : "";
 
-  return `近三季英超 ${history.meetings} 次交锋中，阿森纳取得 ${history.arsenalWins} 胜 ${history.draws} 平 ${history.opponentWins} 负，合计进 ${history.goalsFor} 球、失 ${history.goalsAgainst} 球。${lastMeetingSentence}`;
+  const competitionLabel = fixture.competition === "champions-league" ? "欧冠" : "英超";
+  return `近三季${competitionLabel} ${history.meetings} 次交锋中，阿森纳取得 ${history.arsenalWins} 胜 ${history.draws} 平 ${history.opponentWins} 负，合计进 ${history.goalsFor} 球、失 ${history.goalsAgainst} 球。${lastMeetingSentence}`;
 };
 
 export const buildFixtureAnalysis = (fixture: ArsenalFixture): FixtureAnalysis => {
@@ -324,7 +341,7 @@ export const buildFixtureAnalysis = (fixture: ArsenalFixture): FixtureAnalysis =
 
   return {
     evidenceLabel: fixture.headToHead
-      ? `近三季英超交锋 · Football-Data`
+      ? `近三季${fixture.competition === "champions-league" ? "欧冠" : "英超"}交锋 · ${fixture.headToHead.source === "thesportsdb" ? "TheSportsDB" : "Football-Data"}`
       : "公开历史样本暂缺",
     phaseLabel,
     tendency,
@@ -335,6 +352,7 @@ export const buildFixtureAnalysis = (fixture: ArsenalFixture): FixtureAnalysis =
 export const calculateSeasonSummary = (
   fixtures: readonly ArsenalFixture[],
   discipline: ArsenalDiscipline = { redCards: 0, yellowCards: 0 },
+  matchCount = 38,
 ): SeasonSummary => {
   const completed = fixtures.filter((fixture) => fixture.status === "completed" && fixture.actual);
   const results = completed.map(getMatchResult);
@@ -366,7 +384,7 @@ export const calculateSeasonSummary = (
     redCards: discipline.redCards,
     forecastPoints: expectedPoints === null
       ? null
-      : Math.round((expectedPoints / fixtures.length) * 38),
+      : Math.round((expectedPoints / fixtures.length) * matchCount),
     yellowCards: discipline.yellowCards,
   };
 };
@@ -375,26 +393,23 @@ export const buildSeasonTrend = (
   fixtures: readonly ArsenalFixture[],
 ): readonly SeasonTrendPoint[] => {
   let actualPoints = 0;
-  let projectedPoints: number | null = fixtures.some((fixture) => fixture.prediction) ? 0 : null;
+  let projectedPoints = 0;
 
   return fixtures.map((fixture) => {
     if (fixture.status === "completed") {
       const matchPoints = getMatchPoints(fixture);
       actualPoints += matchPoints;
-      if (projectedPoints !== null) {
-        projectedPoints += matchPoints;
-      }
     }
-    else if (projectedPoints !== null) {
-      const expectedPoints = getExpectedPoints(fixture);
-      projectedPoints = expectedPoints === null ? null : projectedPoints + expectedPoints;
-    }
+
+    // Keep the model series independent so completed fixtures retain their forecasts.
+    const prediction = fixture.prediction ?? buildMatchPrediction(fixture);
+    projectedPoints += (prediction.winProbability * 3 + prediction.drawProbability) / 100;
 
     return {
       label: fixture.matchweek === null ? "MW--" : `MW${fixture.matchweek}`,
       opponent: fixture.opponentCode,
       actual: fixture.status === "completed" ? actualPoints : null,
-      projected: projectedPoints === null ? null : Number(projectedPoints.toFixed(1)),
+      projected: Number(projectedPoints.toFixed(1)),
     };
   });
 };

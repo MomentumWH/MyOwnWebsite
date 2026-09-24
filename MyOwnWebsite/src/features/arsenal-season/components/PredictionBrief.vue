@@ -10,13 +10,17 @@ const props = defineProps<{
 
 const venueLabel = computed(() => props.fixture?.venue === "home" ? "主场" : "客场");
 const prediction = computed(() => props.fixture?.prediction ?? null);
-const matchweekLabel = computed(() => props.fixture?.matchweek === null
-  ? "MW 待定"
-  : `MW ${props.fixture?.matchweek ?? "--"}`);
+const matchweekLabel = computed(() => props.fixture?.roundLabel
+  ?? (props.fixture?.matchweek === null
+    ? "MW 待定"
+    : `MW ${props.fixture?.matchweek ?? "--"}`));
 const kickoffLabel = computed(() => formatKickoffTime(props.fixture?.kickoffTime ?? null));
 const difficultyLabel = computed(() => props.fixture?.difficulty
   ? `${props.fixture.difficulty} / 5`
   : "待定");
+const difficultyName = computed(() => props.fixture?.competition === "champions-league"
+  ? "欧冠强度"
+  : "FPL 难度");
 const winRingStyle = computed(() => ({
   background: `conic-gradient(#e30613 0 ${prediction.value?.winProbability ?? 0}%, rgba(255,255,255,0.09) 0 100%)`,
 }));
@@ -70,7 +74,7 @@ const probabilityRows = computed(() => prediction.value
 
       <div v-else class="fixture-facts">
         <div>
-          <span>FPL 难度</span>
+          <span>{{ difficultyName }}</span>
           <strong>{{ difficultyLabel }}</strong>
         </div>
         <div>

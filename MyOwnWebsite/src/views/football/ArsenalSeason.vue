@@ -11,11 +11,16 @@ import ProjectNav from "@/components/projectNav/index.vue";
 import FixtureLedger from "@/features/arsenal-season/components/FixtureLedger.vue";
 import PredictionBrief from "@/features/arsenal-season/components/PredictionBrief.vue";
 import SeasonMomentumChart from "@/features/arsenal-season/components/SeasonMomentumChart.vue";
-import { formatUpdatedAt } from "@/features/arsenal-season/arsenalSeason";
+import {
+  competitionLabels,
+  formatUpdatedAt,
+  type Competition,
+} from "@/features/arsenal-season/arsenalSeason";
 import { useArsenalSeason } from "@/features/arsenal-season/useArsenalSeason";
 
 const {
   activeFilter,
+  activeCompetition,
   error,
   form,
   isLoading,
@@ -28,6 +33,7 @@ const {
   season,
   setFilter,
   summary,
+  switchCompetition,
   trend,
   visibleFixtures,
 } = useArsenalSeason();
@@ -66,7 +72,7 @@ const notice = computed(() => {
   if (isLoading.value) {
     return {
       label: "正在同步",
-      message: "正在读取阿森纳当前赛季官方赛程。",
+      message: `正在读取阿森纳当前${isChampionsLeague.value ? "欧冠公开" : "英超官方"}赛季赛程。`,
       tone: "loading",
     } as const;
   }
@@ -77,15 +83,22 @@ const notice = computed(() => {
       message: "上游暂时不可用，当前展示最近一次成功同步的数据。",
       tone: "stale",
     } as const;
-  }
+}
 
   return {
-    label: "FPL 官方数据",
-    message: "当前赛季赛程、赛果与纪律数据已接入 Fantasy Premier League 数据源。",
+    label: isChampionsLeague.value ? "ESPN 公开数据" : "FPL 官方数据",
+    message: isChampionsLeague.value
+      ? "当前赛季欧冠赛程、赛果与赛前预测已接入 ESPN 公开数据源。"
+      : "当前赛季赛程、赛果与纪律数据已接入 Fantasy Premier League 数据源。",
     tone: "ready",
   } as const;
 });
 const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
+const isChampionsLeague = computed(() => activeCompetition.value === "champions-league");
+const competitionOptions: readonly { key: Competition; label: string }[] = [
+  { key: "premier-league", label: competitionLabels["premier-league"] },
+  { key: "champions-league", label: competitionLabels["champions-league"] },
+];
 </script>
 
 <template>
@@ -105,7 +118,7 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
             <span>正在获取数据</span>
           </div>
           <strong>阿森纳赛季数据同步中</strong>
-          <p>正在读取官方赛程、赛果与积分走势</p>
+          <p>正在读取{{ isChampionsLeague ? "欧冠" : "英超" }}赛程、赛果与积分走势</p>
           <div class="data-fetch-track" aria-hidden="true"><span></span></div>
         </div>
       </div>
@@ -124,14 +137,26 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
       <header class="season-hero" aria-labelledby="arsenal-season-title">
         <div class="hero-copy">
           <div class="hero-meta">
-            <span>Premier League</span>
+            <div class="competition-switch" aria-label="选择赛事">
+              <button
+                v-for="option in competitionOptions"
+                :key="option.key"
+                type="button"
+                :class="{ 'is-active': activeCompetition === option.key }"
+                :aria-pressed="activeCompetition === option.key"
+                :disabled="isLoading"
+                @click="switchCompetition(option.key)"
+              >
+                {{ option.key === "champions-league" ? "欧冠" : "英超" }}
+              </button>
+            </div>
             <span>{{ season }} / Match intelligence</span>
           </div>
 
           <p class="hero-kicker">North London / Season command</p>
           <h1 id="arsenal-season-title">Arsenal</h1>
           <p class="hero-subtitle">
-            当前赛季官方赛程、赛果记录与积分走势。把每轮比赛沉淀为可追踪的数据轨迹。
+            当前{{ isChampionsLeague ? "欧冠公开" : "英超官方" }}赛季赛程、赛果记录与积分走势。把每轮比赛沉淀为可追踪的数据轨迹。
           </p>
 
           <div class="form-row">
@@ -182,7 +207,7 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
         <section class="analysis-intro">
           <span class="section-index">01</span>
           <div>
-            <p class="section-kicker">Trajectory / Probability</p>
+            <p class="section-kicker">{{ isChampionsLeague ? "Champions League" : "Premier League" }} / Probability</p>
             <h2>走势不是一条线，<br />而是一组不断修正的判断。</h2>
           </div>
           <p>
@@ -213,15 +238,15 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
             </div>
             <div>
               <NIcon><PulseOutline /></NIcon>
-              <span>FPL 奖励积分</span>
+              <span>{{ isChampionsLeague ? "官方奖励积分" : "FPL 奖励积分" }}</span>
               <strong>{{ latestActual?.fplBonus ?? "--" }}</strong>
-              <small>本场球员奖励合计</small>
+              <small>{{ isChampionsLeague ? "该赛事暂未提供" : "本场球员奖励合计" }}</small>
             </div>
             <div>
               <NIcon><RadioOutline /></NIcon>
-              <span>BPS 合计</span>
+              <span>{{ isChampionsLeague ? "表现指标" : "BPS 合计" }}</span>
               <strong>{{ latestActual?.bps ?? "--" }}</strong>
-              <small>Fantasy 表现指标</small>
+              <small>{{ isChampionsLeague ? "该赛事暂未提供" : "Fantasy 表现指标" }}</small>
             </div>
             <div>
               <NIcon><CheckmarkCircleOutline /></NIcon>
@@ -242,7 +267,7 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
       </main>
 
       <footer class="page-footer">
-        <span>Arsenal season intelligence / FPL</span>
+        <span>Arsenal season intelligence / {{ isChampionsLeague ? "UEFA Champions League" : "FPL" }}</span>
         <span>Vue 3 + ECharts · Asia/Shanghai</span>
       </footer>
     </div>
@@ -518,6 +543,38 @@ const updatedAtLabel = computed(() => formatUpdatedAt(lastUpdated.value));
   font-family: "Fira Code", monospace;
   font-size: 0.67rem;
   text-transform: uppercase;
+}
+
+.competition-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.competition-switch button {
+  min-height: 24px;
+  padding: 0 9px;
+  color: rgba(255, 255, 255, 0.46);
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 900;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.competition-switch button:hover:not(:disabled),
+.competition-switch button.is-active {
+  color: #17191d;
+  background: var(--signal);
+}
+
+.competition-switch button:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .hero-kicker,

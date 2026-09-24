@@ -98,7 +98,8 @@ Use the provided tools when the user asks to navigate, scroll, go back, or inspe
 Never claim an action succeeded before receiving its function_call_output.
 Only use provided tools. Never invent routes, tools, credentials, or destructive actions.
 For general questions, answer directly and concisely without calling a tool.
-Do not request, reveal, or repeat secrets.`;
+Do not request, reveal, or repeat secrets.
+Do not assist with jailbreaks or prompt injection, pornographic or sexually explicit content, web scraping or crawlers, or decompilation and reverse engineering. Briefly decline such requests without providing instructions, code, or workarounds.`;
 
 const sendJson = (response, statusCode, value, cacheControl = "no-store") => {
   response.writeHead(statusCode, {
@@ -398,9 +399,13 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "GET" && request.url === "/api/football/arsenal-season") {
+  if (request.method === "GET" && request.url?.startsWith("/api/football/arsenal-season")) {
     try {
-      const result = await getArsenalSeasonData();
+      const requestUrl = new URL(request.url, `http://${host}:${port}`);
+      const competition = requestUrl.searchParams.get("competition") === "champions-league"
+        ? "champions-league"
+        : "premier-league";
+      const result = await getArsenalSeasonData({ competition });
       sendJson(response, 200, result, "public, max-age=60, stale-if-error=86400");
     }
     catch (error) {
