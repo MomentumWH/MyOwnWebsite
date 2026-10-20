@@ -29,6 +29,7 @@ export type PageAgentIntent =
 export const PAGE_AGENT_DESTINATIONS: readonly PageAgentDestination[] = [
   { label: "首页", path: "/", keywords: ["首页", "主页", "home"] },
   { label: "关于页面", path: "/about", keywords: ["关于", "about"] },
+  { label: "教程中心", path: "/guide", keywords: ["教程", "使用指南", "guide"] },
   { label: "博客", path: "/blog", keywords: ["博客", "blog"] },
   { label: "电商实验", path: "/ecommerce", keywords: ["电商", "商城", "ecommerce"] },
   { label: "数据可视化", path: "/data-visualization", keywords: ["数据可视化", "可视化"] },

@@ -20,6 +20,7 @@ const navItems = [
   { label: "数据可视化", path: "/data-visualization" },
   { label: "阿森纳赛季", path: "/arsenal-season" },
   { label: "CS饰品数据", path: "/cs-items" },
+  { label: "教程中心", path: "/guide" },
 ];
 
 const pendingPath = shallowRef<string | null>(null);

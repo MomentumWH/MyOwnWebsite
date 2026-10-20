@@ -9,6 +9,13 @@ describe("resolvePageAgentIntent", () => {
     });
   });
 
+  it("opens the public guide from a tutorial request", () => {
+    expect(resolvePageAgentIntent("打开教程中心")).toMatchObject({
+      type: "navigate",
+      destination: { path: "/guide" },
+    });
+  });
+
   it("prefers the top action over the back action", () => {
     expect(resolvePageAgentIntent("帮我返回顶部")).toEqual({
       type: "scroll",

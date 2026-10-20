@@ -85,7 +85,7 @@ Blog 和 Data Visualization 当前是展示页面，不是完整的内容管理�
 
 | 访问条件 | 路由 |
 | --- | --- |
-| 公开 | `/`、`/about`、`/login`、`/register` |
+| 公开 | `/`、`/about`、`/guide`、`/login`、`/register` |
 | 公开展示 | `/blog`、`/ecommerce`、`/data-visualization`、`/drag-box` |
 | 公开数据页 | `/arsenal-season`、`/cs-items`、`/item-list`、`/CsItemDetail` |
 | 需要登录 | `/profile`、`/pretext-demo`、`/soybean-ui-demo` |

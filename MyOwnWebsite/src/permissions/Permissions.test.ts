@@ -15,10 +15,16 @@ function mockRoute(
   meta: Record<string, unknown> = {},
 ): RouteLocationNormalized {
   return {
+    name: undefined,
     path,
     fullPath: path,
+    hash: "",
+    query: {},
+    params: {},
+    meta,
+    redirectedFrom: undefined,
     matched: [{ path, meta } as never],
-  } as RouteLocationNormalized;
+  };
 }
 
 describe("permissions", () => {
@@ -105,6 +111,14 @@ describe("permissions", () => {
 
     it("allows guest on public home", () => {
       expect(resolveNavigationGuard(mockRoute("/"), guest)).toBe(true);
+    });
+
+    it("allows guests to read guide chapters without logging in", () => {
+      const to = mockRoute("/guide");
+      to.fullPath = "/guide#account";
+
+      expect(routeRequiresAuth(to)).toBe(false);
+      expect(resolveNavigationGuard(to, guest)).toBe(true);
     });
   });
 

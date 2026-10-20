@@ -35,6 +35,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Home" },
   },
   {
+    path: "/guide",
+    name: "guide",
+    component: () => import("@/pages/guidePage/index.vue"),
+    meta: { title: "教程中心" },
+  },
+  {
     path: "/about",
     name: "about",
     component: () => import("@/views/base/About.vue"),
@@ -133,6 +139,11 @@ export const router = createRouter({
   scrollBehavior(to, _from, savedPosition) {
     if (savedPosition) {
       return savedPosition;
+    }
+
+    // 教程在页面挂载后定位章节，避免路由过渡期间找不到锚点。
+    if (to.name === "guide" && to.hash) {
+      return false;
     }
 
     if (to.hash) {

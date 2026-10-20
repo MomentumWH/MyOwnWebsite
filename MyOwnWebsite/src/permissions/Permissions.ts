@@ -30,6 +30,7 @@ export const ROUTE_WHITE_LIST = new Set<string>([
   "/arsenal-season",
   "/drag-box",
   "/about",
+  "/guide",
   "/:pathMatch(.*)*",
 ]);
 
